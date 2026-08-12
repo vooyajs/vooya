@@ -1,5 +1,14 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname, parse, relative, resolve } from "node:path";
 
 import { buildApplication } from "./build-core.mjs";
 import {
@@ -13,6 +22,7 @@ import { compileVooStyle } from "./voo-style.js";
 const pluginPackage = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
+const ownershipMarker = ".vooya-artifact";
 
 export function buildPrecompiledArtifact({
   source,
@@ -28,7 +38,7 @@ export function buildPrecompiledArtifact({
     throw new Error("A precompiled artifact requires outputDir.");
   }
   const sourcePath = resolve(source);
-  const component = {
+  let component = {
     ...parseVooComponent(readFileSync(sourcePath, "utf8"), sourcePath),
     id: sourcePath,
     scopeSource: `${packageName}/${basename(sourcePath)}`,
@@ -38,59 +48,94 @@ export function buildPrecompiledArtifact({
   }
 
   const artifactRoot = resolve(outputDir);
-  const dist = resolve(artifactRoot, "dist");
-  const cacheRoot = resolve(artifactRoot, ".cache");
-  rmSync(artifactRoot, { force: true, recursive: true });
-  mkdirSync(dist, { recursive: true });
+  assertArtifactOutputTarget({ artifactRoot, sourcePath });
+  mkdirSync(dirname(artifactRoot), { recursive: true });
+  const stagingRoot = mkdtempSync(
+    resolve(dirname(artifactRoot), `.${basename(artifactRoot)}.vooya-stage-`),
+  );
 
-  buildApplication({
-    applicationRoot: dirname(sourcePath),
-    components: [component],
-    rust,
-    cacheRoot,
-    outputDir: dist,
-    outputName: "runtime",
-  });
+  try {
+    const dist = resolve(stagingRoot, "dist");
+    const cacheRoot = resolve(stagingRoot, ".cache");
+    mkdirSync(dist, { recursive: true });
+    const prepared = prepareArtifactComponent(component);
+    component = prepared.component;
+    const { compiledStyle, hasStyle } = prepared;
 
-  const definition = generatedAdapterDefinition(component);
-  const manifest = generateArtifactManifest({ component, definition, packageName });
-  const style = compileVooStyle(component);
-  if (style) writeFileSync(resolve(dist, "style.css"), `${style}\n`);
-  for (const framework of ["vue", "react"]) {
-    writeFileSync(resolve(dist, `${framework}.js`), generateArtifactEntry(component, framework));
+    buildApplication({
+      applicationRoot: dirname(sourcePath),
+      components: [component],
+      rust,
+      cacheRoot,
+      outputDir: dist,
+      outputName: "runtime",
+    });
+
+    const definition = generatedAdapterDefinition(component);
+    const manifest = generateArtifactManifest({
+      component,
+      definition,
+      packageName,
+      hasStyle,
+    });
+    if (hasStyle) writeFileSync(resolve(dist, "style.css"), `${compiledStyle}\n`);
+    for (const framework of ["vue", "react"]) {
+      writeFileSync(
+        resolve(dist, `${framework}.js`),
+        generateArtifactEntry(component, framework, hasStyle),
+      );
+      writeFileSync(
+        resolve(dist, `${framework}.d.ts`),
+        generateVooDeclaration(component, framework),
+      );
+    }
     writeFileSync(
-      resolve(dist, `${framework}.d.ts`),
-      generateVooDeclaration(component, framework),
+      resolve(stagingRoot, "vooya.manifest.json"),
+      `${JSON.stringify(manifest, null, 2)}\n`,
     );
+    writeFileSync(
+      resolve(stagingRoot, "package.json"),
+      `${JSON.stringify(generateArtifactPackage({ packageName, version, hasStyle }), null, 2)}\n`,
+    );
+    writeFileSync(
+      resolve(stagingRoot, ownershipMarker),
+      `${JSON.stringify({ schemaVersion: 1, package: packageName })}\n`,
+    );
+    rmSync(cacheRoot, { force: true, recursive: true });
+    replaceOwnedArtifact(stagingRoot, artifactRoot);
+    return { manifest, outputDir: artifactRoot };
+  } finally {
+    rmSync(stagingRoot, { force: true, recursive: true });
   }
-  writeFileSync(
-    resolve(artifactRoot, "vooya.manifest.json"),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
-  writeFileSync(
-    resolve(artifactRoot, "package.json"),
-    `${JSON.stringify(generateArtifactPackage({ packageName, version, hasStyle: Boolean(style) }), null, 2)}\n`,
-  );
-  rmSync(cacheRoot, { force: true, recursive: true });
-  return { manifest, outputDir: artifactRoot };
 }
 
-export function generateArtifactManifest({ component, definition, packageName }) {
+export function generateArtifactManifest({ component, definition, packageName, hasStyle }) {
   return {
     schemaVersion: 1,
     artifact: "vooya-component",
     name: component.name,
     package: packageName,
+    vooyaVersion: pluginPackage.version,
     abiVersion: definition.abiVersion,
     runtime: "./dist/runtime.js",
     wasm: "./dist/runtime_bg.wasm",
-    styles: component.style ? ["./dist/style.css"] : [],
+    styles: hasStyle ? ["./dist/style.css"] : [],
     hosts: {
-      vue: "./dist/vue.js",
-      react: "./dist/react.js",
+      vue: { entry: "./dist/vue.js", adapterVersion: pluginPackage.version },
+      react: { entry: "./dist/react.js", adapterVersion: pluginPackage.version },
     },
     props: definition.props,
     events: definition.events,
+  };
+}
+
+export function prepareArtifactComponent(component) {
+  const compiledStyle = compileVooStyle(component);
+  const hasStyle = Boolean(compiledStyle);
+  return {
+    component: hasStyle ? component : { ...component, style: undefined },
+    compiledStyle,
+    hasStyle,
   };
 }
 
@@ -117,12 +162,12 @@ export function generateArtifactPackage({ packageName, version, hasStyle }) {
   };
 }
 
-function generateArtifactEntry(component, framework) {
+export function generateArtifactEntry(component, framework, hasStyle = Boolean(component.style)) {
   const { exportName, disposeName, updateNames } = generatedComponentBinding(component);
   const definition = generatedAdapterDefinition(component);
   const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
   const exports = [exportName, disposeName, ...Object.values(updateNames), "voo_abi_version"];
-  return `${component.style ? 'import "./style.css";\n' : ""}import init, { ${exports.join(", ")} } from "./runtime.js";
+  return `${hasStyle ? 'import "./style.css";\n' : ""}import init, { ${exports.join(", ")} } from "./runtime.js";
 import { defineVooyaComponent } from ${JSON.stringify(adapter)};
 
 const expectedAbiVersion = ${definition.abiVersion};
@@ -153,4 +198,41 @@ async function loadBindings() {
 export const metadata = ${JSON.stringify(definition)};
 export default defineVooyaComponent(metadata, loadBindings);
 `;
+}
+
+export function assertArtifactOutputTarget({ artifactRoot, sourcePath }) {
+  const target = resolve(artifactRoot);
+  const source = resolve(sourcePath);
+  const forbidden = new Set([parse(target).root, resolve(homedir()), resolve(process.cwd())]);
+  if (forbidden.has(target)) {
+    throw new Error(`Refusing to write a precompiled artifact to unsafe outputDir ${target}.`);
+  }
+  const sourceWithinTarget = relative(target, source);
+  if (sourceWithinTarget === "" || (!sourceWithinTarget.startsWith("..") && !parse(sourceWithinTarget).root)) {
+    throw new Error(`Refusing to replace outputDir ${target} because it contains the source component.`);
+  }
+  if (existsSync(target) && !existsSync(resolve(target, ownershipMarker))) {
+    throw new Error(
+      `Refusing to replace existing outputDir ${target} because it is not owned by Vooya.`,
+    );
+  }
+}
+
+export function replaceOwnedArtifact(stagingRoot, artifactRoot) {
+  if (!existsSync(artifactRoot)) {
+    renameSync(stagingRoot, artifactRoot);
+    return;
+  }
+  const backup = resolve(
+    dirname(artifactRoot),
+    `.${basename(artifactRoot)}.vooya-backup-${process.pid}-${Date.now()}`,
+  );
+  renameSync(artifactRoot, backup);
+  try {
+    renameSync(stagingRoot, artifactRoot);
+  } catch (error) {
+    renameSync(backup, artifactRoot);
+    throw error;
+  }
+  rmSync(backup, { force: true, recursive: true });
 }

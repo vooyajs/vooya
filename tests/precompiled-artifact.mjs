@@ -28,9 +28,8 @@ try {
     version: "0.0.0",
     outputDir: artifact,
   });
-
   const manifest = JSON.parse(readFileSync(resolve(artifact, "vooya.manifest.json"), "utf8"));
-  if (manifest.abiVersion !== 1 || manifest.hosts.vue !== "./dist/vue.js") {
+  if (manifest.abiVersion !== 1 || manifest.hosts.vue.entry !== "./dist/vue.js") {
     throw new Error("Precompiled artifact manifest is invalid.");
   }
   const tarballs = {

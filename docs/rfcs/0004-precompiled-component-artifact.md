@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted for an implementation prototype. This RFC does not authorize npm
-publication or promise artifact compatibility across alpha releases.
+Accepted for build-format prototyping. Runtime artifact conformance is not yet
+accepted. This RFC does not authorize npm publication or promise artifact
+compatibility across alpha releases.
 
 ## Problem
 
@@ -60,13 +61,20 @@ entries import the same runtime and optional stylesheet.
   "artifact": "vooya-component",
   "name": "Counter",
   "package": "@example/counter",
+  "vooyaVersion": "0.1.0-alpha.3",
   "abiVersion": 1,
   "runtime": "./dist/runtime.js",
   "wasm": "./dist/runtime_bg.wasm",
   "styles": ["./dist/style.css"],
   "hosts": {
-    "vue": "./dist/vue.js",
-    "react": "./dist/react.js"
+    "vue": {
+      "entry": "./dist/vue.js",
+      "adapterVersion": "0.1.0-alpha.3"
+    },
+    "react": {
+      "entry": "./dist/react.js",
+      "adapterVersion": "0.1.0-alpha.3"
+    }
   },
   "props": [],
   "events": []
@@ -74,12 +82,30 @@ entries import the same runtime and optional stylesheet.
 ```
 
 Props and events use the existing generated adapter definition rather than a
-second contract format. Paths are package-relative and must remain inside the
-artifact.
+second contract format.
+
+`schemaVersion` controls the manifest's JSON fields and path interpretation.
+`abiVersion` controls the JavaScript-to-WASM function and value contract.
+`vooyaVersion` records the compiler/runtime release that produced the artifact.
+Each host records the exact adapter version required by this alpha artifact;
+the generated npm package repeats those requirements as peer dependencies.
+
+Every manifest path must:
+
+- start with `./` and use forward slashes;
+- be relative to the package root after normalization;
+- contain no `..` segment;
+- not be an absolute path, URL, or protocol-relative URL;
+- resolve without traversing a symbolic link.
+
+Manifest readers must reject a path whose normalized or real filesystem target
+escapes the package root. V1 artifact packages must not contain symbolic links.
 
 ## Runtime behavior
 
-- The WASM module initializes once per JavaScript module instance.
+- The WASM module initializes once for each ESM runtime module instance resolved
+  to the same URL. Different installed package copies, realms, or resolved URLs
+  are separate instances and do not share initialization.
 - Vue and React entry points use their existing Vooya adapters.
 - Every mount receives its own Rust component handle.
 - ABI compatibility is checked before the first mount.
@@ -95,7 +121,7 @@ imports. Adapter versions must match the artifact's Vooya alpha version.
 The artifact contains compiled component code, not `@vooya/core` Rust source,
 and does not depend on `@vooya/vite-plugin` at consumer build or runtime.
 
-## Verification gate
+## Build-format verification gate
 
 The prototype is accepted only when one generated Counter package:
 
@@ -106,9 +132,22 @@ The prototype is accepted only when one generated Counter package:
 5. performs consumer builds with Cargo, rustc, rustup, and wasm-bindgen absent
    from `PATH`.
 
-Browser lifecycle parity remains covered by the source-component host suite.
-A later stage must run the packed artifact itself in a browser before the
-format is considered production-ready.
+Passing this gate validates package construction and consumer bundling only. It
+does not accept the runtime behavior listed above.
+
+## Runtime-conformance gate
+
+Before the format can be considered production-ready, the packed npm artifact
+itself must run in real browsers through every supported host and verify:
+
+- WASM initialization and repeated mounts;
+- prop updates and component events;
+- dispose and remount without leaked DOM, listeners, or handles;
+- load failure, ABI mismatch, and Rust mount failure behavior;
+- Vue and React entry points importing the same artifact in one application.
+
+The source-component host suite remains useful evidence but does not substitute
+for this artifact-specific gate.
 
 ## Non-goals
 
