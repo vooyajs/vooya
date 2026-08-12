@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "host": "React",
+  "package": "@vooya/react",
+  "versionRange": "^19.0.0",
+  "verified": "2026-08-12",
+  "capabilities": {
+    "mount": "verified",
+    "propUpdates": "verified",
+    "events": "verified",
+    "dispose": "verified",
+    "scopedStyles": "verified",
+    "mountErrors": "partial"
+  },
+  "unsupported": [
+    "SSR",
+    "hydration",
+    "slots",
+    "deep object props",
+    "mount error forwarding is implemented but not browser-verified"
+  ],
+  "evidence": ["tests/e2e/react-counter.spec.js", "tests/e2e/host-parity.spec.js"]
+}

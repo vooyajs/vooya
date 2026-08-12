@@ -21,6 +21,19 @@ const targets = {
     test: "data-grid.spec.js",
     url: "http://127.0.0.1:4177",
   },
+  parity: {
+    test: "host-parity.spec.js",
+    webServer: [
+      {
+        command: "npm run dev:vue -- --host 127.0.0.1 --port 4174",
+        url: "http://127.0.0.1:4174",
+      },
+      {
+        command: "npm run dev:react -- --host 127.0.0.1 --port 4175",
+        url: "http://127.0.0.1:4175",
+      },
+    ],
+  },
 };
 
 const targetName = process.env.VOOYA_E2E_TARGET ?? "vue";
@@ -37,10 +50,7 @@ export default defineConfig({
     baseURL: target.url,
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: target.command,
-    url: target.url,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: (target.webServer ?? [{ command: target.command, url: target.url }]).map(
+    (server) => ({ ...server, reuseExistingServer: false, timeout: 120_000 }),
+  ),
 });

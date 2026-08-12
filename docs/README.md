@@ -17,8 +17,12 @@ site without changing its structure or URLs unnecessarily.
   framework owns, what WASM owns, and why that boundary exists.
 - [Tooling reference](reference/tooling.md): Vite options, generated files,
   formatting, editor support, and development rebuilds.
+- [Host compatibility](reference/compatibility.md): verified lifecycle,
+  event, styling, and error-reporting status for each framework adapter.
 - [Project status](project/status.md): what works, what remains experimental,
   and the next milestones.
+- [Roadmap](project/roadmap.md): the visible implementation checklist for the
+  component ABI, view layer, host adapters, build tools, and distribution.
 
 ## Design records
 

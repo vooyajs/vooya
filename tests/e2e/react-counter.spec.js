@@ -23,5 +23,10 @@ test("runs the Rust .voo component through the React lifecycle", async ({ page }
   await page.getByRole("button", { name: "Set React prop to 10" }).click();
   await expect(page.getByRole("status")).toHaveText("10");
 
+  await page.getByRole("button", { name: "Toggle Vooya island" }).click();
+  await expect(page.getByRole("button", { name: "Increment" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle Vooya island" }).click();
+  await expect(page.getByRole("status")).toHaveText("10");
+
   expect(browserErrors).toEqual([]);
 });

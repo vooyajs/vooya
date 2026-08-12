@@ -259,7 +259,9 @@ Before the first stable release exists, npm may also expose the newest alpha as
 
 ## Roadmap
 
-The next milestones move the working compiler toward a developer preview:
+The detailed [project roadmap](docs/project/roadmap.md) tracks the component
+contract, host-neutral view layer, adapters, build integrations, product
+evidence, and precompiled distribution work. The next milestones are:
 
 1. Grow the Rust view layer into declarative trees, reactive bindings, and
    explicit effect cleanup without hiding the underlying browser APIs.

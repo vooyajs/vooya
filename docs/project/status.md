@@ -42,6 +42,9 @@ prerelease.
 
 ## Next milestones
 
+The maintained implementation checklist lives in the [project roadmap](roadmap.md).
+The immediate priorities are:
+
 1. Grow the Rust view layer into declarative trees, reactive bindings, and
    explicit effect cleanup.
 2. Define precompiled component artifacts so application consumers do not need
