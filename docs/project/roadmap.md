@@ -76,14 +76,14 @@ The artifact is expected to contain:
 
 Work required:
 
-- [ ] Specify the versioned artifact manifest.
-- [ ] Specify WASM, JavaScript, declarations, styles, and asset layout.
+- [x] Specify the versioned artifact manifest.
+- [x] Specify WASM, JavaScript, declarations, styles, and asset layout.
 - [ ] Define one-WASM-per-component versus shared-WASM packaging.
-- [ ] Generate framework entry points from one artifact.
-- [ ] Build and pack an artifact from a real Rust-backed component.
-- [ ] Verify installation in Vue and React consumers without a Rust toolchain.
+- [x] Generate framework entry points from one artifact.
+- [x] Build and pack an artifact from a real Rust-backed component.
+- [x] Verify installation in Vue and React consumers without a Rust toolchain.
 - [ ] Define compatibility rules across compiler, runtime, and adapter versions.
-- [ ] Publish authoring and consumer migration guidance.
+- [x] Publish initial authoring and consumer guidance.
 
 This is currently a contract and compiler milestone, not a planned empty
 `@vooya/package-format` runtime package. A package should be created only when a

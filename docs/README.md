@@ -32,6 +32,7 @@ substitute for the current guides.
 - [RFC 0001: component islands](rfcs/0001-component-islands.md)
 - [RFC 0002: reactive component model](rfcs/0002-reactive-component-model.md)
 - [RFC 0003: first public alpha](rfcs/0003-production-readiness.md)
+- [RFC 0004: precompiled component artifact](rfcs/0004-precompiled-component-artifact.md)
 
 Performance work is recorded separately:
 

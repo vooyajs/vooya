@@ -24,6 +24,7 @@
   "exports": {
     ".": "./src/index.js",
     "./format": "./src/voo-format.js",
+    "./artifact": "./src/artifact.js",
     "./runtime": "./src/runtime.js"
   },
   "scripts": {

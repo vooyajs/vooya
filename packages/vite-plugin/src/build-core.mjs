@@ -28,6 +28,7 @@ export function buildApplication({
   runtimeCrateRoot = resolveRuntimeCrateRoot(),
   cacheRoot = resolve(applicationRoot, ".voo-cache"),
   outputDir = resolve(cacheRoot, "dist"),
+  outputName = "vooya_app",
 }) {
   const sourceDir = resolve(cacheRoot, "src/components");
   const targetDir = resolve(cacheRoot, "target");
@@ -81,13 +82,16 @@ export function buildApplication({
       "web",
       "--out-dir",
       outputDir,
+      "--out-name",
+      outputName,
     ],
     { cwd: applicationRoot, stdio: "inherit" },
   );
 
   return {
     cacheRoot,
-    runtimeModule: resolve(outputDir, "vooya_app.js"),
+    runtimeModule: resolve(outputDir, `${outputName}.js`),
+    wasmModule: resolve(outputDir, `${outputName}_bg.wasm`),
   };
 }
 

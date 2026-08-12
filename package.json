@@ -32,9 +32,10 @@
     "verify:versions": "node scripts/verify-package-versions.mjs",
     "test:voo": "npm test --workspace @vooya/vite-plugin",
     "test:portable": "node tests/portable-build.mjs",
+    "test:artifact": "node tests/precompiled-artifact.mjs",
     "test:hmr": "npm run build:packages && node tests/hmr.mjs",
     "test:e2e": "npm run build:packages && node tests/e2e/run.mjs",
-    "verify:release": "npm run verify:branding && npm run verify:docs && npm run compatibility:check && npm run verify:versions && node scripts/sync-alpha-dist-tags.mjs --dry-run && npm run format:voo:check && npm run verify:editor && cargo test -p vooya-core && npm run test:voo && npm run typecheck && npm run typecheck:react && npm run typecheck:tasks && npm run typecheck:benchmark && npm run test:e2e && npm run test:portable && npm run test:hmr && npm run pack:check",
+    "verify:release": "npm run verify:branding && npm run verify:docs && npm run compatibility:check && npm run verify:versions && node scripts/sync-alpha-dist-tags.mjs --dry-run && npm run format:voo:check && npm run verify:editor && cargo test -p vooya-core && npm run test:voo && npm run typecheck && npm run typecheck:react && npm run typecheck:tasks && npm run typecheck:benchmark && npm run test:e2e && npm run test:portable && npm run test:artifact && npm run test:hmr && npm run pack:check",
     "release:alpha": "npm run verify:release && npm run build:packages && changeset publish && node scripts/sync-alpha-dist-tags.mjs",
     "build:packages": "npm run build --workspace @vooya/core && npm run build --workspace @vooya/vue && npm run build --workspace @vooya/react",
     "pack:check": "npm run build:packages && npm pack --dry-run --workspace @vooya/core && npm pack --dry-run --workspace @vooya/vite-plugin && npm pack --dry-run --workspace @vooya/vue && npm pack --dry-run --workspace @vooya/react"
