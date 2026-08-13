@@ -1,11 +1,13 @@
 # Vooya
 
-**Rust/WASM component islands for existing Vue and React applications.**
+**A browser component-island implementation of the Vooya approach: keep
+JavaScript, and move only a focused workload.**
 
 Vooya lets a `.voo` component own one isolated DOM subtree while Vue or React
 continues to own the surrounding application tree, routing, and business state.
-It is an alpha compiler for teams that want to use Rust where a local component
-has enough interaction or computation to justify the WebAssembly boundary.
+It is an alpha compiler for teams that want to use Rust/WASM where a local
+component has enough interaction or computation to justify the boundary—without
+rewriting the rest of their application.
 
 ```vue
 <script setup lang="ts">
@@ -56,6 +58,12 @@ unmount            -> dispose           -> release state and listeners
 The host framework owns the mount element and its place in the app. A Vooya
 component owns the nodes beneath it. This is not a replacement for Vue, React,
 routing, or application state management.
+
+Vooya is one browser-side realization of a broader approach: preserve the
+familiar JavaScript application surface, then move only a bounded, expensive or
+environment-specific workload to an implementation better suited to it. The
+component boundary is the island in this repository; it does not require moving
+the whole application to Rust.
 
 ## Current alpha capabilities
 
