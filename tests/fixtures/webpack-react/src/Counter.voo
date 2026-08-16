@@ -1,0 +1,14 @@
+<component name="Counter">
+props:
+  initial: i32
+events:
+  change(value: i32)
+</component>
+<rust>
+use wasm_bindgen::JsValue;
+use crate::{EventListener, View, ViewElement};
+pub struct Component { root: ViewElement, label: ViewElement, _click: EventListener }
+impl Component { pub fn update_initial(&self, value: i32) { self.label.set_text(&value.to_string()); } pub fn dispose(&mut self) { self.root.remove(); } }
+pub fn mount(context: Context) -> Result<Component, JsValue> { let view = View::from_host(&context.host)?; let root = view.element("section")?.class("counter"); let label = view.element("output")?.attribute("data-count", "")?.text(&context.props.initial.to_string()); let button = view.element("button")?.attribute("id", "increment")?.text("Increment"); root.append(&label)?; root.append(&button)?; root.mount(&context.host)?; let events = context.events; let click = button.on("click", move |_| { let _ = events.change(9); })?; Ok(Component { root, label, _click: click }) }
+</rust>
+<style scoped>.counter { color: rgb(255, 0, 0); }</style>
