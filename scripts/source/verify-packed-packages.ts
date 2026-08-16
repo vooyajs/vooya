@@ -14,6 +14,7 @@ const expectedPackages = [
   "@vooya/vite-plugin",
   "@vooya/vue",
   "@vooya/react",
+  "@vooya/webpack",
 ];
 const license = "MIT OR Apache-2.0";
 const repositoryUrl = "git+https://github.com/vooyajs/vooya.git";
@@ -80,6 +81,11 @@ try {
       assert(files.has("dist/index.js"), name, "archive is missing adapter JavaScript");
       assert(files.has("dist/index.d.ts"), name, "archive is missing adapter types");
     }
+    if (name === "@vooya/webpack") {
+      for (const file of ["dist/index.js", "dist/index.d.ts", "dist/loader.js", "dist/loader.d.ts", "dist/runtime.js", "dist/runtime.d.ts"]) {
+        assert(files.has(file), name, `archive is missing Webpack integration file ${file}`);
+      }
+    }
     for (const file of files) {
       assert(!file.includes("VOOYA_COLLABORATION_LOG"), name, `archive leaks internal collaboration file ${file}`);
       assert(!file.includes("VOOYA_PRODUCT_OPERATING_PLAN"), name, `archive leaks internal planning file ${file}`);
@@ -132,6 +138,7 @@ import { buildApplication } from "@vooya/build-core";
 import { buildPrecompiledVueArtifact } from "@vooya/vite-plugin/build";
 import { formatVooComponent } from "@vooya/vite-plugin/format";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite-plugin/runtime";
+import { vooyaWebpack } from "@vooya/webpack";
 
 void parseVooComponent;
 void vooya;
@@ -140,6 +147,7 @@ void buildPrecompiledVueArtifact;
 void formatVooComponent;
 void assertVooAbiVersion;
 void initializeWasm;
+void vooyaWebpack;
 `,
   );
 

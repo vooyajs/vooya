@@ -53,6 +53,14 @@ channel = "alpha"
 publish = true
 github-release = false
 
+[packages.vooya-webpack]
+path = "packages/webpack"
+resolver = "nodejs"
+channel = "alpha"
+publish = true
+github-release = false
+depends-on = ["vooya-build-core", "vooya-compiler"]
+
 [resolver.nodejs.pre-check]
 type = "http"
 url = "https://registry.npmjs.org/{{ package.name }}/{{ package.version }}"
