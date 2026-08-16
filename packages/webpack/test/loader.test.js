@@ -14,3 +14,9 @@ test("loader only produces a framework module from the plugin build result", () 
 test("loader rejects execution without the application plugin", () => {
   assert.throws(() => loader.call({ resourcePath: "/consumer/src/Counter.voo", rootContext: "/consumer" }, source), /not initialized/);
 });
+
+test("loader selects the React adapter without starting another build", () => {
+  const generated = loader.call({ resourcePath: "/consumer/src/Counter.voo", rootContext: "/tmp/vooya-webpack-loader", _compilation: { __vooyaBuild: { runtimeModule: "/tmp/vooya_app.js" } }, getOptions: () => ({ framework: "react" }) }, source);
+  assert.match(generated, /@vooya\/react/);
+  assert.match(generated, /from "\/tmp\/vooya_app\.js"/);
+});
