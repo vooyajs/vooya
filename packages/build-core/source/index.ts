@@ -2,7 +2,7 @@
 // watching and presentation, while this module owns the Rust/WASM application build.
 // @ts-nocheck
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { generateRustComponents, generatedAdapterDefinition, generatedComponentPrelude } from "@vooya/compiler";
@@ -53,7 +53,9 @@ export function buildApplication({
   writeIfChanged(resolve(workspacePath, "src/lib.rs"), `pub use vooya_core::*;\n\n${generateRustComponents(components, sourcePaths)}`);
   onRustBuildStart();
   const diagnostics = runCargo(applicationRoot, ["build", "--manifest-path", resolve(workspacePath, "Cargo.toml"), ...(buildMode === "development" ? [] : ["--release"]), "--target", "wasm32-unknown-unknown", "--target-dir", targetDir], diagnosticMappings);
-  rmSync(outputDir, { force: true, recursive: true }); mkdirSync(outputDir, { recursive: true });
+  // Adapters may expose this directory to a bundler module graph. Do not
+  // remove it between builds: Webpack can observe the brief missing-file gap.
+  mkdirSync(outputDir, { recursive: true });
   execFileSync("wasm-bindgen", [resolve(targetDir, `wasm32-unknown-unknown/${buildMode === "development" ? "debug" : "release"}/vooya_app.wasm`), "--target", "web", "--out-dir", outputDir], { cwd: applicationRoot, stdio: "inherit" });
   const runtimeModule = resolve(outputDir, "vooya_app.js");
   const wasm = resolve(outputDir, "vooya_app_bg.wasm");
