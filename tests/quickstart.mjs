@@ -18,6 +18,7 @@ try {
     common: [
       pack("@vooya/compiler"),
       pack("@vooya/core"),
+      pack("@vooya/build-core"),
       pack("@vooya/vite-plugin"),
     ],
     vue: pack("@vooya/vue"),

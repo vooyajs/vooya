@@ -10,6 +10,7 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const expectedPackages = [
   "@vooya/compiler",
   "@vooya/core",
+  "@vooya/build-core",
   "@vooya/vite-plugin",
   "@vooya/vue",
   "@vooya/react",
@@ -60,6 +61,10 @@ try {
     if (name === "@vooya/compiler") {
       assert(files.has("dist/index.js"), name, "archive is missing compiler JavaScript");
       assert(files.has("dist/index.d.ts"), name, "archive is missing compiler types");
+    }
+    if (name === "@vooya/build-core") {
+      assert(files.has("dist/index.js"), name, "archive is missing build-core JavaScript");
+      assert(files.has("dist/index.d.ts"), name, "archive is missing build-core types");
     }
     if (name === "@vooya/vite-plugin") {
       for (const file of [
@@ -123,12 +128,14 @@ function verifyTypeConsumer(packedPackages) {
     join(consumer, "consumer.ts"),
     `import { parseVooComponent } from "@vooya/compiler";
 import { vooya } from "@vooya/vite-plugin";
+import { buildApplication } from "@vooya/build-core";
 import { buildPrecompiledVueArtifact } from "@vooya/vite-plugin/build";
 import { formatVooComponent } from "@vooya/vite-plugin/format";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite-plugin/runtime";
 
 void parseVooComponent;
 void vooya;
+void buildApplication;
 void buildPrecompiledVueArtifact;
 void formatVooComponent;
 void assertVooAbiVersion;

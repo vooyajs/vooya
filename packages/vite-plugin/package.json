@@ -50,6 +50,7 @@
     "vite": "^7.0.0"
   },
   "dependencies": {
+    "@vooya/build-core": "0.1.0-alpha.7",
     "@vooya/core": "0.1.0-alpha.7",
     "@vooya/compiler": "0.1.0-alpha.7"
   }

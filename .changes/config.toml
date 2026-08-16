@@ -23,13 +23,21 @@ channel = "alpha"
 publish = true
 github-release = false
 
+[packages.vooya-build-core]
+path = "packages/build-core"
+resolver = "nodejs"
+channel = "alpha"
+publish = true
+github-release = false
+depends-on = ["vooya-core", "vooya-compiler"]
+
 [packages.vooya-vite-plugin]
 path = "packages/vite-plugin"
 resolver = "nodejs"
 channel = "alpha"
 publish = true
 github-release = false
-depends-on = ["vooya-core", "vooya-compiler"]
+depends-on = ["vooya-core", "vooya-compiler", "vooya-build-core"]
 
 [packages.vooya-vue]
 path = "packages/vue"

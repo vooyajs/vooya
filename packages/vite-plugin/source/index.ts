@@ -7,7 +7,7 @@ import {
   buildApplication,
   resolveRuntimeCrateRoot,
   resolveRustDependencyRoots,
-} from "./build-core.js";
+} from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
 import {
   compileVooStyle,

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const scriptRoot = fileURLToPath(new URL("../..", import.meta.url));
 const rootOption = process.argv.indexOf("--root");
 const root = rootOption === -1 ? scriptRoot : resolve(process.argv[rootOption + 1] ?? "");
-const directories = ["compiler", "core", "vite-plugin", "vue", "react"];
+const directories = ["compiler", "core", "build-core", "vite-plugin", "vue", "react"];
 const packageEntries = directories.map((directory) => ({
   directory,
   path: resolve(root, `packages/${directory}/package.json`),
@@ -24,11 +24,18 @@ if (versions.size !== 1) {
 }
 
 const plugin = packages.find((package_) => package_.name === "@vooya/vite-plugin");
+const buildCore = packages.find((package_) => package_.name === "@vooya/build-core");
+if (buildCore.dependencies["@vooya/core"] !== buildCore.version || buildCore.dependencies["@vooya/compiler"] !== buildCore.version) {
+  throw new Error("@vooya/build-core must depend on exact fixed @vooya/core and @vooya/compiler versions.");
+}
 if (plugin.dependencies["@vooya/core"] !== plugin.version) {
   throw new Error("@vooya/vite-plugin must depend on the exact fixed @vooya/core version.");
 }
 if (plugin.dependencies["@vooya/compiler"] !== plugin.version) {
   throw new Error("@vooya/vite-plugin must depend on the exact fixed @vooya/compiler version.");
+}
+if (plugin.dependencies["@vooya/build-core"] !== plugin.version) {
+  throw new Error("@vooya/vite-plugin must depend on the exact fixed @vooya/build-core version.");
 }
 
 const lockfile = JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8"));

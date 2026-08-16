@@ -18,6 +18,7 @@ try {
   const packages = [
     pack("@vooya/compiler", packageDirectory),
     pack("@vooya/core", packageDirectory),
+    pack("@vooya/build-core", packageDirectory),
     pack("@vooya/vite-plugin", packageDirectory),
     pack("@vooya/vue", packageDirectory),
   ];

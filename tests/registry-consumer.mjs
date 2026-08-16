@@ -24,7 +24,7 @@ try {
 
 function publishedVersions(tag) {
   return Object.fromEntries(
-    ["compiler", "core", "vite-plugin", "vue", "react"].map((name) => [
+    ["compiler", "core", "build-core", "vite-plugin", "vue", "react"].map((name) => [
       name,
       npmView(`@vooya/${name}@${tag}`, "version"),
     ]),

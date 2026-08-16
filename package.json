@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "build:scripts": "tsc -p scripts/tsconfig.json",
-    "build:core": "npm run build --workspace @vooya/vite-plugin && npm run build:scripts && node scripts/generated/build-core.js",
+    "build:core": "npm run build --workspace @vooya/build-core && npm run build:scripts && node scripts/generated/build-core.js",
     "dev:vue": "vite --config examples/vue-counter/vite.config.js",
     "build:vue": "vite build --config examples/vue-counter/vite.config.js",
     "typecheck": "npm run build --workspace @vooya/vite-plugin && node packages/vite-plugin/dist/generate-declarations.js examples/vue-counter vue && vue-tsc --noEmit -p examples/vue-counter/tsconfig.json",
@@ -52,7 +52,7 @@
     "verify:ci": "npm run verify:branding && npm run verify:docs && npm run test:release-contract && npm run verify:versions && npm run format:voo:check && npm run verify:editor && cargo test -p vooya-core && npm run test:compiler && npm run test:voo && npm run typecheck && npm run typecheck:react && npm run typecheck:tasks && npm run typecheck:benchmark && npm run typecheck:scatter && npm run typecheck:trace && npm run test:quickstart && npm run test:portable && npm run test:precompiled-vue && npm run test:hmr && npm run test:e2e && npm run pack:check",
     "verify:release": "npm run verify:ci && npm run build:scripts && node scripts/generated/sync-alpha-dist-tags.js --check-published",
     "release:alpha": "npm run verify:release && npm run build:packages && npm run build:scripts && node scripts/generated/semifold.js publish && node scripts/generated/sync-alpha-dist-tags.js && node scripts/generated/sync-alpha-dist-tags.js --check",
-    "build:packages": "npm run build --workspace @vooya/compiler && npm run build --workspace @vooya/vite-plugin && npm run build --workspace @vooya/core && npm run build --workspace @vooya/vue && npm run build --workspace @vooya/react",
+    "build:packages": "npm run build --workspace @vooya/compiler && npm run build --workspace @vooya/build-core && npm run build --workspace @vooya/vite-plugin && npm run build --workspace @vooya/core && npm run build --workspace @vooya/vue && npm run build --workspace @vooya/react",
     "pack:check": "npm run build:packages && npm run build:scripts && node scripts/generated/verify-packed-packages.js"
   },
   "devDependencies": {

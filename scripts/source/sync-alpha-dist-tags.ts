@@ -10,7 +10,7 @@ const checkPublished = process.argv.includes("--check-published");
 if ([dryRun, check, checkPublished].filter(Boolean).length > 1) {
   throw new Error("Use only one of --dry-run, --check, or --check-published.");
 }
-const directories = ["compiler", "core", "vite-plugin", "vue", "react"];
+const directories = ["compiler", "core", "build-core", "vite-plugin", "vue", "react"];
 const packages = directories.map((directory) =>
   JSON.parse(readFileSync(resolve(root, `packages/${directory}/package.json`), "utf8")),
 );
