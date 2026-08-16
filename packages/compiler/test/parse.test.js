@@ -83,3 +83,85 @@ props:
     },
   );
 });
+
+test("rejects borrowed string props at the parse boundary with source line", () => {
+  for (const rustType of ["str", "&str", "& str", "&'a str", "&'static str"]) {
+    assert.throws(
+      () =>
+        parseVooComponent(
+          `<component name="BorrowedProp">
+props:
+  label: ${rustType}
+</component>
+<rust>fn component() {}</rust>`,
+          "BorrowedProp.voo",
+        ),
+      (error) => {
+        assert.ok(error instanceof VooParseError);
+        assert.equal(error.id, "BorrowedProp.voo");
+        assert.equal(error.line, 3);
+        assert.match(
+          error.message,
+          new RegExp(
+            `Unsupported Voo public ABI type "${rustType.trim()}" for prop "label"\\. Use owned String\\. \\(BorrowedProp\\.voo:3\\)`,
+          ),
+        );
+        return true;
+      },
+    );
+  }
+});
+
+test("rejects borrowed string event parameters at the parse boundary with source line", () => {
+  for (const rustType of ["str", "&str", "& str", "&'a str", "&'static str"]) {
+    assert.throws(
+      () =>
+        parseVooComponent(
+          `<component name="BorrowedEvent">
+events:
+  changed(value: ${rustType})
+</component>
+<rust>fn component() {}</rust>`,
+          "BorrowedEvent.voo",
+        ),
+      (error) => {
+        assert.ok(error instanceof VooParseError);
+        assert.equal(error.id, "BorrowedEvent.voo");
+        assert.equal(error.line, 3);
+        assert.match(
+          error.message,
+          new RegExp(
+            `Unsupported Voo public ABI type "${rustType.trim()}" for event "changed" parameter "value"\\. Use owned String\\. \\(BorrowedEvent\\.voo:3\\)`,
+          ),
+        );
+        return true;
+      },
+    );
+  }
+});
+
+
+test("accepts valid owned String props, defaults and events", () => {
+  const component = parseVooComponent(
+    `<component name="OwnedString">
+props:
+  title: String = "Vooya"
+  optional_text: String
+events:
+  notify(message: String)
+</component>
+<rust>fn component() {}</rust>`,
+    "OwnedString.voo",
+  );
+
+  assert.equal(component.format, "source");
+  assert.equal(component.name, "OwnedString");
+  assert.deepEqual(component.props, [
+    { name: "title", rustType: "String", required: false, defaultValue: '"Vooya"' },
+    { name: "optional_text", rustType: "String", required: true, defaultValue: undefined },
+  ]);
+  assert.deepEqual(component.events, [
+    { name: "notify", parameters: [{ name: "message", rustType: "String" }] },
+  ]);
+});
+

@@ -132,6 +132,66 @@ test("rejects unstable 64-bit and 128-bit public integer ABI types before code g
   }
 });
 
+test("rejects borrowed string types in adapter definition and Rust code generation", () => {
+  for (const rustType of ["str", "&str", "&'static str"]) {
+    assert.throws(
+      () =>
+        generatedAdapterDefinition({
+          ...counter,
+          props: [{ name: "label", rustType, required: true }],
+          events: [],
+        }),
+      new RegExp(`Unsupported Voo public ABI type "${rustType}" for prop "label"\\. Use owned String\\.`),
+    );
+    assert.throws(
+      () =>
+        generatedAdapterDefinition({
+          ...counter,
+          props: [],
+          events: [{ name: "changed", parameters: [{ name: "value", rustType }] }],
+        }),
+      new RegExp(`Unsupported Voo public ABI type "${rustType}" for event "changed" parameter "value"\\. Use owned String\\.`),
+    );
+    assert.throws(
+      () =>
+        generateRustComponents([
+          {
+            ...counter,
+            props: [{ name: "label", rustType, required: true }],
+            events: [],
+          },
+        ]),
+      new RegExp(`Unsupported Voo public ABI type "${rustType}" for prop "label"\\. Use owned String\\.`),
+    );
+    assert.throws(
+      () =>
+        generateRustComponents([
+          {
+            ...counter,
+            props: [],
+            events: [{ name: "changed", parameters: [{ name: "value", rustType }] }],
+          },
+        ]),
+      new RegExp(`Unsupported Voo public ABI type "${rustType}" for event "changed" parameter "value"\\. Use owned String\\.`),
+    );
+  }
+});
+
+test("generates Rust component bindings for owned String props and events", () => {
+  const component = {
+    ...counter,
+    props: [{ name: "label", rustType: "String", required: true }],
+    events: [{ name: "changed", parameters: [{ name: "value", rustType: "String" }] }],
+  };
+  const generated = generateRustComponents([component]);
+
+  assert.match(generated, /pub label: String,/);
+  assert.match(generated, /pub fn voo_counter_update_label\(handle: u32, value: String\)/);
+  assert.match(generated, /pub fn changed\(&self, value: String\)/);
+  assert.match(generated, /JsValue::from_str\(&value\)/);
+});
+
+
 test("generates a stable style scope from the component path", () => {
   const component = {
     ...counter,
