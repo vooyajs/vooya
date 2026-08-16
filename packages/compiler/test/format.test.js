@@ -100,3 +100,30 @@ test("refuses to discard unknown top-level content", () => {
     /Cannot safely format top-level content/,
   );
 });
+
+test("formats contracts with owned String props and rejects borrowed string types", () => {
+  const formatted = formatVooComponent(`<component name="Label">
+props:
+  text: String = "Vooya"
+events:
+  updated(value: String)
+</component>
+<rust>fn mount() {}</rust>`, "Label.voo");
+
+  assert.match(formatted, /text: String = "Vooya"/);
+  assert.match(formatted, /updated\(value: String\)/);
+
+  assert.throws(
+    () =>
+      formatVooComponent(
+        `<component name="Borrowed">
+props:
+  label: &str
+</component>
+<rust>fn mount() {}</rust>`,
+        "Borrowed.voo",
+      ),
+    /Unsupported Voo public ABI type "&str" for prop "label"\. Use owned String\./,
+  );
+});
+

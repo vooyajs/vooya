@@ -55,3 +55,35 @@ test("generates React callback props from component events", () => {
   assert.match(declaration, /onResetAll\?: \(\) => void;/);
   assert.match(declaration, /ComponentType<CounterProps>/);
 });
+
+test("rejects borrowed string types in Vue and React declaration generation", () => {
+  for (const framework of ["vue", "react"]) {
+    for (const rustType of ["str", "&str", "&'static str"]) {
+      assert.throws(
+        () =>
+          generateVooDeclaration(
+            {
+              name: "BorrowedProps",
+              props: [{ name: "label", rustType, required: true }],
+              events: [],
+            },
+            framework,
+          ),
+        new RegExp(`Unsupported Voo public ABI type "${rustType}" for prop "label"\\. Use owned String\\.`),
+      );
+      assert.throws(
+        () =>
+          generateVooDeclaration(
+            {
+              name: "BorrowedEvents",
+              props: [],
+              events: [{ name: "changed", parameters: [{ name: "value", rustType }] }],
+            },
+            framework,
+          ),
+        new RegExp(`Unsupported Voo public ABI type "${rustType}" for event "changed" parameter "value"\\. Use owned String\\.`),
+      );
+    }
+  }
+});
+

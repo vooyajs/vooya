@@ -1,10 +1,13 @@
 import type { CodegenComponent } from "./types.js";
+import { validatePublicAbi } from "./abi.js";
 
 export function generateVooDeclaration(component: CodegenComponent, framework: "vue" | "react") {
+  validatePublicAbi(component);
   if (framework === "react") return generateReactDeclaration(component);
   if (framework !== "vue") throw new Error(`Unknown Vooya framework "${framework}".`);
   return generateVueDeclaration(component);
 }
+
 
 function generateVueDeclaration(component: CodegenComponent) {
   const props = component.props
@@ -92,9 +95,10 @@ export default component;
 function typescriptType(rustType: string) {
   if (/^(?:[iu](?:8|16|32|64|128|size)|f(?:32|64))$/.test(rustType)) return "number";
   if (rustType === "bool") return "boolean";
-  if (rustType === "String" || rustType === "str" || rustType === "&str") return "string";
+  if (rustType === "String") return "string";
   throw new Error(`Unsupported Voo contract type "${rustType}".`);
 }
+
 
 function propertyName(name: string) {
   return /^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.stringify(name);
