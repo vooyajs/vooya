@@ -18,3 +18,4 @@ packages/*/.artifact-build
 *.d.voo.ts
 *.tsbuildinfo
 .DS_Store
+.playwright-mcp/
