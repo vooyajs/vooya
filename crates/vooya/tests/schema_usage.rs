@@ -1,5 +1,17 @@
 use vooya as voo;
 
+#[derive(voo::FromJs, voo::ToJs)]
+pub struct CartLine {
+    pub sku: String,
+    pub quantity: u32,
+}
+
+#[derive(voo::FromJs, voo::ToJs)]
+pub enum CartStatus {
+    Open,
+    CheckedOut,
+}
+
 #[voo::props(id = "schema_usage::CartProps")]
 pub struct CartProps {
     pub initial_items: u32,
