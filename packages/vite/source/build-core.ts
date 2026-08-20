@@ -33,6 +33,7 @@ export {
   remapRustDiagnostic,
   resolveRuntimeCrateRoot,
   resolveRustDependencyRoots,
+  resolveVooyaCrateRoot,
 } from "@vooya/build-core";
 
 /**

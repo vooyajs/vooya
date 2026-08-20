@@ -112,8 +112,20 @@ export function defineVooyaComponent(
         watch(
           () => (props as Record<string, unknown>)[prop.name],
           (value) => {
+            if (!host.value) return;
+            const dispatch = handle?.["update"];
             const update = handle?.[`update_${prop.name}`];
-            if (typeof update !== "function" || !host.value) return;
+            if (typeof dispatch === "function") {
+              const startedAt = performance.now();
+              try {
+                dispatch.call(handle, prop.name, value);
+                emitDiagnostic(host.value, definition, "update", elapsedSince(startedAt));
+              } catch (cause) {
+                emitDiagnostic(host.value, definition, "update", elapsedSince(startedAt), cause);
+              }
+              return;
+            }
+            if (typeof update !== "function") return;
             const startedAt = performance.now();
             try {
               update.call(handle, value);

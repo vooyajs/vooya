@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "allowArbitraryExtensions": true,
+    "strict": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDirs": [".", ".vooya/types"],
+    "jsx": "preserve",
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", ".vooya/types/**/*.ts"]
+}

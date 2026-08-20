@@ -1,0 +1,446 @@
+// Rust-file component support for the Vite plugin (RFC #60/#61 authoring).
+//
+// A `.voo.rs` file is a plain Rust source that uses the `vooya` macros. The
+// plugin scans for these files, hands them to the build layer as `rustFiles`,
+// and after the build maps each import to the `__voo_schema` records emitted
+// by the macros. Store records produce a React hook or Vue composable; DOM
+// component records produce a framework component.
+
+import { existsSync, readdirSync, readFileSync, statSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+
+import type { VooSchemaRecord } from "@vooya/build-core";
+
+const nodeFs = { existsSync, readdirSync, readFileSync, statSync, mkdirSync, writeFileSync };
+const nodePath = { dirname, isAbsolute, relative, resolve };
+
+export const rustComponentExtension = ".voo.rs";
+
+const schemaRecords = new Map<string, VooSchemaRecord[]>();
+
+export function setRustComponentSchema(records: VooSchemaRecord[]) {
+  schemaRecords.clear();
+  for (const record of records) {
+    const list = schemaRecords.get(record.kind) ?? [];
+    list.push(record);
+    schemaRecords.set(record.kind, list);
+  }
+}
+
+export function rustComponentRecords() {
+  return schemaRecords;
+}
+
+/** Recursively finds `.voo.rs` component sources under the application root. */
+export function readVooRustComponents(applicationRoot: string) {
+  const files: Array<{ id: string; path: string; name: string }> = [];
+  const visit = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (SKIP_DIRECTORIES.has(entry.name)) continue;
+        visit(resolve(directory, entry.name));
+        continue;
+      }
+      if (!entry.name.endsWith(rustComponentExtension)) continue;
+      const path = resolve(directory, entry.name);
+      files.push({
+        id: path,
+        path,
+        name: componentNameFromSource(readFileSync(path, "utf8")),
+      });
+    }
+  };
+  visit(applicationRoot);
+  return files;
+}
+
+const SKIP_DIRECTORIES = new Set([
+  "node_modules",
+  ".vooya",
+  "target",
+  "dist",
+  ".git",
+]);
+
+/**
+ * Extracts the store or component name from a `.voo.rs` source. The schema
+ * records are keyed by name, so the import must map to the same identifier:
+ * `#[voo::store] impl Cart` or `#[voo::component] pub fn Cart`.
+ */
+export function componentNameFromSource(source: string): string {
+  const store = source.match(/#\s*\[voo::store\]\s*impl\s+([A-Za-z_][A-Za-z0-9_]*)/);
+  if (store) return store[1];
+  const component = source.match(/#\s*\[voo::component[^\]]*\]\s*(?:pub\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)/);
+  if (component) return component[1];
+  return fallbackName(source);
+}
+
+function fallbackName(source: string): string {
+  const file = relative(process.cwd(), ".");
+  return `Rust${Math.abs(hash(source)).toString(36)}`;
+}
+
+function hash(value: string) {
+  let result = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    result = (Math.imul(result, 31) + value.charCodeAt(index)) | 0;
+  }
+  return result;
+}
+
+export function isRustComponentPath(path: string): boolean {
+  return path.endsWith(rustComponentExtension);
+}
+
+export function isRustComponentImport(source: string): boolean {
+  return source.endsWith(rustComponentExtension);
+}
+
+/** Finds the schema record for a `.voo.rs` import by name. */
+export function schemaRecordFor(name: string, kind: "store" | "component") {
+  return (schemaRecords.get(kind) ?? []).find((record) => record.name === name);
+}
+
+/**
+ * Generates the virtual module for a `#[voo::store]` import. The module
+ * exports a typed hook (React) or composable (Vue) that owns one store
+ * instance: props in, `{ state, ...actions }` out.
+ */
+export function generateRustStoreModule({
+  record,
+  runtimeId,
+  framework,
+}: {
+  record: VooSchemaRecord;
+  runtimeId: string;
+  framework: "vue" | "react";
+}) {
+  const storeName = String(record.name);
+  const exportName = String(record.export ?? `Vooya${storeName}Store`);
+  const hookName = `use${storeName}`;
+  const actions = ((record.actions ?? []) as Array<{ name: string }>).map(
+    (action) => action.name,
+  );
+  const props = propsRecordFor(record);
+  const propsFields = ((props?.fields ?? []) as Array<{ name: string }>).map(
+    (field) => field.name,
+  );
+  const notifyHandlers = notifyHandlersFor(record);
+  const propsToWasm = wasmPropsTranslation(propsFields.map((name) => ({ name })));
+  const actionEntries = actions
+    .map(
+      (action) =>
+        `${toCamel(action)}: (...args) => { try { return store.dispatch_${action}(...args); } catch (error) { return Promise.reject(error); } }`,
+    )
+    .join(",\n      ");
+  const idleActions = actions
+    .map(
+      (action) =>
+        `${toCamel(action)}: (...args) => { try { return store?.dispatch_${action}(...args); } catch (error) { return Promise.reject(error); } }`,
+    )
+    .join(",\n    ");
+
+  if (framework === "react") {
+    return `// Generated by @vooya/vite. Do not edit.
+import { useEffect, useMemo, useRef, useState } from "react";
+import init, { ${exportName} } from "${runtimeId}";
+import { initializeWasm } from "@vooya/vite/runtime";
+
+export function ${hookName}(props = {}, options = {}) {
+  const storeRef = useRef(null);
+  const [snapshot, setSnapshot] = useState(undefined);
+
+  useEffect(() => {
+    let active = true;
+    let subscription;
+    let store;
+    const notify = (name, payload) => {
+      const handler = options[${JSON.stringify(notifyHandlers)}[name]];
+      if (typeof handler === "function") handler(payload);
+    };
+    void initializeWasm(init).then(() => {
+      if (!active) return;
+      store = new ${exportName}(${propsToWasm}, notify);
+      subscription = store.subscribe(() => setSnapshot(store.snapshot()));
+      storeRef.current = store;
+      setSnapshot(store.snapshot());
+    });
+    return () => {
+      active = false;
+      if (store) {
+        if (subscription !== undefined) store.unsubscribe(subscription);
+        store.dispose();
+        storeRef.current = null;
+      }
+    };
+  }, []);
+
+  const actions = useMemo(() => {
+    const store = storeRef.current;
+    if (!store) return {};
+    return {
+      ${actionEntries}
+    };
+  }, [snapshot]);
+
+  return { state: snapshot, ...actions };
+}
+`;
+  }
+
+  return `// Generated by @vooya/vite. Do not edit.
+import { onBeforeUnmount, onMounted, readonly, ref, shallowRef } from "vue";
+import init, { ${exportName} } from "${runtimeId}";
+import { initializeWasm } from "@vooya/vite/runtime";
+
+export function ${hookName}(props = {}, options = {}) {
+  const state = shallowRef(undefined);
+  let store;
+  let subscription;
+
+  onMounted(() => {
+    const notify = (name, payload) => {
+      const handler = options[${JSON.stringify(notifyHandlers)}[name]];
+      if (typeof handler === "function") handler(payload);
+    };
+    void initializeWasm(init).then(() => {
+      if (!store) store = new ${exportName}(${propsToWasm}, notify);
+      subscription = store.subscribe(() => {
+        state.value = store.snapshot();
+      });
+      state.value = store.snapshot();
+    });
+  });
+
+  onBeforeUnmount(() => {
+    if (store) {
+      if (subscription !== undefined) store.unsubscribe(subscription);
+      store.dispose();
+    }
+  });
+
+  return {
+    state: readonly(state),
+    ${idleActions}
+  };
+}
+`;
+}
+
+/**
+ * Generates the virtual module for a `#[voo::component]` import: the same
+ * component contract as `.voo`, but driven by the schema records instead of
+ * the `.voo` parser.
+ */
+export function generateRustComponentModule({
+  record,
+  runtimeId,
+  framework,
+}: {
+  record: VooSchemaRecord;
+  runtimeId: string;
+  framework: "vue" | "react";
+}) {
+  const exportName = String(record.export);
+  const name = String(record.name);
+  const props = propsRecordFor(record);
+  const fields = ((props?.fields ?? []) as Array<{ name: string; type: string; default?: unknown }>).map(
+    (field) => ({
+      name: toCamel(field.name),
+      type: javascriptType(field.type),
+      ...(field.default === undefined ? {} : { defaultValue: field.default }),
+    }),
+  );
+  const wasmProps = wasmPropsFromPositional(fields);
+  const events = eventsRecordFor(record);
+  const eventNames = ((events?.methods ?? []) as Array<{ name: string }>).map(
+    (method) => method.name,
+  );
+  const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
+
+  return `// Generated by @vooya/vite. Do not edit.
+import init, { ${exportName} } from "${runtimeId}";
+import { defineVooyaComponent } from "${adapter}";
+import { initializeWasm } from "@vooya/vite/runtime";
+
+const definition = ${JSON.stringify({
+    abiVersion: 1,
+    name,
+    props: fields,
+    events: eventNames.map((event) => ({ name: event, parameters: [] })),
+  })};
+
+let bindings;
+async function loadBindings() {
+  if (!bindings) {
+    bindings = initializeWasm(init).then(() => ({
+      mount(host, ...props) {
+        const handle = new ${exportName}(host, ${wasmProps});
+        return {
+          dispose() { handle.dispose(); },
+          update(key, value) { handle.update(key, value); },
+        };
+      },
+    }));
+  }
+  return bindings;
+}
+
+export const metadata = { name, export: ${JSON.stringify(exportName)} };
+export default defineVooyaComponent(definition, loadBindings);
+`;
+}
+
+/** Maps the referenced props, events, and user types for the store/component. */
+function propsRecordFor(record: VooSchemaRecord) {
+  const name = record.props;
+  if (typeof name !== "string") return undefined;
+  return (schemaRecords.get("props") ?? []).find((candidate) => candidate.name === name);
+}
+
+function eventsRecordFor(record: VooSchemaRecord) {
+  let name = record.events;
+  if (typeof name !== "string" || !name) return undefined;
+  name = name.replace(/^dyn\s+/, "");
+  return (schemaRecords.get("events") ?? []).find((candidate) => candidate.name === name);
+}
+
+function notifyHandlersFor(record: VooSchemaRecord) {
+  const events = eventsRecordFor(record);
+  const handlers: Record<string, string> = {};
+  for (const method of (events?.methods ?? []) as Array<{ name: string }>) {
+    handlers[method.name] = `on${pascalCase(method.name)}`;
+  }
+  return handlers;
+}
+
+/** snake_case (Rust field) to camelCase (JS/TS surface). */
+export function toCamel(name: string) {
+  return name
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part, index) => (index === 0 ? part : `${part[0].toUpperCase()}${part.slice(1)}`))
+    .join("");
+}
+
+/** snake_case to PascalCase (JS/TS event handler names). */
+function pascalCase(name: string) {
+  return name
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => `${part[0].toUpperCase()}${part.slice(1)}`)
+    .join("");
+}
+
+/**
+ * Source text that maps the camelCase props object to the camelCase wire keys
+ * the Rust `FromJs` decoder reads.
+ */
+function wasmPropsTranslation(fields: Array<{ name: string }>) {
+  const entries = fields
+    .map((field) => `${JSON.stringify(toCamel(field.name))}: props[${JSON.stringify(toCamel(field.name))}]`)
+    .join(",\n      ");
+  return `({ ${entries} })`;
+}
+
+/**
+ * Source text that reassembles the camelCase props object from the adapter's
+ * positional prop values.
+ */
+function wasmPropsFromPositional(fields: Array<{ name: string }>) {
+  const entries = fields
+    .map((field, index) => `${JSON.stringify(toCamel(field.name))}: props[${index}]`)
+    .join(",\n        ");
+  return `({ ${entries} })`;
+}
+
+export function javascriptType(rustType: string) {
+  if (/^(?:[iu](?:8|16|32|size)|f(?:32|64))$/.test(rustType)) return "number";
+  if (rustType === "bool") return "boolean";
+  if (rustType === "String") return "string";
+  if (rustType.startsWith("Vec<")) return `${javascriptType(rustType.slice(4, -1))}[]`;
+  return rustType;
+}
+
+export function rustComponentDeclaration(record: VooSchemaRecord) {
+  if (record.kind === "store") return storeDeclaration(record);
+  return componentDeclaration(record);
+}
+
+/**
+ * Mirrors `.voo` declaration behavior: writes one `*.d.voo.ts` per Rust-file
+ * component/store under the generated types root.
+ */
+export function writeRustDeclarations(
+  files: Array<{ id: string; path: string; name: string }>,
+  applicationRoot: string,
+  typesRoot: string,
+) {
+  const { mkdirSync, writeFileSync } = nodeFs;
+  const { dirname, relative, resolve: resolvePath } = nodePath;
+  for (const entry of files) {
+    const name = componentNameFromSource(readFileSync(entry.path, "utf8"));
+    const record = schemaRecordFor(name, "store") ?? schemaRecordFor(name, "component");
+    if (!record) continue;
+    const sourceRelative = relative(applicationRoot, entry.path).replace(/\.voo\.rs$/, "");
+    const declarationPath = resolvePath(typesRoot, `${sourceRelative}.d.voo.ts`);
+    mkdirSync(dirname(declarationPath), { recursive: true });
+    writeFileSync(declarationPath, rustComponentDeclaration(record));
+  }
+}
+
+function storeDeclaration(record: VooSchemaRecord) {
+  const name = String(record.name);
+  const hook = `use${name}`;
+  const props = propsRecordFor(record);
+  const propsFields = ((props?.fields ?? []) as Array<{ name: string; type: string }>)
+    .map((field) => `${toCamel(field.name)}: ${javascriptType(field.type)}`)
+    .join("; ");
+  const actions = ((record.actions ?? []) as Array<{ name: string; params: Array<{ name: string; type: string }> }>)
+    .map((action) => {
+      const args = action.params
+        .map((param) => `${toCamel(param.name)}: ${javascriptType(param.type)}`)
+        .join(", ");
+      return `${toCamel(action.name)}: (${args}) => void;`;
+    })
+    .join("\n  ");
+  const notifications = notifyHandlersFor(record);
+  const notifyOptions = Object.entries(notifications)
+    .map(([event, handler]) => `${handler}?: (payload: unknown) => void;`)
+    .join("\n  ");
+  return `// Generated by @vooya/vite. Do not edit.
+export interface ${name}Props { ${propsFields} }
+export interface ${name}Actions {
+  ${actions}
+}
+export interface ${name}Options {
+  ${notifyOptions}
+}
+export declare function ${hook}(
+  props: ${name}Props,
+  options?: ${name}Options,
+): { state: unknown } & ${name}Actions;
+`;
+}
+
+function componentDeclaration(record: VooSchemaRecord) {
+  const name = String(record.name);
+  const props = propsRecordFor(record);
+  const propsType = ((props?.fields ?? []) as Array<{ name: string; type: string }>)
+    .map((field) => `${toCamel(field.name)}?: ${javascriptType(field.type)}`)
+    .join("; ");
+  const events = eventsRecordFor(record);
+  const emits = ((events?.methods ?? []) as Array<{ name: string; params: Array<{ name: string; type: string }> }>)
+    .map(
+      (method) =>
+        `on${pascalCase(method.name)}?: (${method.params
+          .map((param) => `${param.name}: ${javascriptType(param.type)}`)
+          .join(", ")}) => void;`,
+    )
+    .join("\n  ");
+  return `// Generated by @vooya/vite. Do not edit.
+export interface ${name}Props { ${propsType}; ${emits} }
+declare const ${name}: (props: ${name}Props) => any;
+export default ${name};
+`;
+}

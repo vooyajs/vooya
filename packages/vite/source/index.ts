@@ -22,7 +22,21 @@ import {
   parseVooComponent,
 } from "@vooya/compiler";
 import { readVooComponents } from "./voo-project.js";
+import {
+  generateRustComponentModule,
+  generateRustStoreModule,
+  isRustComponentImport,
+  isRustComponentPath,
+  readVooRustComponents,
+  rustComponentExtension,
+  rustComponentDeclaration,
+  componentNameFromSource,
+  schemaRecordFor,
+  setRustComponentSchema,
+  writeRustDeclarations,
+} from "./rust-components.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
+import { resolveVooyaWorkspace as resolveWorkspacePaths } from "@vooya/build-core";
 
 const componentExtension = ".voo";
 const runtimeId = "virtual:vooya-runtime";
@@ -39,12 +53,15 @@ export function vooya({
   let runtimeModule;
   let toolchain;
   let sourceComponents = [];
+  let rustFiles = [];
+  let rustSchema = [];
   let watchedRustRoots = [];
   let logger;
 
   const handleVooyaHotUpdate = ({ file }) => {
     if (
       !file.endsWith(componentExtension) &&
+      !file.endsWith(rustComponentExtension) &&
       !watchedRustRoots.some((root) => isPathInside(file, root))
     ) {
       return;
@@ -59,6 +76,7 @@ export function vooya({
   const compile = () => {
     const components = applicationRoot ? readVooComponents(applicationRoot) : [];
     sourceComponents = components.filter((component) => component.format === "source");
+    rustFiles = applicationRoot ? readVooRustComponents(applicationRoot) : [];
     writeVooDeclarations({
       applicationRoot,
       components,
@@ -77,15 +95,24 @@ export function vooya({
           logger?.warn(`Vooya: WARNING: ${toolchain.cargoPathWarning} This may differ from the toolchain you intended to use.`);
         }
       }
-      ({ runtimeModule } = buildApplication({
+      ({ runtimeModule, schema: rustSchema } = buildApplication({
         applicationRoot,
         components: sourceComponents,
+        rustFiles,
         rust,
         framework,
         workspaceRoot: resolveVooyaWorkspace(applicationRoot, workspaceOptions.root).root,
         toolchain,
         onRustBuildStart: progress.start,
       }));
+      setRustComponentSchema(rustSchema);
+      if (rustFiles.length > 0) {
+        writeRustDeclarations(
+          rustFiles,
+          applicationRoot,
+          resolveWorkspacePaths(applicationRoot, workspaceOptions.root).types,
+        );
+      }
       progress.complete();
     } catch (error) {
       if (isToolchainExecutionError(error)) {
@@ -117,6 +144,9 @@ export function vooya({
     resolveId(source, importer) {
       if (source === runtimeId) return runtimeModule;
       if (source.startsWith(stylePrefix)) return `\0${source}`;
+      if (isRustComponentImport(source) && importer) {
+        return resolve(importer, "..", source);
+      }
       if (!source.endsWith(componentExtension) || !importer) return null;
       return resolve(importer, "..", source);
     },
@@ -125,6 +155,22 @@ export function vooya({
         const componentId = decodeURIComponent(id.slice(stylePrefix.length + 1, -4));
         const component = parseVooComponent(readFileSync(componentId, "utf8"), componentId);
         return compileVooStyle({ ...component, id: componentId });
+      }
+      if (isRustComponentPath(id)) {
+        const name = componentNameFromSource(readFileSync(id, "utf8"));
+        const storeRecord = schemaRecordFor(name, "store");
+        if (storeRecord) {
+          return generateRustStoreModule({ record: storeRecord, runtimeId, framework });
+        }
+        const componentRecord = schemaRecordFor(name, "component");
+        if (componentRecord) {
+          return generateRustComponentModule({
+            record: componentRecord,
+            runtimeId,
+            framework,
+          });
+        }
+        this.error(`Vooya: no schema record found for Rust component ${id}. Run the build and retry.`);
       }
       if (!id.endsWith(componentExtension)) return null;
       const component = parseVooComponent(readFileSync(id, "utf8"), id);

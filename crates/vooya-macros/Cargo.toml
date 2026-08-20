@@ -1,0 +1,15 @@
+[package]
+name = "vooya-macros"
+version = "0.1.0"
+description = "Procedural macros for Vooya Rust-file components and state stores."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full", "extra-traits"] }

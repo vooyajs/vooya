@@ -22,6 +22,8 @@
     "typecheck:trace": "npm run build --workspace @vooya/vite && node packages/vite/dist/generate-declarations.js examples/trace-waterfall vue && vue-tsc --noEmit -p examples/trace-waterfall/tsconfig.json",
     "dev:tasks": "vite --config examples/task-list/vite.config.js",
     "build:tasks": "vite build --config examples/task-list/vite.config.js",
+    "dev:rfc-store": "vite --config examples/rfc-store/vite.config.js",
+    "build:rfc-store": "vite build --config examples/rfc-store/vite.config.js",
     "typecheck:tasks": "npm run build --workspace @vooya/vite && node packages/vite/dist/generate-declarations.js examples/task-list vue && vue-tsc --noEmit -p examples/task-list/tsconfig.json",
     "dev:react": "vite --config examples/react-counter/vite.config.js",
     "build:react": "vite build --config examples/react-counter/vite.config.js",

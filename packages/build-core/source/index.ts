@@ -1,7 +1,7 @@
 // This package is intentionally bundler-neutral: adapters own virtual modules,
 // watching and presentation, while this module owns the Rust/WASM application build.
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 
@@ -21,12 +21,15 @@ import {
   resolveVooyaWorkspace,
   writeWorkspaceMetadata,
 } from "./workspace.js";
+import { readVooSchema } from "./wasm-schema.js";
+import type { VooSchemaRecord } from "./wasm-schema.js";
 
 const require = createRequire(import.meta.url);
 
 export * from "./errors.js";
 export * from "./toolchain.js";
 export * from "./workspace.js";
+export * from "./wasm-schema.js";
 
 export type RustDependency =
   | string
@@ -92,6 +95,9 @@ export type BuildExec = (
 export interface BuildApplicationOptions {
   applicationRoot: string;
   components?: SourceComponent[];
+  /** Rust-file components (RFC #60/#61 authoring). Each entry is one `.voo.rs`
+   * or `.rs` component/store source compiled directly into the app crate. */
+  rustFiles?: Array<{ id: string; path: string; name: string }>;
   rust?: RustBuildOptions;
   runtimeCrateRoot?: string;
   workspaceRoot?: string;
@@ -116,6 +122,9 @@ export interface BuildApplicationResult {
   wasm: WasmAsset;
   css: GeneratedCss[];
   declarations: GeneratedDeclaration[];
+  /** `__voo_schema` records read from the produced wasm, when the build
+   * includes Rust-file components. */
+  schema: VooSchemaRecord[];
   watchedFiles: string[];
   diagnostics: MappedDiagnostic[];
   metadata: BuildMetadata;
@@ -142,6 +151,26 @@ export function resolveRuntimeCrateRoot(): string {
   return dirname(require.resolve("@vooya/core/rust/Cargo.toml"));
 }
 
+/**
+ * Locates the `vooya` user-facing runtime crate. In repository development it
+ * lives at `crates/vooya` beside the `@vooya/core` checkout; the packaged
+ * `@vooya/core` may later bundle it under `rust/vooya`.
+ */
+export function resolveVooyaCrateRoot(): string {
+  const coreRust = resolveRuntimeCrateRoot();
+  const candidates = [
+    resolve(coreRust, "../../../crates/vooya"),
+    resolve(coreRust, "vooya"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(resolve(candidate, "Cargo.toml"))) return candidate;
+  }
+  throw new VooyaUserError(
+    `Could not locate the vooya runtime crate. Expected it at ${candidates.join(" or ")}.`,
+    { kind: "vooya-crate" },
+  );
+}
+
 export function resolveRustDependencyRoots(
   rust: RustBuildOptions = {},
   applicationRoot: string,
@@ -161,6 +190,7 @@ export function resolveRustDependencyRoots(
 export function buildApplication({
   applicationRoot,
   components = [],
+  rustFiles = [],
   rust = {},
   runtimeCrateRoot = resolveRuntimeCrateRoot(),
   workspaceRoot,
@@ -202,13 +232,26 @@ export function buildApplication({
     });
   }
 
-  writeIfChanged(
-    resolve(workspacePath, "Cargo.toml"),
-    generatedCargoManifest({ applicationRoot, runtimeCrateRoot, rust }),
-  );
+  const rustModules = rustFiles.map((entry, index) => {
+    const moduleName = `voo_rust_${index}_${entry.name
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .replace(/[^A-Za-z0-9_]/g, "_")
+      .toLowerCase()}`;
+    return `#[path = ${JSON.stringify(entry.path)}]\nmod ${moduleName};`;
+  });
+
+  const cargoManifest = generatedCargoManifest({
+    applicationRoot,
+    runtimeCrateRoot,
+    rust,
+    vooyaCrateRoot: rustFiles.length > 0 ? resolveVooyaCrateRoot() : undefined,
+  });
+  writeIfChanged(resolve(workspacePath, "Cargo.toml"), cargoManifest);
   writeIfChanged(
     resolve(workspacePath, "src/lib.rs"),
-    `pub use vooya_core::*;\n\n${generateRustComponents(components, sourcePaths)}`,
+    rustModules.length > 0
+      ? `pub use vooya_core::*;\n\n${rustModules.join("\n\n")}\n`
+      : `pub use vooya_core::*;\n\n${generateRustComponents(components, sourcePaths)}`,
   );
 
   onRustBuildStart();
@@ -259,6 +302,10 @@ export function buildApplication({
   const abiVersions = components.map(
     (component) => generatedAdapterDefinition(component).abiVersion,
   );
+  let schema: VooSchemaRecord[] = [];
+  if (rustFiles.length > 0 && existsSync(wasm)) {
+    schema = readVooSchema(new Uint8Array(readFileSync(wasm)));
+  }
   writeWorkspaceMetadata(workspace, {
     abiVersions,
     toolchain: {
@@ -285,8 +332,10 @@ export function buildApplication({
       framework,
       code: generateVooDeclaration(component, framework),
     })),
+    schema,
     watchedFiles: [
       resolve(runtimeCrateRoot, "src"),
+      ...resolveVooyaCrateRootWhen(rustFiles),
       ...resolveRustDependencyRoots(rust, applicationRoot),
     ],
     diagnostics,
@@ -296,6 +345,12 @@ export function buildApplication({
       wasmBindgenTarget: "web",
     },
   };
+}
+
+function resolveVooyaCrateRootWhen(rustFiles: Array<{ id: string; path: string; name: string }>) {
+  if (rustFiles.length === 0) return [];
+  const root = resolveVooyaCrateRoot();
+  return [resolve(root, "src"), resolve(root, "..", "vooya-macros", "src")];
 }
 
 // Builds the empty runtime artifact shipped by @vooya/core without depending on
@@ -312,12 +367,17 @@ export function generatedCargoManifest({
   applicationRoot,
   runtimeCrateRoot,
   rust = {},
+  vooyaCrateRoot,
 }: {
   applicationRoot: string;
   runtimeCrateRoot: string;
   rust?: RustBuildOptions;
+  vooyaCrateRoot?: string;
 }): string {
   const dependencies = generatedUserDependencies(rust.dependencies, applicationRoot);
+  const vooyaDependency = vooyaCrateRoot
+    ? `vooya = { path = ${JSON.stringify(vooyaCrateRoot)} }\n`
+    : "";
   return `[package]
 name = "vooya-app"
 version = "0.0.0"
@@ -330,7 +390,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 vooya-core = { path = ${JSON.stringify(runtimeCrateRoot)} }
-js-sys = "=0.3.92"
+${vooyaDependency}js-sys = "=0.3.92"
 wasm-bindgen = "=0.2.115"
 web-sys = { version = "=0.3.92", features = [
 ${mergedWebSysFeatures(rust.webSysFeatures)
