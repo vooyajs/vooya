@@ -115,11 +115,14 @@ export function defineVooyaComponent(
         for (const prop of definition.props) {
           const value = resolvePropValue(prop, componentProps);
           if (Object.is(previous[prop.name], value)) continue;
+          if (!host.current) continue;
+          const dispatch = handle.current?.["update"];
           const update = handle.current?.[`update_${prop.name}`];
-          if (typeof update !== "function" || !host.current) continue;
           const startedAt = performance.now();
           try {
-            update.call(handle.current, value);
+            if (typeof dispatch === "function") dispatch.call(handle.current, prop.name, value);
+            else if (typeof update === "function") update.call(handle.current, value);
+            else continue;
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt), cause);
