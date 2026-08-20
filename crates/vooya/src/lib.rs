@@ -5,8 +5,10 @@
 //! later ABI layer; this crate deliberately keeps those concerns separate.
 
 mod abi;
+mod store;
 
 pub use abi::{FromJs, ToJs, abi_error};
+pub use store::{DomainSubscription, Store, StoreState, Subscription};
 pub use vooya_core::*;
 pub use vooya_macros::{FromJs, ToJs, action, component, events, props, snapshot, store};
 
