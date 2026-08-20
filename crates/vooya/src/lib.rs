@@ -10,7 +10,7 @@ mod store;
 pub use abi::{FromJs, ToJs, abi_error};
 pub use store::{DomainSubscription, Store, StoreState, Subscription};
 pub use vooya_core::*;
-pub use vooya_macros::{FromJs, ToJs, action, component, events, props, snapshot, store};
+pub use vooya_macros::{FromJs, ToJs, action, component, events, props, rsx, snapshot, store};
 
 /// Implementation dependencies made available to generated derives without
 /// requiring application crates to depend on them directly.

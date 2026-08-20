@@ -57,3 +57,16 @@ fn role_macros_compile_for_public_roots() {
         coupon: None,
     });
 }
+
+#[allow(dead_code)]
+fn rsx_tree_compiles(
+    view: &voo::View,
+    count: u32,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
+    voo::rsx!(view,
+        <section class="cart">
+            <h1>"Cart"</h1>
+            <span>{count}</span>
+        </section>
+    )
+}
