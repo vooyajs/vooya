@@ -233,7 +233,10 @@ export function buildApplication({
   }
 
   const rustModules = rustFiles.map((entry, index) => {
-    const moduleName = `voo_rust_${index}_${entry.name.replace(/[^A-Za-z0-9_]/g, "_")}`;
+    const moduleName = `voo_rust_${index}_${entry.name
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .replace(/[^A-Za-z0-9_]/g, "_")
+      .toLowerCase()}`;
     return `#[path = ${JSON.stringify(entry.path)}]\nmod ${moduleName};`;
   });
 
