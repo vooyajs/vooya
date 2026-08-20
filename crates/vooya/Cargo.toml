@@ -11,7 +11,11 @@ js-sys = "=0.3.92"
 vooya-core = { path = "../../packages/core/rust" }
 vooya-macros = { path = "../vooya-macros" }
 wasm-bindgen = "=0.2.115"
+web-sys = { version = "=0.3.92", features = ["Document", "Element", "HtmlCollection", "Node", "Window"] }
+
+[[example]]
+name = "rsx_browser"
+crate-type = ["cdylib"]
 
 [dev-dependencies]
 wasm-bindgen-test = "=0.3.65"
-web-sys = { version = "=0.3.92", features = ["Document", "Element", "HtmlCollection", "Node", "Window"] }
