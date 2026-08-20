@@ -53,7 +53,7 @@ fn props_sink(name: &Ident, fields: &Fields) -> TokenStream {
         Fields::Named(fields) => {
             let arms = fields.named.iter().map(|field| {
                 let field_name = field.ident.as_ref().expect("named field");
-                let key = field_name.to_string();
+                let key = schema::wire_key(&field_name.to_string());
                 let ty = &field.ty;
                 quote! {
                     #key => {

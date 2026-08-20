@@ -56,3 +56,21 @@ pub fn field(name: &str, ty: &str) -> String {
         json_string(ty)
     )
 }
+
+/// The wire key for a Rust field: the JavaScript side is camelCase, so
+/// `total_cents` crosses the boundary as `totalCents`.
+pub fn wire_key(name: &str) -> String {
+    let mut parts = name.split(|character| character == '_' || character == '-');
+    let mut result = String::new();
+    if let Some(first) = parts.next() {
+        result.push_str(first);
+    }
+    for part in parts {
+        let mut chars = part.chars();
+        if let Some(first) = chars.next() {
+            result.push(first.to_ascii_uppercase());
+            result.extend(chars);
+        }
+    }
+    result
+}

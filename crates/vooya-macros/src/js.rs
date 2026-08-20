@@ -154,7 +154,7 @@ fn decode_struct(_name: &Ident, fields: &Fields) -> TokenStream {
         Fields::Named(fields) => {
             let bindings = fields.named.iter().map(|field| {
                 let field_name = field.ident.as_ref().expect("named field");
-                let key = field_name.to_string();
+                let key = crate::schema::wire_key(&field_name.to_string());
                 let ty = &field.ty;
                 quote! {
                     let #field_name = <#ty as vooya::FromJs>::from_js(
@@ -189,7 +189,7 @@ fn encode_struct(_name: &Ident, fields: &Fields) -> TokenStream {
         Fields::Named(fields) => {
             let writes = fields.named.iter().map(|field| {
                 let field_name = field.ident.as_ref().expect("named field");
-                let key = field_name.to_string();
+                let key = crate::schema::wire_key(&field_name.to_string());
                 let ty = &field.ty;
                 quote! {
                     ::js_sys::Reflect::set(
@@ -256,7 +256,7 @@ fn decode_enum(name: &Ident, data: &syn::DataEnum) -> TokenStream {
                     .map(|field| (field.ident.as_ref().unwrap(), &field.ty))
                     .unzip();
                 let reads = names.iter().zip(&types).map(|(field_name, ty)| {
-                    let key = field_name.to_string();
+                    let key = crate::schema::wire_key(&field_name.to_string());
                     quote! {
                         let #field_name = <#ty as vooya::FromJs>::from_js(
                             &::js_sys::Reflect::get(value, &#key.into())?,
@@ -312,16 +312,20 @@ fn encode_enum(_name: &Ident, data: &syn::DataEnum) -> TokenStream {
             }
             Fields::Named(fields) => {
                 let names: Vec<_> = fields.named.iter().map(|f| f.ident.as_ref().unwrap()).collect();
+                let writes = names.iter().map(|field_name| {
+                    let key = crate::schema::wire_key(&field_name.to_string());
+                    quote! {
+                        ::js_sys::Reflect::set(
+                            &object,
+                            &#key.into(),
+                            &<#field_name as vooya::ToJs>::to_js(#field_name)?,
+                        )?;
+                    }
+                });
                 quote! {
                     Self::#variant_ident { #(#names),* } => {
                         ::js_sys::Reflect::set(&object, &"type".into(), &#variant_name.into())?;
-                        #(
-                            ::js_sys::Reflect::set(
-                                &object,
-                                &#names.to_string().into(),
-                                &<#names as vooya::ToJs>::to_js(#names)?,
-                            )?;
-                        )*
+                        #(#writes)*
                     }
                 }
             }
