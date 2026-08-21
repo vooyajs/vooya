@@ -114,11 +114,13 @@ export function vooya({
     buildStart() {
       compile();
     },
-    resolveId(source, importer) {
+    resolveId(source, importer, options = {}) {
       if (source === runtimeId) return runtimeModule;
       if (source.startsWith(stylePrefix)) return `\0${source}`;
       if (!source.endsWith(componentExtension) || !importer) return null;
-      return resolve(importer, "..", source);
+      // Preserve Vite's root, alias and package semantics without re-entering
+      // this plugin for the delegated request.
+      return this.resolve(source, importer, { ...options, skipSelf: true });
     },
     load(id) {
       if (id.startsWith(`\0${stylePrefix}`)) {
