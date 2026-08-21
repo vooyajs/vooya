@@ -5,7 +5,7 @@ const playwright = fileURLToPath(
   new URL("../../node_modules/@playwright/test/cli.js", import.meta.url),
 );
 
-for (const target of ["vue", "react", "tasks", "benchmark", "scatter", "trace"]) {
+for (const target of ["vue", "react", "tasks", "benchmark", "scatter", "trace", "rsx"]) {
   const result = spawnSync(process.execPath, [playwright, "test"], {
     stdio: "inherit",
     env: { ...process.env, VOOYA_E2E_TARGET: target },

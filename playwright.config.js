@@ -30,6 +30,7 @@ const targets = {
   benchmark: viteTarget("npm run dev:benchmark", "data-grid.spec.js", 4177),
   scatter: viteTarget("npm run dev:scatter", "scatter-plot.spec.js", 4178),
   trace: viteTarget("npm run dev:trace", "trace-waterfall.spec.js", 4179),
+  rsx: viteTarget("npm run dev:rsx", "rsx-basic.spec.js", 4180),
 };
 
 const targetName = process.env.VOOYA_E2E_TARGET ?? "vue";
