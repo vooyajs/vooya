@@ -179,8 +179,13 @@ export function discoverRustSourceFiles(applicationRoot: string, configuredRoot 
   const sourceRoot = resolve(applicationRoot, configuredRoot);
   const files: string[] = [];
   const visit = (directory: string): void => {
-    let entries: ReturnType<typeof readdirSync>;
-    try { entries = readdirSync(directory, { withFileTypes: true }); } catch { return; }
+    const entries = (() => {
+      try {
+        return readdirSync(directory, { withFileTypes: true, encoding: "utf8" });
+      } catch {
+        return [];
+      }
+    })();
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
       const path = resolve(directory, entry.name);
       if (entry.isDirectory()) {
