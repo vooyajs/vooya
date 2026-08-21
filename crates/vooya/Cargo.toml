@@ -7,5 +7,7 @@ repository.workspace = true
 description = "Public Rust authoring API for Vooya."
 
 [dependencies]
+js-sys = "=0.3.92"
 vooya-core = { path = "../../packages/core/rust" }
 vooya-macros = { path = "../vooya-macros" }
+wasm-bindgen = "=0.2.115"

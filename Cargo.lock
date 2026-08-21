@@ -140,8 +140,10 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 name = "vooya"
 version = "0.0.0"
 dependencies = [
+ "js-sys",
  "vooya-core",
  "vooya-macros",
+ "wasm-bindgen",
 ]
 
 [[package]]
