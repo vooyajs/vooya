@@ -16,6 +16,7 @@ import {
   indexVooyaSchema,
   writeRustSchemaDeclarations,
   writeVooDeclarations,
+  rustTypeToRuntimeType,
 } from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
 import {
@@ -51,6 +52,7 @@ export function vooya({
   const handleVooyaHotUpdate = ({ file }) => {
     if (
       !file.endsWith(componentExtension) &&
+      !file.endsWith(rustExtension) &&
       !watchedRustRoots.some((root) => isPathInside(file, root))
     ) {
       return;
@@ -145,17 +147,11 @@ export function vooya({
       if (id.endsWith(rustExtension)) {
         const contract = findRustContract(rustContracts, id, applicationRoot);
         if (contract) {
-          if (framework !== "vue") {
-            this.error(`Rust-file component ${contract.component.name} currently supports only the Vue adapter.`);
-          }
-          return generateRustVueModule(contract);
+          return generateRustComponentModule(contract, framework);
         }
         const store = findRustStore(rustStores, id, applicationRoot);
         if (store) {
-          if (framework !== "vue") {
-            this.error(`Rust-file store ${store.name} currently supports only the Vue adapter.`);
-          }
-          return generateRustVueStoreModule(store);
+          return generateRustStoreModule(store, framework);
         }
         return null;
       }
@@ -329,7 +325,7 @@ function findRustStore(stores, file, applicationRoot) {
   });
 }
 
-export function generateRustVueModule(contract) {
+export function generateRustComponentModule(contract, framework = "vue") {
   const name = contract.component.name;
   const stem = rustStem(name);
   const mount = `voo_${stem}_mount`;
@@ -342,15 +338,16 @@ export function generateRustVueModule(contract) {
     name,
     props: props.map((prop) => ({
       name: prop.name,
-      type: rustJavascriptType(prop.type),
+      type: rustTypeToRuntimeType(prop.type),
       required: !/^Option\s*</.test(prop.type.replace(/\s+/g, "")),
     })),
     events: events.map((event) => ({ name: event.name, parameters: event.params.map((parameter) => parameter.name) })),
   };
   const propAssignments = props.map((prop, index) => `${JSON.stringify(prop.name)}: props[${index}]`).join(", ");
   const updates = props.map((prop) => `update_${rustProperty(prop.name)}(value) { currentProps[${JSON.stringify(prop.name)}] = value; ${update}(handle, currentProps); }`).join(",\n                      ");
+  const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
   return `import init, { ${mount}, ${update}, ${dispose}, voo_abi_version } from "${runtimeId}";
-import { defineVooyaComponent } from "@vooya/vue";
+import { defineVooyaComponent } from "${adapter}";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
 
 let bindings;
@@ -360,10 +357,11 @@ async function loadBindings() {
       assertVooAbiVersion(voo_abi_version());
       return {
         mount(host, ...props) {
-          const currentProps = { ${propAssignments} };
+          let currentProps = { ${propAssignments} };
           const handle = ${mount}(host, currentProps);
           return {
             dispose() { ${dispose}(handle); },
+            updateProps(values) { currentProps = { ...currentProps, ...values }; ${update}(handle, currentProps); },
             ${updates}
           };
         }
@@ -378,7 +376,9 @@ export default defineVooyaComponent(${JSON.stringify(definition)}, loadBindings)
 `;
 }
 
-export function generateRustVueStoreModule(store) {
+export const generateRustVueModule = (contract) => generateRustComponentModule(contract, "vue");
+
+export function generateRustStoreModule(store, framework = "vue") {
   const name = store.name.split("::").at(-1) ?? store.name;
   const stem = rustStem(name);
   const create = `voo_${stem}_store_create`;
@@ -392,7 +392,13 @@ export function generateRustVueStoreModule(store) {
     return `${JSON.stringify(action.name)}(...args) { return ${exportName}(handle, ...args); }`;
   }).join(",\n      " );
   const imports = ["voo_abi_version", create, snapshot, subscribe, unsubscribe, dispose, ...store.actions.map((action) => `voo_${stem}_store_${action.name}`)];
-  return `import init, { ${imports.join(", ")} } from "${runtimeId}";
+  const adapterImport = framework === "react"
+    ? `import { useVooyaStore } from "@vooya/react";\n`
+    : "";
+  const hook = framework === "react"
+    ? `\nexport function use${name}(options = {}) {\n  const { state, store } = useVooyaStore(create${name}Store, undefined, options);\n  return {\n    state,\n    ${store.actions.map((action) => `${rustProperty(action.name)}: (...args) => store?.[${JSON.stringify(action.name)}](...args)`).join(",\n    ")}\n  };\n}\n`
+    : "";
+  return `${adapterImport}import init, { ${imports.join(", ")} } from "${runtimeId}";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
 
 let bindings;
@@ -427,19 +433,14 @@ export async function create${name}Store() {
     },
   };
 }
+${hook}
 
 export default create${name}Store;
 export const metadata = ${JSON.stringify({ name, actions: store.actions, snapshot: store.snapshot ?? null })};
 `;
 }
 
-function rustJavascriptType(type) {
-  const normalized = type.replace(/\s+/g, "");
-  if (/^(?:bool)$/.test(normalized)) return "boolean";
-  if (/^(?:String)$/.test(normalized) || /^Option<String>$/.test(normalized)) return "string";
-  if (/^(?:i|u|f)(?:8|16|32|64|128|size)$/.test(normalized)) return "number";
-  throw new Error(`Unsupported Rust-file Vue prop type "${type}" in the runtime adapter.`);
-}
+export const generateRustVueStoreModule = (store) => generateRustStoreModule(store, "vue");
 
 function rustStem(name) {
   return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^A-Za-z0-9_]/g, "_").toLowerCase();

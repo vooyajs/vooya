@@ -11,6 +11,7 @@ SSR and hydration. Each entry is evidence for the named test path only.
 | Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Required by the verified Vite 7/8 path; other bundlers may accept older Node versions, but Vooya does not test a separate lower floor |
 | Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
+| React 19 Rust-file authoring | Vite 7 | Experimental | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
 | Vue Vapor | Vue 3.6 experimental | Targeted, unverified | The adapter will keep the same DOM host/lifecycle boundary; a dedicated Vapor fixture is required before calling this supported |
 
 ## Verified in local Playwright projects

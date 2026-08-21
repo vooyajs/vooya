@@ -50,6 +50,9 @@ prerelease.
   and generate central `.d.rs.ts` declarations for Vue/React consumers.
 - Build a real Rust-file component through Vite 7 + Vue 3.5, including the
   public `vooya` authoring dependency and generated WASM bindings.
+- Build and exercise Rust-file components and instance-scoped stores through
+  Vite 7 + React 19, including StrictMode mount cleanup, store actions,
+  snapshot subscriptions, and atomic component prop patches.
 - Expose the instance-scoped store contract to Vue through
   `useVooyaStore` with snapshot subscription, explicit action dispatch, and
   opt-in unmount disposal.
@@ -60,9 +63,9 @@ prerelease.
 
 - Source consumers need Cargo, the WASM target, and `wasm-bindgen-cli`.
 - Vite `>=7 <9` is the supported source-authoring bundler range, with Vite 8
-  as the primary compatibility target. The Vite 7 Rust-file/Vue production
-  fixture passes; Vite 8, browser interaction coverage, and HMR remain to be
-  verified. Rspack `>=2.1.10`
+  as the primary compatibility target. The Vite 7 Rust-file Vue and React
+  production fixtures pass, and React browser interaction is verified; Vite 8,
+  Vue browser interaction, and Rust-file HMR remain to be verified. Rspack `>=2.1.10`
   has an experimental first-party adapter with Rsbuild, Rslib, and direct
   Rspack fixtures. Webpack `>=5` has an experimental first-party
   adapter. Webpack 4, Rollup, Turbopack, and other bundlers remain unsupported.

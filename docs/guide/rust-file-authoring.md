@@ -82,13 +82,53 @@ The generated module forwards `getSnapshot`, `subscribe`, each `#[voo::action]`,
 and `dispose`. It does not turn a store into a Vue component or create a
 global singleton.
 
+React imports the same `.rs` store through a generated hook. The hook creates
+one instance for its mounted lifetime and subscribes through
+`useSyncExternalStore`:
+
+```tsx
+import Counter from "./Counter.rs";
+import { useCart } from "./Store.rs";
+
+function App() {
+  const { state, add } = useCart();
+  return <Counter count={state?.count ?? 0} onClick={() => add(1)} />;
+}
+```
+
+In ABI v1, a store is created from Rust's `Default` implementation and does not
+accept constructor props. The optional argument to `useCart` is the adapter
+options object (`onError` and `onNotify`); state that must change after
+construction belongs in an explicit `#[voo::action]` method.
+
+The generated `.d.rs.ts` declaration mirrors both sides of the module. For a
+React store it includes the factory, default export, snapshot/store types, and
+the generated hook. In the current ABI-v1 alpha, a snapshot that refers to a
+user-defined `ToJs` struct is declared as an object-shaped fallback until
+standalone schema records for those structs are added:
+
+```ts
+import type { VooyaStoreOptions } from "@vooya/react";
+
+export declare function createCartStore(): Promise<Cart>;
+export default createCartStore;
+export declare function useCart(options?: VooyaStoreOptions): {
+  state: CartSnapshot | undefined;
+  add(...args: [number]): void;
+};
+```
+
+Snapshots returned by the generated Rust store keep JavaScript identity until
+the Rust snapshot actually changes. This stable identity is required by
+React's `useSyncExternalStore` contract.
+
 The composable mirrors `getSnapshot()` after each `subscribe()` notification;
 it does not deep-proxy the Rust state or invent a second notification queue.
 `disposeOnUnmount` is explicit because a store may be shared by multiple Vue
 components. The generated TypeScript declaration describes the same
 `getSnapshot/subscribe/action/dispose` boundary.
 
-The initial Vite integration targets Vue 3.5+ and Vite 7/8. Vue 3.6 Vapor is
+The initial Vite integration targets Vue 3.5+, React 19+, and Vite 7/8. Vue 3.6 Vapor is
 an explicit compatibility target, but remains experimental until a dedicated
 Vapor fixture passes the same mount, update, event, and disposal checks.
 
