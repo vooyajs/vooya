@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import { discoverRustSourceFiles, generateRustCrateRoot, generatedCargoManifest, remapRustDiagnostic, resolveRustDependencyRoots, resolveRuntimeCrateRoot, rustModuleIdentifier, selectRustRootModules } from "../dist/index.js";
+import { discoverRustSourceFiles, generateRustCrateRoot, generatedCargoManifest, remapRustDiagnostic, resolveRustDependencyRoots, resolveRuntimeCrateRoot, resolveVooyaCrateRoot, rustModuleIdentifier, selectRustRootModules } from "../dist/index.js";
 
 test("exposes a bundler-neutral runtime and dependency watch roots", () => {
   assert.equal(existsSync(`${resolveRuntimeCrateRoot()}/Cargo.toml`), true);
@@ -46,6 +46,8 @@ test("discovers ordinary Rust modules while excluding crate roots", () => {
     writeFileSync(resolve(root, "src/main.rs"), "fn main() {}\n");
     writeFileSync(resolve(root, "src/domain/cart.rs"), "pub struct Cart;\n");
     assert.deepEqual(discoverRustSourceFiles(root), [resolve(root, "src/domain/cart.rs")]);
+    assert.equal(resolveVooyaCrateRoot(root), undefined);
+    assert.equal(resolveVooyaCrateRoot(root, "src/lib.rs"), resolve(root, "src/lib.rs"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

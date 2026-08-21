@@ -108,9 +108,11 @@ owned-data fallback; it must not emit inaccurate TypeScript.
 ## Build, schema, and styles
 
 Cargo needs a crate root, but application users do not maintain generated
-`lib.rs`. A configured or authored entry wins; a documented conventional entry
-may be used; otherwise Vooya generates a hidden root under `.vooya/`. Edits
-reuse the module graph; add/remove/move regenerates it.
+`lib.rs`. By default Vooya generates the sole crate root at
+`.vooya/build/src/lib.rs` and owns its module graph. A user-authored root is
+used only when `rust.entry` is explicitly configured; Vooya never changes mode
+merely because `src/lib.rs` happens to exist. Edits reuse the module graph;
+add/remove/move regenerates it.
 
 Macros emit versioned schema records in a WASM custom section. Build tooling
 validates them, uses stable qualified identities rather than source regexes,

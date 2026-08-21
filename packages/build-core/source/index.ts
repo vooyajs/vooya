@@ -161,13 +161,13 @@ export function selectRustRootModules(files: string[], rootPrefix = ""): string[
     .sort();
 }
 
-/** Return the authored entry when one exists; otherwise use the generated root. */
+/** Resolve only an explicitly configured authored entry. */
 export function resolveVooyaCrateRoot(
   applicationRoot: string,
   configuredEntry?: string,
 ): string | undefined {
-  const candidates = [configuredEntry, "src/lib.rs"].filter(Boolean) as string[];
-  return candidates
+  if (!configuredEntry) return undefined;
+  return [configuredEntry]
     .map((candidate) => resolve(applicationRoot, candidate))
     .find((candidate) => {
       try { return statSync(candidate).isFile(); } catch { return false; }
