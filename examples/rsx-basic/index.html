@@ -10,7 +10,8 @@
       import init, { mount_rsx } from "./pkg/rsx_browser.js";
 
       await init();
-      mount_rsx(document.querySelector("#host"));
+      const mounted = mount_rsx(document.querySelector("#host"));
+      globalThis.disposeRsx = () => mounted.dispose();
     </script>
   </body>
 </html>
