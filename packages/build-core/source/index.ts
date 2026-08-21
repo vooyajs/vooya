@@ -1,9 +1,9 @@
 // This package is intentionally bundler-neutral: adapters own virtual modules,
 // watching and presentation, while this module owns the Rust/WASM application build.
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 import { CargoBuildError, VooyaUserError } from "./errors.js";
 import { resolveToolchain } from "./toolchain.js";
@@ -45,6 +45,14 @@ export type RustDependency =
 export interface RustBuildOptions {
   dependencies?: Record<string, RustDependency>;
   webSysFeatures?: string[];
+  /** Optional authored crate entry relative to applicationRoot. */
+  entry?: string;
+  /** Plain Rust files to include in the generated crate module graph. */
+  files?: string[];
+  /** Rust files explicitly exposed by the generated JS-facing root. */
+  public?: string[];
+  /** Directory containing authored Rust modules, relative to applicationRoot. */
+  sourceRoot?: string;
 }
 
 export type MappedDiagnostic = string;
@@ -105,6 +113,85 @@ export interface BuildApplicationOptions {
   toolchain?: ResolvedToolchain;
   spawn?: BuildSpawn;
   exec?: BuildExec;
+}
+
+/** Convert a user Rust path into a deterministic Rust module identifier. */
+export function rustModuleIdentifier(path: string): string {
+  const stem = path.replaceAll("\\", "/").replace(/\.rs$/i, "").split("/").pop() ?? "module";
+  const normalized = stem.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[^A-Za-z_]+/, "_");
+  return normalized || "module";
+}
+
+/**
+ * Generate a crate root for ordinary Rust files. `publicFiles` are the only
+ * files exposed from the JS-facing root; all other modules remain internal.
+ */
+export function generateRustCrateRoot(
+  files: string[],
+  publicFiles: string[] = [],
+): string {
+  const publicSet = new Set(publicFiles.map((file) => file.replaceAll("\\", "/")));
+  const used = new Set<string>();
+  const declarations: string[] = [];
+  for (const file of [...files].sort()) {
+    const normalized = file.replaceAll("\\", "/");
+    let identifier = rustModuleIdentifier(normalized);
+    if (used.has(identifier)) {
+      let suffix = 2;
+      while (used.has(`${identifier}_${suffix}`)) suffix += 1;
+      identifier = `${identifier}_${suffix}`;
+    }
+    used.add(identifier);
+    const visibility = publicSet.has(normalized) ? "pub " : "";
+    declarations.push(`#[path = ${JSON.stringify(normalized)}] ${visibility}mod ${identifier};`);
+  }
+  return `${declarations.join("\n")}\n`;
+}
+
+/** Keep only files that can be declared directly by a conventional crate root. */
+export function selectRustRootModules(files: string[], rootPrefix = ""): string[] {
+  const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
+  return [...files]
+    .map((file) => file.replaceAll("\\", "/"))
+    .filter((file) => {
+      const relative = prefix && file.startsWith(`${prefix}/`) ? file.slice(prefix.length + 1) : file;
+      const parts = relative.split("/");
+      return parts.length === 1 || (parts.length === 2 && parts[1] === "mod.rs");
+    })
+    .sort();
+}
+
+/** Return the authored entry when one exists; otherwise use the generated root. */
+export function resolveVooyaCrateRoot(
+  applicationRoot: string,
+  configuredEntry?: string,
+): string | undefined {
+  const candidates = [configuredEntry, "src/lib.rs"].filter(Boolean) as string[];
+  return candidates
+    .map((candidate) => resolve(applicationRoot, candidate))
+    .find((candidate) => {
+      try { return statSync(candidate).isFile(); } catch { return false; }
+    });
+}
+
+/** Discover authored Rust modules without requiring a manifest edit. */
+export function discoverRustSourceFiles(applicationRoot: string, configuredRoot = "src"): string[] {
+  const sourceRoot = resolve(applicationRoot, configuredRoot);
+  const files: string[] = [];
+  const visit = (directory: string): void => {
+    let entries: ReturnType<typeof readdirSync>;
+    try { entries = readdirSync(directory, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "target" && entry.name !== ".vooya") visit(path);
+      } else if (entry.isFile() && entry.name.endsWith(".rs") && entry.name !== "lib.rs" && entry.name !== "main.rs") {
+        files.push(path);
+      }
+    }
+  };
+  visit(sourceRoot);
+  return files;
 }
 
 export interface BuildApplicationResult {
@@ -185,11 +272,16 @@ export function buildApplication({
   outputDir ??= workspace.wasm;
 
   const sourceDir = resolve(workspacePath, "src/components");
+  const rustSourceDir = resolve(workspacePath, "src/rust");
   const targetDir = resolve(workspacePath, "target");
   const sourcePaths = new Map<string | undefined, string>();
   const diagnosticMappings = new Map<string, DiagnosticMapping>();
 
   mkdirSync(sourceDir, { recursive: true });
+  // This directory is generated state. Reconcile it on every build so removed
+  // or renamed source files cannot remain as phantom Rust modules.
+  rmSync(rustSourceDir, { force: true, recursive: true });
+  mkdirSync(rustSourceDir, { recursive: true });
   for (const [index, component] of components.entries()) {
     const sourcePath = resolve(sourceDir, `${index}-${component.name}.rs`);
     const prelude = generatedComponentPrelude(component);
@@ -202,13 +294,57 @@ export function buildApplication({
     });
   }
 
+  const authoredEntry = resolveVooyaCrateRoot(applicationRoot, rust.entry);
+  const configuredSourceRoot = rust.sourceRoot ?? "src";
+  const rustFiles = [...new Set([
+    ...discoverRustSourceFiles(applicationRoot, configuredSourceRoot),
+    ...(rust.files ?? []).map((file) => resolve(applicationRoot, file)),
+  ])];
+  const copiedRustFiles: string[] = [];
+  for (const file of rustFiles) {
+    const relativePath = relative(applicationRoot, file).replaceAll("\\", "/");
+    const destination = resolve(rustSourceDir, relativePath);
+    mkdirSync(dirname(destination), { recursive: true });
+    writeIfChanged(destination, readFileSync(file, "utf8"));
+    diagnosticMappings.set(destination, {
+      id: file,
+      startLine: 1,
+      generatedLineOffset: 0,
+    });
+    copiedRustFiles.push(`rust/${relativePath}`);
+  }
+  if (authoredEntry && !rustFiles.includes(authoredEntry)) {
+    const relativePath = relative(applicationRoot, authoredEntry).replaceAll("\\", "/");
+    const destination = resolve(rustSourceDir, relativePath);
+    mkdirSync(dirname(destination), { recursive: true });
+    writeIfChanged(destination, readFileSync(authoredEntry, "utf8"));
+    diagnosticMappings.set(destination, {
+      id: authoredEntry,
+      startLine: 1,
+      generatedLineOffset: 0,
+    });
+    copiedRustFiles.push(`rust/${relativePath}`);
+  }
+
   writeIfChanged(
     resolve(workspacePath, "Cargo.toml"),
     generatedCargoManifest({ applicationRoot, runtimeCrateRoot, rust }),
   );
+  const authoredModule = authoredEntry
+    ? `#[path = ${JSON.stringify(`rust/${relative(applicationRoot, authoredEntry).replaceAll("\\", "/")}`)}] pub mod app;\npub use app::*;`
+    : (() => {
+        const rootPrefix = `rust/${configuredSourceRoot}`.replaceAll("\\", "/");
+        const publicFiles = (rust.public ?? []).map(
+          (file) => `${rootPrefix}/${file.replaceAll("\\", "/")}`,
+        );
+        return generateRustCrateRoot(
+          selectRustRootModules(copiedRustFiles, rootPrefix),
+          selectRustRootModules(publicFiles, rootPrefix),
+        );
+      })();
   writeIfChanged(
     resolve(workspacePath, "src/lib.rs"),
-    `pub use vooya_core::*;\n\n${generateRustComponents(components, sourcePaths)}`,
+    `pub use vooya_core::*;\n\n${authoredModule}\n\n${generateRustComponents(components, sourcePaths)}`,
   );
 
   onRustBuildStart();
@@ -287,6 +423,7 @@ export function buildApplication({
     })),
     watchedFiles: [
       resolve(runtimeCrateRoot, "src"),
+      resolve(applicationRoot, configuredSourceRoot),
       ...resolveRustDependencyRoots(rust, applicationRoot),
     ],
     diagnostics,
