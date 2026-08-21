@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vooya RSX basic</title>
+  </head>
+  <body>
+    <main id="host"></main>
+    <script type="module">
+      import init, { mount_rsx } from "./pkg/rsx_browser.js";
+
+      await init();
+      const mounted = mount_rsx(document.querySelector("#host"));
+      globalThis.disposeRsx = () => mounted.dispose();
+    </script>
+  </body>
+</html>

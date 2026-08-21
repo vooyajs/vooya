@@ -26,6 +26,8 @@
     "dev:react": "vite --config examples/react-counter/vite.config.js",
     "build:react": "vite build --config examples/react-counter/vite.config.js",
     "typecheck:react": "npm run build --workspace @vooya/vite && node packages/vite/dist/generate-declarations.js examples/react-counter react && tsc --noEmit -p examples/react-counter/tsconfig.json",
+    "build:rsx-browser": "cargo build -p vooya --example rsx_browser --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/debug/examples/rsx_browser.wasm --target web --out-dir examples/rsx-basic/pkg --no-typescript",
+    "dev:rsx": "npm run build:rsx-browser && vite examples/rsx-basic",
     "format:voo": "npm run build --workspace @vooya/vite && node packages/vite/bin/voo-format.mjs examples tests/fixtures",
     "format:voo:check": "npm run build --workspace @vooya/vite && node packages/vite/bin/voo-format.mjs --check examples tests/fixtures",
     "test:editor": "npm run build:scripts && node scripts/generated/test-editor.js",
