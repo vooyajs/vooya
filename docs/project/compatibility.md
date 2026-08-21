@@ -18,6 +18,7 @@ SSR and hydration. Each entry is evidence for the named test path only.
 | Consumer path | Verified behavior | Evidence |
 | --- | --- | --- |
 | Vue 3 source `.voo` | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e` (Vue target) |
+| Vue Rust-file source | Component mount, Rust store action, snapshot subscription, and DOM update | `npm run test:rust-vue` (Chromium production fixture) |
 | React 19 source `.voo` | Mount, prop updates, typed events, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e` (React target) |
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
 | Vue DataGrid | Filter, sort, virtual scroll, local measurement control | `npm run test:e2e` (benchmark target) |
