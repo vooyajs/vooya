@@ -7,6 +7,10 @@ use syn::{
     Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct,
     ItemTrait, Lit, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
 };
+use syn::{
+    Token, braced,
+    parse::{Parse, ParseStream},
+};
 
 const SCHEMA_VERSION: u32 = 1;
 
@@ -133,6 +137,118 @@ pub fn action(_attribute: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn snapshot(_attribute: TokenStream, input: TokenStream) -> TokenStream {
     input
+}
+
+/// Builds the initial DOM-only RSX tree. The first argument is a `View` and
+/// the remaining input is a deliberately small XML-like tree.
+#[proc_macro]
+pub fn rsx(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as RsxInput);
+    expand_rsx_node(&input.root, &input.view).into()
+}
+
+struct RsxInput {
+    view: Expr,
+    root: RsxNode,
+}
+
+struct RsxNode {
+    tag: syn::Ident,
+    attributes: Vec<(syn::Ident, syn::LitStr)>,
+    children: Vec<RsxChild>,
+}
+
+enum RsxChild {
+    Node(RsxNode),
+    Text(syn::LitStr),
+    Expression(Expr),
+}
+
+impl Parse for RsxInput {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let view = input.parse()?;
+        input.parse::<Token![,]>()?;
+        Ok(Self {
+            view,
+            root: input.parse()?,
+        })
+    }
+}
+
+impl Parse for RsxNode {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        input.parse::<Token![<]>()?;
+        let tag: syn::Ident = input.parse()?;
+        let mut attributes = Vec::new();
+        while !input.peek(Token![>]) {
+            let name: syn::Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            attributes.push((name, input.parse()?));
+        }
+        input.parse::<Token![>]>()?;
+        let mut children = Vec::new();
+        while !is_closing_tag(input)? {
+            if input.peek(Token![<]) {
+                children.push(RsxChild::Node(input.parse()?));
+            } else if input.peek(syn::LitStr) {
+                children.push(RsxChild::Text(input.parse()?));
+            } else if input.peek(syn::token::Brace) {
+                let content;
+                braced!(content in input);
+                children.push(RsxChild::Expression(content.parse()?));
+            } else {
+                return Err(input.error("expected an RSX child or closing tag"));
+            }
+        }
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![/]>()?;
+        let closing: syn::Ident = input.parse()?;
+        if closing != tag {
+            return Err(syn::Error::new_spanned(
+                closing,
+                "RSX closing tag does not match opening tag",
+            ));
+        }
+        input.parse::<Token![>]>()?;
+        Ok(Self {
+            tag,
+            attributes,
+            children,
+        })
+    }
+}
+
+fn is_closing_tag(input: ParseStream<'_>) -> syn::Result<bool> {
+    if !input.peek(Token![<]) {
+        return Ok(false);
+    }
+    let fork = input.fork();
+    fork.parse::<Token![<]>()?;
+    Ok(fork.peek(Token![/]))
+}
+
+fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
+    let tag = node.tag.to_string();
+    let attributes = node.attributes.iter().map(|(name, value)| {
+        let name = name.to_string();
+        quote! { __voo_element = __voo_element.attribute(#name, #value)?; }
+    });
+    let children = node.children.iter().map(|child| match child {
+        RsxChild::Node(child) => {
+            let child = expand_rsx_node(child, view);
+            quote! { let __voo_child = #child?; __voo_element.append(&__voo_child)?; }
+        }
+        RsxChild::Text(value) => quote! { __voo_element = __voo_element.text(#value); },
+        RsxChild::Expression(expression) => {
+            quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+        }
+    });
+    quote! {{
+        let mut __voo_element = (#view).element(#tag)?;
+        #(#attributes)*
+        #(#children)*
+        ::core::result::Result::<_, ::vooya::__private::wasm_bindgen::JsValue>::Ok(__voo_element)
+    }}
 }
 
 #[proc_macro_derive(FromJs)]
