@@ -158,14 +158,24 @@ async function verifyDevRecovery(project) {
       60_000,
       () => `Webpack did not recover after fixing Rust.\n${output}`,
     );
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForButton(page, "Increment", output, errors, "Webpack did not remount after Rust recovery.");
 
     const dependencyPath = resolve(project, "rust/counter-math/src/lib.rs");
+    const successesBeforeDependency = successfulBuildCount(output);
     writeFileSync(
       dependencyPath,
       `pub fn button_label() -> &'static str {\n    "Increment dependency"\n}\n`,
     );
-    await page.getByRole("button", { name: "Increment dependency" }).waitFor({ timeout: 60_000 });
+    await waitFor(
+      () => successfulBuildCount(output) > successesBeforeDependency,
+      60_000,
+      () => `Webpack did not rebuild after the path dependency changed.\n${output}`,
+    );
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForButton(page, "Increment dependency", output, errors, "Webpack did not expose the rebuilt path dependency.");
 
+    const successesBeforeRapidSave = successfulBuildCount(output);
     writeFileSync(
       dependencyPath,
       `pub fn button_label() -> &'static str {\n    "Increment first"\n}\n`,
@@ -174,7 +184,13 @@ async function verifyDevRecovery(project) {
       dependencyPath,
       `pub fn button_label() -> &'static str {\n    "Increment final"\n}\n`,
     );
-    await page.getByRole("button", { name: "Increment final" }).waitFor({ timeout: 60_000 });
+    await waitFor(
+      () => successfulBuildCount(output) > successesBeforeRapidSave,
+      60_000,
+      () => `Webpack did not rebuild after rapid dependency saves.\n${output}`,
+    );
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForButton(page, "Increment final", output, errors, "Webpack did not expose the final rapid-save result.");
 
     const unexpected = errors.filter(
       (message) =>
@@ -266,6 +282,25 @@ async function waitForText(page, selector, expected, message) {
     );
   } catch {
     throw new Error(`${message} Received ${JSON.stringify(await page.locator(selector).textContent())}.`);
+  }
+}
+
+async function waitForButton(page, name, output, errors, message) {
+  try {
+    await page.getByRole("button", { name }).waitFor({ timeout: 60_000 });
+  } catch (cause) {
+    const screenshot = resolve(tmpdir(), `vooya-webpack-recovery-${Date.now()}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true }).catch(() => {});
+    const body = await page.locator("body").innerText().catch(() => "<body unavailable>");
+    const detail = [
+      message,
+      `URL: ${page.url()}`,
+      `Screenshot: ${screenshot}`,
+      `Page errors:\n${errors.join("\n") || "<none>"}`,
+      `Body:\n${body.slice(0, 4000)}`,
+      `Webpack output:\n${plainOutput(output).slice(-8000)}`,
+    ].join("\n\n");
+    throw new Error(detail, { cause });
   }
 }
 

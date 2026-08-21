@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vooya RSX basic</title>
+  </head>
+  <body>
+    <main id="host"></main>
+    <script type="module">
+      import init, { mount_rsx } from "./pkg/rsx_browser.js";
+
+      await init();
+      mount_rsx(document.querySelector("#host"));
+    </script>
+  </body>
+</html>

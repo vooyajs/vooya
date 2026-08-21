@@ -46,11 +46,23 @@ prerelease.
 - Build packed npm artifacts from a project outside the repository checkout.
 - Verify a test-only precompiled Vue WASM consumer in a clean Vite project
   without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
+- Extract versioned Rust-file schema records from WASM, validate file groups,
+  and generate central `.d.rs.ts` declarations for Vue/React consumers.
+- Build a real Rust-file component through Vite 7 + Vue 3.5, including the
+  public `vooya` authoring dependency and generated WASM bindings.
+- Expose the instance-scoped store contract to Vue through
+  `useVooyaStore` with snapshot subscription, explicit action dispatch, and
+  opt-in unmount disposal.
+- Generate a Vite virtual module for `.rs` stores, including independent
+  factory creation, snapshot reads, subscriptions, actions, and disposal.
 
 ## Current limits
 
 - Source consumers need Cargo, the WASM target, and `wasm-bindgen-cli`.
-- Vite `>=7` is the stable source-authoring bundler path. Rspack `>=2.1.10`
+- Vite `>=7 <9` is the supported source-authoring bundler range, with Vite 8
+  as the primary compatibility target. The Vite 7 Rust-file/Vue production
+  fixture passes; Vite 8, browser interaction coverage, and HMR remain to be
+  verified. Rspack `>=2.1.10`
   has an experimental first-party adapter with Rsbuild, Rslib, and direct
   Rspack fixtures. Webpack `>=5` has an experimental first-party
   adapter. Webpack 4, Rollup, Turbopack, and other bundlers remain unsupported.
@@ -61,6 +73,12 @@ prerelease.
   fixture is build-contract evidence, not a user-facing package.
 - A non-trivial component still uses some direct `web_sys` APIs.
 - The contract is limited to primitive prop and event values.
+- Rust store schema/declarations, the generated `.rs` store module, and the Vue
+  composable are available; browser-level store interaction coverage is still
+  next.
+- The public `vooya` Cargo authoring crate is currently resolved from the
+  coordinated source checkout; packaging it as a standalone published Rust
+  authoring artifact is a separate release task.
 - Reactive dependencies and cleanup are explicit and minimal.
 - Successful Rust HMR performs a full reload and loses component state.
 - The VS Code extension can run an explicit embedded-Rust diagnostics check and

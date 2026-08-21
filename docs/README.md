@@ -14,6 +14,8 @@ site without changing its structure or URLs unnecessarily.
   and pull request expectations.
 - [Getting started](guide/getting-started.md): install the alpha toolchain and
   run a first component in Vue or React.
+- [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
+  schema records, generated bindings, and the Vue/Vite compatibility boundary.
 - [Writing `.voo` components](guide/voo-components.md): contracts, Rust
   lifecycle methods, events, styles, and current type limits.
 - [The component boundary](concepts/component-boundary.md): what the host
@@ -39,7 +41,7 @@ substitute for the current guides.
 Open a GitHub issue titled `RFC: <proposal>` first. The issue is where options,
 compatibility effects, acceptance gates, and the maintainer decision are
 recorded. After a decision, maintainers may add a numbered document here; bugs,
-chores, and implementation tasks do not consume RFC numbers. RFC 0007 is the
+chores, and implementation tasks do not consume RFC numbers. RFC 0008 is the
 next available number.
 
 - [RFC 0001: component islands](rfcs/0001-component-islands.md)
@@ -48,6 +50,7 @@ next available number.
 - [RFC 0004: `.voo` compiler boundary](rfcs/0004-compiler-boundary.md)
 - [RFC 0005: island events and lifecycle diagnostics](rfcs/0005-island-events-lifecycle-diagnostics.md)
 - [RFC 0006: precompiled Vue artifacts](rfcs/0006-precompiled-vue-artifacts.md)
+- [RFC 0007: Rust-file authoring and ABI v1](rfcs/0007-rust-file-authoring-and-abi-v1.md)
 
 Performance work is recorded separately:
 

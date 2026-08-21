@@ -27,6 +27,6 @@
     "build": "tsup src/index.ts --format esm --dts --external vue --tsconfig tsconfig.json --clean"
   },
   "peerDependencies": {
-    "vue": ">=3.5.2"
+    "vue": ">=3.5.2 <4"
   }
 }

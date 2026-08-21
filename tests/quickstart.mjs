@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
-const temporaryRoot = mkdtempSync(resolve(tmpdir(), "vooya-quickstart-"));
+const temporaryRoot = canonicalTempRoot(mkdtempSync(resolve(tmpdir(), "vooya-quickstart-")));
 const packageDirectory = resolve(temporaryRoot, "packages");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
@@ -133,4 +133,8 @@ function run(command, args, cwd) {
 
 function fail(command, result) {
   throw new Error(`${command} failed:\n${result.stderr || result.stdout}`);
+}
+
+function canonicalTempRoot(path) {
+  return process.platform === "win32" ? realpathSync.native(path) : path;
 }
