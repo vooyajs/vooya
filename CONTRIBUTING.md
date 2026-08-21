@@ -67,6 +67,31 @@ A new bundler package must state its experimental compatibility boundary and
 include an automated packed-consumer test for every toolchain version it
 claims to support.
 
+### Naming conventions
+
+Use the convention of the language or public ecosystem instead of applying one
+spelling style to every layer:
+
+| Surface | Convention | Example |
+| --- | --- | --- |
+| TypeScript source files | `kebab-case` | `build-scheduler.ts` |
+| TypeScript variables/functions | `camelCase` | `resolveToolchain()` |
+| TypeScript types/classes/interfaces | `PascalCase` | `BuildApplicationOptions` |
+| TypeScript true global constants | `SCREAMING_SNAKE_CASE` | `VOO_ABI_VERSION` |
+| Rust files/modules/functions/variables | `snake_case` | `rust_module_graph.rs` |
+| Rust structs/enums/traits | `PascalCase` | `StoreState` |
+| Rust constants | `SCREAMING_SNAKE_CASE` | `MAX_ITEMS` |
+| npm packages | scoped `kebab-case` | `@vooya/build-core` |
+| Cargo packages | `kebab-case` | `vooya-macros` |
+| Vooya component names | `PascalCase` | `Counter` |
+| Host-facing props/events | `camelCase` | `onCouponNotice` |
+| JavaScript tests | module name + `.test.js` | `workspace.test.js` |
+
+Rust macros and attributes follow Rust's normal spelling: role attributes are
+lowercase (`#[voo::component]`) while derive names are `PascalCase`
+(`#[derive(FromJs)]`). Do not rename existing files only to make casing
+uniform; apply this rule to new files and when a file is already being moved.
+
 ### Keep claims evidence-based
 
 - Distinguish current behavior, experimental behavior, and future plans.
