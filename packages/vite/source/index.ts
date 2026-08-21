@@ -12,6 +12,9 @@ import {
   resolveRuntimeCrateRoot,
   resolveRustDependencyRoots,
   resolveToolchain,
+  buildRustComponentContracts,
+  indexVooyaSchema,
+  writeRustSchemaDeclarations,
   writeVooDeclarations,
 } from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
@@ -25,6 +28,7 @@ import { readVooComponents } from "./voo-project.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
 
 const componentExtension = ".voo";
+const rustExtension = ".rs";
 const runtimeId = "virtual:vooya-runtime";
 const stylePrefix = "virtual:vooya-style:";
 
@@ -39,6 +43,8 @@ export function vooya({
   let runtimeModule;
   let toolchain;
   let sourceComponents = [];
+  let rustContracts = [];
+  let rustStores = [];
   let watchedRustRoots = [];
   let logger;
 
@@ -59,12 +65,7 @@ export function vooya({
   const compile = () => {
     const components = applicationRoot ? readVooComponents(applicationRoot) : [];
     sourceComponents = components.filter((component) => component.format === "source");
-    writeVooDeclarations({
-      applicationRoot,
-      components,
-      framework,
-      workspaceRoot: workspaceOptions.root,
-    });
+    writeVooDeclarations({ applicationRoot, components, framework, workspaceRoot: workspaceOptions.root });
     const progress = createRustBuildProgress(logger);
     try {
       if (!toolchain) {
@@ -77,7 +78,7 @@ export function vooya({
           logger?.warn(`Vooya: WARNING: ${toolchain.cargoPathWarning} This may differ from the toolchain you intended to use.`);
         }
       }
-      ({ runtimeModule } = buildApplication({
+      const buildResult = buildApplication({
         applicationRoot,
         components: sourceComponents,
         rust,
@@ -85,7 +86,20 @@ export function vooya({
         workspaceRoot: resolveVooyaWorkspace(applicationRoot, workspaceOptions.root).root,
         toolchain,
         onRustBuildStart: progress.start,
-      }));
+      });
+      runtimeModule = buildResult.runtimeModule;
+      const schemaIndex = indexVooyaSchema(buildResult.schema);
+      rustContracts = buildRustComponentContracts(schemaIndex);
+      rustStores = schemaIndex.stores;
+      if (sourceComponents.length === 0) {
+        writeRustSchemaDeclarations({
+          applicationRoot,
+          contracts: rustContracts,
+          stores: schemaIndex.stores,
+          framework,
+          workspaceRoot: workspaceOptions.root,
+        });
+      }
       progress.complete();
     } catch (error) {
       if (isToolchainExecutionError(error)) {
@@ -117,7 +131,9 @@ export function vooya({
     resolveId(source, importer) {
       if (source === runtimeId) return runtimeModule;
       if (source.startsWith(stylePrefix)) return `\0${source}`;
-      if (!source.endsWith(componentExtension) || !importer) return null;
+      if (!importer) return null;
+      if (source.endsWith(rustExtension)) return resolve(importer, "..", source);
+      if (!source.endsWith(componentExtension)) return null;
       return resolve(importer, "..", source);
     },
     load(id) {
@@ -125,6 +141,23 @@ export function vooya({
         const componentId = decodeURIComponent(id.slice(stylePrefix.length + 1, -4));
         const component = parseVooComponent(readFileSync(componentId, "utf8"), componentId);
         return compileVooStyle({ ...component, id: componentId });
+      }
+      if (id.endsWith(rustExtension)) {
+        const contract = findRustContract(rustContracts, id, applicationRoot);
+        if (contract) {
+          if (framework !== "vue") {
+            this.error(`Rust-file component ${contract.component.name} currently supports only the Vue adapter.`);
+          }
+          return generateRustVueModule(contract);
+        }
+        const store = findRustStore(rustStores, id, applicationRoot);
+        if (store) {
+          if (framework !== "vue") {
+            this.error(`Rust-file store ${store.name} currently supports only the Vue adapter.`);
+          }
+          return generateRustVueStoreModule(store);
+        }
+        return null;
       }
       if (!id.endsWith(componentExtension)) return null;
       const component = parseVooComponent(readFileSync(id, "utf8"), id);
@@ -260,4 +293,158 @@ function componentMetadata(component) {
     props: component.props,
     events: component.events,
   };
+}
+
+function findRustContract(contracts, file, applicationRoot) {
+  const normalizedFile = file.replaceAll("\\", "/");
+  return contracts.find((contract) => {
+    const group = contract.component.group;
+    if (!group) return false;
+    const normalizedGroup = group.replaceAll("\\", "/");
+    const groupCandidates = [
+      normalizedGroup,
+      normalizedGroup.replace(/^src\/rust\//, ""),
+      normalizedGroup.replace(/^rust\//, ""),
+    ];
+    const resolvedGroup = isAbsolute(group) ? group : resolve(applicationRoot, group);
+    return file === resolvedGroup || groupCandidates.some((candidate) =>
+      normalizedFile.endsWith(`/${candidate}`) || candidate.endsWith(`/${normalizedFile}`));
+  });
+}
+
+function findRustStore(stores, file, applicationRoot) {
+  const normalizedFile = file.replaceAll("\\", "/");
+  return stores.find((store) => {
+    const group = store.group;
+    if (!group) return false;
+    const normalizedGroup = group.replaceAll("\\", "/");
+    const groupCandidates = [
+      normalizedGroup,
+      normalizedGroup.replace(/^src\/rust\//, ""),
+      normalizedGroup.replace(/^rust\//, ""),
+    ];
+    const resolvedGroup = isAbsolute(group) ? group : resolve(applicationRoot, group);
+    return file === resolvedGroup || groupCandidates.some((candidate) =>
+      normalizedFile.endsWith(`/${candidate}`) || candidate.endsWith(`/${normalizedFile}`));
+  });
+}
+
+export function generateRustVueModule(contract) {
+  const name = contract.component.name;
+  const stem = rustStem(name);
+  const mount = `voo_${stem}_mount`;
+  const update = `voo_${stem}_update_props`;
+  const dispose = `voo_${stem}_dispose`;
+  const props = contract.props?.fields ?? [];
+  const events = contract.events?.methods ?? [];
+  const definition = {
+    abiVersion: 1,
+    name,
+    props: props.map((prop) => ({
+      name: prop.name,
+      type: rustJavascriptType(prop.type),
+      required: !/^Option\s*</.test(prop.type.replace(/\s+/g, "")),
+    })),
+    events: events.map((event) => ({ name: event.name, parameters: event.params.map((parameter) => parameter.name) })),
+  };
+  const propAssignments = props.map((prop, index) => `${JSON.stringify(prop.name)}: props[${index}]`).join(", ");
+  const updates = props.map((prop) => `update_${rustProperty(prop.name)}(value) { currentProps[${JSON.stringify(prop.name)}] = value; ${update}(handle, currentProps); }`).join(",\n                      ");
+  return `import init, { ${mount}, ${update}, ${dispose}, voo_abi_version } from "${runtimeId}";
+import { defineVooyaComponent } from "@vooya/vue";
+import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
+
+let bindings;
+async function loadBindings() {
+  if (!bindings) {
+    bindings = initializeWasm(init).then(() => {
+      assertVooAbiVersion(voo_abi_version());
+      return {
+        mount(host, ...props) {
+          const currentProps = { ${propAssignments} };
+          const handle = ${mount}(host, currentProps);
+          return {
+            dispose() { ${dispose}(handle); },
+            ${updates}
+          };
+        }
+      };
+    });
+  }
+  return bindings;
+}
+
+export const metadata = ${JSON.stringify({ name, props, events })};
+export default defineVooyaComponent(${JSON.stringify(definition)}, loadBindings);
+`;
+}
+
+export function generateRustVueStoreModule(store) {
+  const name = store.name.split("::").at(-1) ?? store.name;
+  const stem = rustStem(name);
+  const create = `voo_${stem}_store_create`;
+  const snapshot = `voo_${stem}_store_snapshot`;
+  const subscribe = `voo_${stem}_store_subscribe`;
+  const unsubscribe = `voo_${stem}_store_unsubscribe`;
+  const dispose = `voo_${stem}_store_dispose`;
+  const actions = store.actions.map((action) => {
+    const exportName = `voo_${stem}_store_${action.name}`;
+    const parameters = action.params.map((parameter) => parameter.name).join(", ");
+    return `${JSON.stringify(action.name)}(...args) { return ${exportName}(handle, ...args); }`;
+  }).join(",\n      " );
+  const imports = ["voo_abi_version", create, snapshot, subscribe, unsubscribe, dispose, ...store.actions.map((action) => `voo_${stem}_store_${action.name}`)];
+  return `import init, { ${imports.join(", ")} } from "${runtimeId}";
+import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
+
+let bindings;
+async function loadBindings() {
+  if (!bindings) {
+    bindings = initializeWasm(init).then(() => {
+      assertVooAbiVersion(voo_abi_version());
+      return true;
+    });
+  }
+  return bindings;
+}
+
+export async function create${name}Store() {
+  await loadBindings();
+  const handle = ${create}();
+  const subscriptions = new Map();
+  return {
+    getSnapshot() { return ${snapshot}(handle); },
+    subscribe(listener) {
+      const id = ${subscribe}(handle, listener);
+      subscriptions.set(id, listener);
+      return () => {
+        if (subscriptions.delete(id)) ${unsubscribe}(handle, id);
+      };
+    },
+    ${actions}${actions ? "," : ""}
+    dispose() {
+      for (const id of subscriptions.keys()) ${unsubscribe}(handle, id);
+      subscriptions.clear();
+      ${dispose}(handle);
+    },
+  };
+}
+
+export default create${name}Store;
+export const metadata = ${JSON.stringify({ name, actions: store.actions, snapshot: store.snapshot ?? null })};
+`;
+}
+
+function rustJavascriptType(type) {
+  const normalized = type.replace(/\s+/g, "");
+  if (/^(?:bool)$/.test(normalized)) return "boolean";
+  if (/^(?:String)$/.test(normalized) || /^Option<String>$/.test(normalized)) return "string";
+  if (/^(?:i|u|f)(?:8|16|32|64|128|size)$/.test(normalized)) return "number";
+  throw new Error(`Unsupported Rust-file Vue prop type "${type}" in the runtime adapter.`);
+}
+
+function rustStem(name) {
+  return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^A-Za-z0-9_]/g, "_").toLowerCase();
+}
+
+function rustProperty(name) {
+  return name.replace(/[^A-Za-z0-9_$]/g, "_");
 }

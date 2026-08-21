@@ -47,7 +47,7 @@
     "test": "npm run build && node --test src/*.test.js"
   },
   "peerDependencies": {
-    "vite": ">=7"
+    "vite": ">=7 <9"
   },
   "dependencies": {
     "@vooya/build-core": "0.1.0-alpha.9",

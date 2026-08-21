@@ -18,4 +18,5 @@ pub use vooya_macros::{FromJs, ToJs, action, component, events, props, rsx, snap
 pub mod __private {
     pub use js_sys;
     pub use wasm_bindgen;
+    pub use web_sys;
 }

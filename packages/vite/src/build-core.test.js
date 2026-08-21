@@ -157,6 +157,15 @@ test("generates a standalone application crate", () => {
   assert.match(manifest, /crate-type = \["cdylib"\]/);
 });
 
+test("adds the public vooya authoring crate for Rust-file sources", () => {
+  const manifest = generatedCargoManifest({
+    applicationRoot: "/consumer",
+    runtimeCrateRoot: "/consumer/node_modules/@vooya/core/rust",
+    authoringCrateRoot: "/consumer/node_modules/@vooya/core/authoring",
+  });
+  assert.match(manifest, /vooya = \{ path = "\/consumer\/node_modules\/@vooya\/core\/authoring" \}/);
+});
+
 test("generates structured application dependencies and browser features", () => {
   const manifest = generatedCargoManifest({
     applicationRoot: "/consumer",
