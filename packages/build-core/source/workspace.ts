@@ -219,7 +219,7 @@ export function writeRustSchemaDeclarations({
     const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
     assertPathInside(declarationPath, paths.types);
     expected.add(declarationPath);
-    writeIfChanged(declarationPath, generateRustStoreDeclaration(store));
+    writeIfChanged(declarationPath, generateRustStoreDeclaration(store, framework));
   }
   for (const existing of readGeneratedDeclarations(paths.types, ".d.rs.ts")) {
     if (!expected.has(existing)) rmSync(existing, { force: true });

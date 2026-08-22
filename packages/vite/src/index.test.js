@@ -4,7 +4,14 @@ import test from "node:test";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { createRustBuildProgress, generateRustVueModule, generateRustVueStoreModule, vooya } from "../dist/index.js";
+import {
+  createRustBuildProgress,
+  generateRustComponentModule,
+  generateRustStoreModule,
+  generateRustVueModule,
+  generateRustVueStoreModule,
+  vooya,
+} from "../dist/index.js";
 
 test("reports stable Rust/WASM build stages with their elapsed duration", () => {
   const messages = [];
@@ -78,4 +85,31 @@ test("generates a Vue virtual module for an instance-scoped Rust store", () => {
   assert.match(output, /voo_cart_store_add/);
   assert.match(output, /createCartStore/);
   assert.match(output, /subscribe\(listener\)/);
+});
+
+test("generates React virtual modules from the same Rust contracts", () => {
+  const component = generateRustComponentModule({
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", group: "src/Cart.rs", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", group: "src/Cart.rs", fields: [{ name: "count", type: "u32" }] },
+    events: { version: 1, kind: "events", id: "cart::Events", name: "Events", group: "src/Cart.rs", methods: [] },
+  }, "react");
+  assert.match(component, /from "@vooya\/react"/);
+  assert.doesNotMatch(component, /currently supports only/);
+  assert.match(component, /updateProps\(values\)/);
+
+  const store = generateRustStoreModule({
+    version: 1,
+    kind: "store",
+    id: "cart::Cart",
+    name: "Cart",
+    group: "src/Cart.rs",
+    snapshot: "CartSnapshot",
+    actions: [{ name: "add", params: [{ name: "quantity", type: "u32" }] }],
+  }, "react");
+  assert.match(store, /from "@vooya\/react"/);
+  assert.match(store, /useVooyaStore/);
+  assert.match(store, /export function useCart/);
+  assert.match(store, /useVooyaStore\(createCartStore, undefined, options\)/);
+  assert.doesNotMatch(store, /function useCart\(props/);
+  assert.match(store, /createCartStore/);
 });

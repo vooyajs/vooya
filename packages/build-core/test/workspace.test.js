@@ -120,3 +120,34 @@ test("writes Rust-file declarations under the central workspace", () => {
     rmSync(root, { force: true, recursive: true });
   }
 });
+
+test("writes React store exports into the central declaration", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-workspace-"));
+  try {
+    const source = resolve(root, "src/Store.rs");
+    mkdirSync(resolve(source, "../"), { recursive: true });
+    writeFileSync(source, "// store");
+    const written = writeRustSchemaDeclarations({
+      applicationRoot: root,
+      framework: "react",
+      contracts: [],
+      stores: [{
+        version: 1,
+        kind: "store",
+        id: "cart::Cart",
+        name: "Cart",
+        group: "src/Store.rs",
+        snapshot: "CartSnapshot",
+        actions: [{ name: "add", params: [{ name: "amount", type: "u32" }] }],
+      }],
+    });
+    const declaration = resolve(root, ".vooya/types/src/Store.d.rs.ts");
+    assert.deepEqual(written.files, [declaration]);
+    const code = readFileSync(declaration, "utf8");
+    assert.match(code, /createCartStore/);
+    assert.match(code, /useCart\(options\?: VooyaStoreOptions\)/);
+    assert.doesNotMatch(code, /CartSnapshot = CartSnapshot/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});

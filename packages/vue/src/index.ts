@@ -91,7 +91,7 @@ export function defineVooyaComponent(
   definition: VooyaComponentDefinition,
   loadBindings: VooyaComponentBindingsLoader,
 ) {
-  const constructors: Record<VooyaComponentDefinition["props"][number]["type"], any> = {
+  const constructors = {
     number: Number,
     bigint: BigInt,
     boolean: Boolean,
@@ -103,7 +103,7 @@ export function defineVooyaComponent(
     definition.props.map((prop) => [
       prop.name,
       {
-        type: constructors[prop.type],
+        type: constructors[prop.type] as any,
         required: prop.required,
         ...(Object.hasOwn(prop, "defaultValue") ? { default: prop.defaultValue } : {}),
       },

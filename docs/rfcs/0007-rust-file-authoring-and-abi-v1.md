@@ -138,6 +138,10 @@ explicit snapshot, cached identity-stable JavaScript output, store-change
 subscription, separate domain notifications, and disposal. Async actions,
 automatic rollback after action errors, and global stores are not v1.
 
+The v1 store factory has no constructor-prop channel: it creates the default
+Rust state. Framework hooks may accept adapter diagnostics/options, while state
+that depends on user input is initialized or changed through explicit actions.
+
 React consumes snapshots with `useSyncExternalStore`; Vue uses a lifecycle-safe
 `useVooyaStore` composable. The Vue composable mirrors `getSnapshot()` after
 `subscribe()` notifications and exposes explicit action dispatch; it may

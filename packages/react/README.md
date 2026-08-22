@@ -11,6 +11,19 @@ Configure `vooya({ framework: "react" })` after `@vitejs/plugin-react`, then
 import a `.voo` file as a normal React component. Generated declarations expose
 its props and event callbacks to TypeScript.
 
+Rust-file authoring uses ordinary `.rs` files. A `#[voo::component]` import is
+exposed as a React component, while a `#[voo::store]` import exposes a generated
+hook such as `useCart()`. Store snapshots use `useSyncExternalStore`; the hook
+owns one store instance until unmount and disposes asynchronous late arrivals.
+In ABI v1, stores are created from Rust's `Default` implementation, so the
+optional `useCart(options)` argument is adapter options rather than constructor
+props. Use explicit Rust actions for state changes after creation.
+
+The generated `.d.rs.ts` declaration includes the store interface, the
+`createCartStore` factory/default export, and the typed `useCart` hook. Generated
+Rust snapshots preserve JavaScript identity until their value changes, which is
+required by `useSyncExternalStore`.
+
 ## Prop defaults
 
 A `.voo` prop declared with a default (for example `name: String = "world"`) is
