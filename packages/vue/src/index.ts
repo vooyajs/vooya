@@ -3,9 +3,57 @@ import {
   h,
   onBeforeUnmount,
   onMounted,
+  readonly,
   ref,
+  shallowRef,
   watch,
 } from "vue";
+
+export interface VooyaStore<TSnapshot = unknown> {
+  getSnapshot(): TSnapshot;
+  subscribe(listener: () => void): () => void;
+  dispose(): void;
+  [action: string]: unknown;
+}
+
+export interface UseVooyaStoreOptions {
+  /** Dispose an instance-scoped store when this component unmounts. */
+  disposeOnUnmount?: boolean;
+}
+
+/**
+ * Consume the framework-neutral Rust store contract from Vue. The store owns
+ * state and notification ordering; Vue only mirrors its latest snapshot.
+ */
+export function useVooyaStore<TSnapshot>(
+  store: VooyaStore<TSnapshot>,
+  options: UseVooyaStoreOptions = {},
+) {
+  const snapshot = shallowRef(store.getSnapshot());
+  let unsubscribe: (() => void) | undefined;
+  const stop = () => {
+    unsubscribe?.();
+    unsubscribe = undefined;
+    if (options.disposeOnUnmount) store.dispose();
+  };
+
+  onMounted(() => {
+    unsubscribe = store.subscribe(() => {
+      snapshot.value = store.getSnapshot();
+    });
+  });
+  onBeforeUnmount(stop);
+
+  return {
+    snapshot: readonly(snapshot),
+    dispatch(action: string, ...args: unknown[]) {
+      const candidate = store[action];
+      if (typeof candidate !== "function") throw new Error(`Unknown Vooya store action "${action}".`);
+      return candidate.apply(store, args);
+    },
+    unsubscribe: stop,
+  };
+}
 
 export interface VooyaMountError {
   stage: "load" | "mount";
@@ -18,7 +66,7 @@ export interface VooyaComponentDefinition {
   scopeId?: string;
   props: Array<{
     name: string;
-    type: "number" | "boolean" | "string";
+    type: "number" | "bigint" | "boolean" | "string" | "array" | "object";
     required: boolean;
     defaultValue?: unknown;
   }>;
@@ -43,12 +91,19 @@ export function defineVooyaComponent(
   definition: VooyaComponentDefinition,
   loadBindings: VooyaComponentBindingsLoader,
 ) {
-  const constructors = { number: Number, boolean: Boolean, string: String };
+  const constructors = {
+    number: Number,
+    bigint: BigInt,
+    boolean: Boolean,
+    string: String,
+    array: Array,
+    object: Object,
+  };
   const componentProps = Object.fromEntries(
     definition.props.map((prop) => [
       prop.name,
       {
-        type: constructors[prop.type],
+        type: constructors[prop.type] as any,
         required: prop.required,
         ...(Object.hasOwn(prop, "defaultValue") ? { default: prop.defaultValue } : {}),
       },

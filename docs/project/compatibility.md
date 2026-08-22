@@ -9,9 +9,10 @@ SSR and hydration. Each entry is evidence for the named test path only.
 | Layer | Minimum version | Status | Evidence and boundary |
 | --- | --- | --- | --- |
 | Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Required by the verified Vite 7/8 path; other bundlers may accept older Node versions, but Vooya does not test a separate lower floor |
-| Vue | `>=3.5.2` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; 3.5.0 and 3.5.1 are outside the supported type boundary; browser fixtures cover 3.5.40 and 3.5.41 |
+| Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
-| Vue Vapor | none | Unverified | The current adapter targets standard Vue 3 component lifecycle APIs; Vapor mode has no dedicated build or browser fixture |
+| React 19 Rust-file authoring | Vite 7 | Experimental | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
+| Vue Vapor | Vue 3.6 experimental | Targeted, unverified | The adapter will keep the same DOM host/lifecycle boundary; a dedicated Vapor fixture is required before calling this supported |
 
 ## Verified in local Playwright projects
 
@@ -33,7 +34,7 @@ toolchain; a production smoke does not imply development-server or HMR support.
 
 | Toolchain | Minimum version | Evidence | Boundary |
 | --- | --- | --- | --- |
-| Vite | `>=7` | `npm run test:vite8` | Strict install, production output and browser WASM loading, development mount, Rust dependency rebuilds, full reload, failed-build recovery, and coalesced rapid saves; Vite 8.2.1 is covered by the packed fixture, while Vite 7 remains covered by the repository fixtures and release gate |
+| Vite | `>=7 <9` | `npm run test:vite8` | Vite 8.2.1 is the primary packed compatibility target; Vite 7 remains a required regression path in the repository fixtures and release gate |
 | Vite+ | `>=0.2.9` | `npm run test:vite-plus` | Production output and browser WASM loading at 0.2.9 using Vite+'s Vite core alias; the alias currently requires npm legacy peer resolution, and development rebuild and HMR behavior are not claimed |
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Strict packed Vue/React/Rslib/native-Rspack builds, WASM and scoped CSS output, Vue/React Chromium lifecycle checks, mapped Rust diagnostics, failed-build recovery, and `.voo` source rebuild/full reload; configured Rust path dependencies require a dev-server restart after edits; exact fixtures use Rspack 2.1.10 and Rsbuild 2.1.13 |
 | Webpack | `>=5` | `npm run test:webpack` | Packed Vue/React production builds, emitted WASM and scoped CSS, centralized declarations, Chromium mount/update/event/dispose checks, mapped Rust failure recovery, configured Rust path-dependency rebuilds, rapid-save final state, and normal Webpack Dev Server live reload; fixtures cover production output at 5.101.0 and Vue/React browser and watch recovery at 5.109.2 |

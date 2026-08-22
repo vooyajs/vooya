@@ -10,7 +10,7 @@ description = "Procedural macros for Vooya Rust-file authoring."
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
+proc-macro2 = { version = "1", features = ["span-locations"] }
 quote = "1"
 serde_json = "1"
 syn = { version = "2", features = ["full"] }

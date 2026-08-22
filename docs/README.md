@@ -14,6 +14,8 @@ site without changing its structure or URLs unnecessarily.
   and pull request expectations.
 - [Getting started](guide/getting-started.md): install the alpha toolchain and
   run a first component in Vue or React.
+- [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
+  schema records, generated bindings, and the Vue/Vite compatibility boundary.
 - [Writing `.voo` components](guide/voo-components.md): contracts, Rust
   lifecycle methods, events, styles, and current type limits.
 - [The component boundary](concepts/component-boundary.md): what the host

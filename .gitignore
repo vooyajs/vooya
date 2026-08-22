@@ -2,6 +2,7 @@
 /node_modules
 /dist
 examples/*/dist
+tests/fixtures/*/dist
 examples/rsx-basic/pkg/
 /.vite
 **/.voo-cache

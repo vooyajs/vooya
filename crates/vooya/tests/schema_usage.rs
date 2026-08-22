@@ -13,6 +13,7 @@ pub enum CartStatus {
 }
 
 #[voo::props(id = "schema_usage::CartProps")]
+#[derive(voo::FromJs, voo::ToJs, PartialEq, Clone)]
 pub struct CartProps {
     pub initial_items: u32,
     pub coupon: Option<String>,
@@ -23,6 +24,7 @@ pub trait CartEvents {
     fn checked_out(order_id: u64);
 }
 
+#[derive(Default)]
 pub struct Cart;
 
 #[voo::store(id = "schema_usage::Cart")]
@@ -43,8 +45,12 @@ impl Cart {
 
 #[allow(non_snake_case)]
 #[voo::component(id = "schema_usage::CartPanel")]
-pub fn CartPanel(props: CartProps) {
+pub fn CartPanel(
+    view: &voo::View,
+    props: CartProps,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
     let _ = props;
+    view.element("div")
 }
 
 #[test]
@@ -52,10 +58,6 @@ fn role_macros_compile_for_public_roots() {
     let mut cart = Cart;
     cart.add(1);
     assert_eq!(cart.snapshot().initial_items, 0);
-    CartPanel(CartProps {
-        initial_items: 0,
-        coupon: None,
-    });
 }
 
 #[allow(dead_code)]
