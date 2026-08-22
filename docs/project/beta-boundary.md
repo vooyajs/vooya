@@ -29,11 +29,31 @@ compatibility coverage, not the beta authoring recommendation.
 
 ## Lifecycle contract still being frozen
 
-The public lifecycle phases are `load`, `mount`, `update`, and `dispose`.
-Vue and React should expose the same phase and error shape. Async initialization
-must not mount after unmount, and disposal must release listeners and store
-subscriptions deterministically. The exact ordering and error table remain the
-last contract work before beta sign-off.
+The public lifecycle error has one shape in both adapters:
+
+```ts
+type VooyaLifecycleError = {
+  stage: "load" | "mount" | "update" | "dispose";
+  cause: unknown;
+};
+```
+
+The phases mean:
+
+| Stage | Meaning | Required behavior |
+| --- | --- | --- |
+| `load` | Bindings or WASM loading failed | Report through the framework error channel; never mount a partial handle |
+| `mount` | Rust mount failed after bindings loaded | Remove listeners and report the failure |
+| `update` | A prop patch failed | Keep the existing handle and report the failed patch |
+| `dispose` | Cleanup threw during unmount | Complete listener cleanup and report the cleanup failure |
+
+Unmount is terminal for an instance. A binding or store factory that resolves or
+rejects after unmount must not mount, dispose twice, or invoke stale user
+callbacks; a late-created store is disposed immediately. Normal component and
+store disposal releases listeners and subscriptions deterministically.
+
+Development-only host diagnostics may include a bounded error name/message and
+timing, but must not expose props, payloads, stacks, or original error objects.
 
 ## Evidence
 

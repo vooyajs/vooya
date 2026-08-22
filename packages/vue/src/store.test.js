@@ -71,3 +71,31 @@ test("useVooyaStore disposes a store that resolves after unmount", async () => {
   assert.equal(disposed, true);
   dom.window.close();
 });
+
+test("useVooyaStore does not report a late factory failure after unmount", async () => {
+  const dom = new JSDOM("<div id='app'></div>");
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.Node = dom.window.Node;
+  globalThis.Element = dom.window.Element;
+  globalThis.HTMLElement = dom.window.HTMLElement;
+  globalThis.SVGElement = dom.window.SVGElement;
+  const { createApp, defineComponent, h, nextTick } = await import("vue");
+  const { useVooyaStore } = await import("../dist/index.js");
+
+  let rejectSource;
+  const source = new Promise((resolve, reject) => { rejectSource = reject; });
+  const errors = [];
+  const app = createApp(defineComponent({
+    setup() {
+      useVooyaStore(source, { onError: (cause) => errors.push(cause) });
+      return () => h("span", "pending");
+    },
+  }));
+  app.mount(dom.window.document.querySelector("#app"));
+  app.unmount();
+  rejectSource(new Error("late failure"));
+  await nextTick();
+  assert.deepEqual(errors, []);
+  dom.window.close();
+});
