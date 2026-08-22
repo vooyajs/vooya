@@ -9,3 +9,6 @@ and baseline wasm-bindgen output. Application code normally imports generated
 
 This package is an alpha. Rust-file source compilation requires Cargo, the
 `wasm32-unknown-unknown` target, and the matching `wasm-bindgen` CLI.
+
+The Rust runtime exposes owned DOM views, signals, and an explicit `batch`
+boundary for coalescing synchronous signal notifications.

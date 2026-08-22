@@ -65,6 +65,9 @@ let count = voo::signal(0u32);
 let root = voo::rsx!(view, <span data-count={count.get()}>{count.get()}</span>)?;
 ```
 
+Multiple synchronous writes can share one notification boundary with
+`voo::batch(|| { ... })`; subscribers run once after the outermost batch.
+
 Event listeners can use the same owned-root syntax, for example
 `on-click={move |_| count.set(1)}`. The listener is removed with the root.
 This is the first explicit reactive/event binding layer; dependency inference,

@@ -1,5 +1,10 @@
 use std::{cell::{Cell, RefCell}, collections::BTreeMap, rc::Rc};
 
+thread_local! {
+    static BATCH_DEPTH: Cell<u32> = const { Cell::new(0) };
+    static PENDING_SIGNALS: RefCell<Vec<Rc<dyn Fn()>>> = const { RefCell::new(Vec::new()) };
+}
+
 pub type Effect = Rc<dyn Fn()>;
 
 /// Single-threaded reactive state for browser components.
@@ -7,6 +12,7 @@ pub struct Signal<T> {
     value: Rc<RefCell<T>>,
     effects: Rc<RefCell<BTreeMap<u64, Effect>>>,
     next_effect: Rc<Cell<u64>>,
+    pending: Rc<Cell<bool>>,
 }
 
 impl<T> Clone for Signal<T> {
@@ -15,6 +21,7 @@ impl<T> Clone for Signal<T> {
             value: self.value.clone(),
             effects: self.effects.clone(),
             next_effect: self.next_effect.clone(),
+            pending: self.pending.clone(),
         }
     }
 }
@@ -32,6 +39,31 @@ pub fn signal<T>(value: T) -> Signal<T> {
         value: Rc::new(RefCell::new(value)),
         effects: Rc::new(RefCell::new(BTreeMap::new())),
         next_effect: Rc::new(Cell::new(0)),
+        pending: Rc::new(Cell::new(false)),
+    }
+}
+
+/// Runs synchronous signal writes as one transaction. Subscribers are
+/// notified once per changed signal after the outermost batch completes.
+pub fn batch(action: impl FnOnce()) {
+    BATCH_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    action();
+    let outermost = BATCH_DEPTH.with(|depth| {
+        let next = depth.get().saturating_sub(1);
+        depth.set(next);
+        next == 0
+    });
+    if !outermost {
+        return;
+    }
+    loop {
+        let pending = PENDING_SIGNALS.with(|signals| std::mem::take(&mut *signals.borrow_mut()));
+        if pending.is_empty() {
+            break;
+        }
+        for signal in pending {
+            signal();
+        }
     }
 }
 
@@ -68,14 +100,31 @@ impl<T> Signal<T> {
     }
 
     fn notify(&self) {
-        let ids = self.effects.borrow().keys().copied().collect::<Vec<_>>();
+        if BATCH_DEPTH.with(|depth| depth.get() > 0) {
+            if !self.pending.replace(true) {
+                let effects = self.effects.clone();
+                let pending = self.pending.clone();
+                PENDING_SIGNALS.with(|signals| signals.borrow_mut().push(Rc::new(move || flush_effects(&effects, &pending))));
+            }
+            return;
+        }
+        self.flush();
+    }
+
+    fn flush(&self) {
+        flush_effects(&self.effects, &self.pending);
+    }
+}
+
+fn flush_effects(effects: &Rc<RefCell<BTreeMap<u64, Effect>>>, pending: &Rc<Cell<bool>>) {
+        pending.set(false);
+        let ids = effects.borrow().keys().copied().collect::<Vec<_>>();
         for id in ids {
-            let callback = self.effects.borrow().get(&id).cloned();
+            let callback = effects.borrow().get(&id).cloned();
             if let Some(callback) = callback {
                 callback();
             }
         }
-    }
 }
 
 impl<T> SignalSubscription<T> {
@@ -139,5 +188,21 @@ mod tests {
         second_id.set(second.id);
         count.set(1);
         assert!(!called.get());
+    }
+
+    #[test]
+    fn batch_coalesces_multiple_writes_to_one_notification() {
+        let count = signal(0);
+        let calls = Rc::new(Cell::new(0));
+        let observed = calls.clone();
+        let _subscription = count.subscribe(effect(move || observed.set(observed.get() + 1)));
+
+        super::batch(|| {
+            count.set(1);
+            count.set(2);
+        });
+
+        assert_eq!(count.get(), 2);
+        assert_eq!(calls.get(), 1);
     }
 }
