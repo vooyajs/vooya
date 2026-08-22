@@ -1,5 +1,5 @@
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
-use web_sys::{Document, Element, Event, EventTarget};
+use web_sys::{CustomEvent, CustomEventInit, Document, Element, Event, EventTarget};
 
 use crate::{Signal, SignalSubscription, effect};
 
@@ -33,6 +33,7 @@ impl MountCleanup {
 /// Creates and owns DOM nodes below a framework-provided component host.
 pub struct View {
     document: Document,
+    host: Element,
 }
 
 impl View {
@@ -40,11 +41,22 @@ impl View {
         let document = host
             .owner_document()
             .ok_or_else(|| JsValue::from_str("Vooya mount host has no document"))?;
-        Ok(Self { document })
+        Ok(Self { document, host: host.clone() })
     }
 
     pub fn element(&self, tag: &str) -> Result<ViewElement, JsValue> {
         self.document.create_element(tag).map(ViewElement::new)
+    }
+
+    /// Dispatches a non-bubbling event across the framework adapter boundary.
+    /// The adapter listens on the host element for the `vooya-` event name.
+    pub fn emit(&self, event_name: &str, detail: JsValue) -> Result<(), JsValue> {
+        let init = CustomEventInit::new();
+        init.set_bubbles(false);
+        init.set_detail(&detail);
+        let event = CustomEvent::new_with_event_init_dict(&format!("vooya-{event_name}"), &init)?;
+        self.host.dispatch_event(&event)?;
+        Ok(())
     }
 }
 

@@ -71,6 +71,23 @@ This is the first explicit reactive/event binding layer; dependency inference,
 keyed lists, and conditional branch compilation remain under the `rsx!` runtime
 workstream.
 
+Rust-to-host events use an events schema plus the host-bound `View::emit` API:
+
+```rust
+#[voo::events]
+pub trait CounterEvents {
+    fn selected(value: u32);
+}
+
+// Inside the component function:
+view.emit("selected", wasm_bindgen::JsValue::from_f64(value as f64))?;
+```
+
+`View::emit` dispatches the non-bubbling `vooya-selected` CustomEvent on the
+framework host. Vue and React adapters decode the declared event parameters
+and deliver them to the framework callback. The v1 API accepts a `JsValue` at
+this call site; users should encode values with the shared owned ABI helpers.
+
 ## Component and store boundaries
 
 Components and stores have different host contracts:

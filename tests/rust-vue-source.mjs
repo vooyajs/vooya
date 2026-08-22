@@ -61,6 +61,7 @@ async function verifyBrowser() {
     await page.getByRole("button", { name: "Store 1" }).waitFor();
     const counter = page.getByRole("button", { name: "Count: 1" });
     await counter.waitFor();
+    await page.getByText("Selected 1").waitFor();
     if (await counter.evaluate((element) => getComputedStyle(element).display) !== "flex") {
       throw new Error("Rust-file scoped CSS was not applied to the component root.");
     }

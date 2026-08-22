@@ -51,6 +51,7 @@ async function verifyBrowser() {
     await page.getByRole("button", { name: "Store 0" }).click();
     await page.getByRole("button", { name: "Store 1" }).waitFor();
     await page.getByRole("button", { name: "Count: 1" }).waitFor();
+    await page.getByText("Selected 1").waitFor();
     if (errors.length > 0) throw new Error(`Rust-file React fixture had browser errors:\n${errors.join("\n")}`);
   } finally {
     await browser.close();
