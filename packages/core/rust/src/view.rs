@@ -31,6 +31,7 @@ impl MountCleanup {
 }
 
 /// Creates and owns DOM nodes below a framework-provided component host.
+#[derive(Clone)]
 pub struct View {
     document: Document,
     host: Element,
@@ -87,6 +88,29 @@ impl<K: Clone + Eq> KeyedChildren<K> {
         keys: &[K],
         mut render: impl FnMut(&K) -> Result<ViewElement, JsValue>,
     ) -> Result<(), JsValue> {
+        let owned_keys = keys.to_vec();
+        self.reconcile_indexed(parent, owned_keys, |index| render(&keys[index]))
+    }
+
+    /// Reconcile a list of source items while deriving identity from each
+    /// item. The render callback receives the original item, not its key.
+    pub fn reconcile_with<I>(
+        &mut self,
+        parent: &ViewElement,
+        items: &[I],
+        mut key: impl FnMut(&I) -> K,
+        mut render: impl FnMut(&I) -> Result<ViewElement, JsValue>,
+    ) -> Result<(), JsValue> {
+        let keys = items.iter().map(&mut key).collect::<Vec<_>>();
+        self.reconcile_indexed(parent, keys, |index| render(&items[index]))
+    }
+
+    fn reconcile_indexed(
+        &mut self,
+        parent: &ViewElement,
+        keys: Vec<K>,
+        mut render: impl FnMut(usize) -> Result<ViewElement, JsValue>,
+    ) -> Result<(), JsValue> {
         for (index, key) in keys.iter().enumerate() {
             if keys[..index].iter().any(|existing| existing == key) {
                 return Err(JsValue::from_str("Vooya keyed children contain a duplicate key"));
@@ -94,11 +118,11 @@ impl<K: Clone + Eq> KeyedChildren<K> {
         }
         let mut remaining = std::mem::take(&mut self.entries);
         let mut next = Vec::with_capacity(keys.len());
-        for key in keys {
+        for (index, key) in keys.iter().enumerate() {
             if let Some(index) = remaining.iter().position(|(existing, _)| existing == key) {
                 next.push(remaining.swap_remove(index));
             } else {
-                next.push((key.clone(), render(key)?));
+                next.push((key.clone(), render(index)?));
             }
         }
 
@@ -180,6 +204,11 @@ impl ViewElement {
 
     pub fn as_element(&self) -> &Element {
         &self.element
+    }
+
+    /// Register a resource cleanup callback on this element's ownership scope.
+    pub fn defer_cleanup(&self, callback: impl FnOnce() + 'static) {
+        self.cleanup.defer(callback);
     }
 
     pub fn append(&self, child: &ViewElement) -> Result<(), JsValue> {

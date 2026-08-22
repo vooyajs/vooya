@@ -78,13 +78,14 @@ syntax.
 Event listeners can use the same owned-root syntax, for example
 `on-click={move |_| count.set(1)}`. The listener is removed with the root.
 The runtime also exposes `insert_before`, `remove_child`, and `replace_child`
-for future branch and keyed-list reconciliation; these APIs preserve the
-child's cleanup ownership while moving or replacing DOM roots.
+for branch and keyed-list reconciliation; these APIs preserve the child's
+cleanup ownership while moving or replacing DOM roots.
 `KeyedChildren<K>` builds on those primitives to reuse roots by stable key and
 release roots whose keys disappear. Duplicate keys are rejected.
-This is the first explicit reactive/event binding layer; automatic dependency
-inference, keyed lists, and conditional branch compilation remain under the
-`rsx!` runtime workstream.
+This is the first explicit reactive/event binding layer; the `rsx!` loop form
+`for item in items.get() { <Row key={item.id} /> }` now provides keyed list
+identity. Conditional branch compilation remains under the `rsx!` runtime
+workstream.
 
 Rust-to-host events use an events schema plus the host-bound `View::emit` API:
 

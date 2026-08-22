@@ -132,3 +132,31 @@ fn keyed_children_reuse_identity_and_release_removed_roots() -> Result<(), wasm_
     root.remove();
     Ok(())
 }
+
+#[derive(Clone)]
+struct Row {
+    id: u32,
+}
+
+#[wasm_bindgen_test]
+fn rsx_for_loop_reuses_keyed_rows() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let rows = signal(vec![Row { id: 1 }, Row { id: 2 }]);
+    let rows_for_view = rows.clone();
+    let tree = rsx!(view,
+        <ul>
+            for item in rows_for_view.get() {
+                <li key={item.id}>{item.id}</li>
+            }
+        </ul>
+    )?;
+    tree.mount(&host)?;
+    let first = tree.as_element().children().item(0).unwrap();
+    rows.set(vec![Row { id: 2 }, Row { id: 1 }, Row { id: 3 }]);
+    assert_eq!(tree.as_element().children().length(), 3);
+    assert!(tree.as_element().children().item(1).unwrap().is_same_node(Some(&first)));
+    tree.remove();
+    Ok(())
+}

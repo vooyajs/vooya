@@ -114,3 +114,22 @@ fn rsx_event_tree_compiles(
         <button on-click={move |_| {}} >"Click"</button>
     )
 }
+
+#[derive(Clone)]
+struct RsxRow {
+    id: u32,
+}
+
+#[allow(dead_code)]
+fn rsx_keyed_tree_compiles(
+    view: &voo::View,
+    rows: voo::Signal<Vec<RsxRow>>,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
+    voo::rsx!(view,
+        <ul>
+            for item in rows.get() {
+                <li key={item.id}>{item.id}</li>
+            }
+        </ul>
+    )
+}

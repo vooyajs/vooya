@@ -496,21 +496,32 @@ struct RsxInput {
     root: RsxNode,
 }
 
+#[derive(Clone)]
 struct RsxNode {
     tag: syn::Ident,
     attributes: Vec<(String, RsxAttributeValue)>,
     children: Vec<RsxChild>,
 }
 
+#[derive(Clone)]
 enum RsxAttributeValue {
     Literal(syn::LitStr),
     Expression(Expr),
 }
 
+#[derive(Clone)]
 enum RsxChild {
     Node(RsxNode),
     Text(syn::LitStr),
     Expression(Expr),
+    For(RsxFor),
+}
+
+#[derive(Clone)]
+struct RsxFor {
+    item: syn::Ident,
+    items: Expr,
+    body: RsxNode,
 }
 
 impl Parse for RsxInput {
@@ -555,6 +566,8 @@ impl Parse for RsxNode {
         while !is_closing_tag(input)? {
             if input.peek(Token![<]) {
                 children.push(RsxChild::Node(input.parse()?));
+            } else if input.peek(Token![for]) {
+                children.push(RsxChild::For(input.parse()?));
             } else if input.peek(syn::LitStr) {
                 children.push(RsxChild::Text(input.parse()?));
             } else if input.peek(syn::token::Brace) {
@@ -580,6 +593,22 @@ impl Parse for RsxNode {
             attributes,
             children,
         })
+    }
+}
+
+impl Parse for RsxFor {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        input.parse::<Token![for]>()?;
+        let item: syn::Ident = input.parse()?;
+        input.parse::<Token![in]>()?;
+        let items: Expr = input.parse()?;
+        let content;
+        braced!(content in input);
+        let body: RsxNode = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("keyed RSX loops currently accept one root node"));
+        }
+        Ok(Self { item, items, body })
     }
 }
 
@@ -635,6 +664,7 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
                 quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
             }
         }
+        RsxChild::For(loop_node) => expand_rsx_for(loop_node, view),
     });
     quote! {{
         let mut __voo_element = (#view).element(#tag)?;
@@ -642,6 +672,50 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
         #(#children)*
         ::core::result::Result::<_, ::vooya::__private::wasm_bindgen::JsValue>::Ok(__voo_element)
     }}
+}
+
+fn expand_rsx_for(loop_node: &RsxFor, view: &Expr) -> proc_macro2::TokenStream {
+    let item = &loop_node.item;
+    let items = &loop_node.items;
+    let Some((_, RsxAttributeValue::Expression(key))) = loop_node
+        .body
+        .attributes
+        .iter()
+        .find(|(name, _)| name == "key")
+    else {
+        return quote! { compile_error!("keyed RSX loops require a `key={...}` attribute"); };
+    };
+    let mut body = loop_node.body.clone();
+    body.attributes.retain(|(name, _)| name != "key");
+    let body_view: Expr = syn::parse_quote! { __voo_loop_view };
+    let body = expand_rsx_node(&body, &body_view);
+    quote! {
+        {
+            let __voo_loop_parent = __voo_element.clone();
+            let __voo_loop_parent_for_effect = __voo_loop_parent.clone();
+            let __voo_loop_view = (#view).clone();
+            let __voo_loop_children = ::std::rc::Rc::new(
+                ::std::cell::RefCell::new(::vooya::KeyedChildren::default()),
+            );
+            let __voo_loop_children_for_effect = __voo_loop_children.clone();
+            let __voo_loop_effect = ::vooya::tracked_effect(move || {
+                let __voo_loop_items = (#items);
+                let _ = __voo_loop_children_for_effect.borrow_mut().reconcile_with(
+                    &__voo_loop_parent_for_effect,
+                    &__voo_loop_items,
+                    |#item| #key,
+                    |#item| #body,
+                );
+            });
+            let __voo_loop_parent_for_cleanup = __voo_loop_parent.clone();
+            __voo_element.defer_cleanup(move || {
+                let _ = __voo_loop_children
+                    .borrow_mut()
+                    .clear(&__voo_loop_parent_for_cleanup);
+                drop(__voo_loop_effect);
+            });
+        }
+    }
 }
 
 #[proc_macro_derive(FromJs)]
