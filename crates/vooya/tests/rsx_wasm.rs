@@ -160,3 +160,29 @@ fn rsx_for_loop_reuses_keyed_rows() -> Result<(), wasm_bindgen::JsValue> {
     tree.remove();
     Ok(())
 }
+
+#[wasm_bindgen_test]
+fn rsx_if_else_replaces_the_branch_and_cleans_up() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let visible = signal(true);
+    let visible_for_view = visible.clone();
+    let tree = rsx!(view,
+        <section>
+            if visible_for_view.get() {
+                <span>"shown"</span>
+            } else {
+                <span>"hidden"</span>
+            }
+        </section>
+    )?;
+    tree.mount(&host)?;
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("shown"));
+    visible.set(false);
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("hidden"));
+    tree.remove();
+    visible.set(true);
+    assert_eq!(host.text_content().as_deref(), Some(""));
+    Ok(())
+}

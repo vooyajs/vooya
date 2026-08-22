@@ -37,6 +37,20 @@ pub struct View {
     host: Element,
 }
 
+/// An invisible DOM anchor used to keep a conditional branch at its source
+/// position without adding a visible wrapper element.
+#[derive(Clone)]
+pub struct ViewAnchor {
+    node: Node,
+}
+
+/// Owns one optional branch root at a stable anchor.
+pub struct ConditionalBranch {
+    anchor: ViewAnchor,
+    active: Option<bool>,
+    child: Option<ViewElement>,
+}
+
 impl View {
     pub fn from_host(host: &Element) -> Result<Self, JsValue> {
         let document = host
@@ -49,6 +63,10 @@ impl View {
         self.document.create_element(tag).map(ViewElement::new)
     }
 
+    pub fn anchor(&self) -> ViewAnchor {
+        ViewAnchor { node: self.document.create_comment("").unchecked_into() }
+    }
+
     /// Dispatches a non-bubbling event across the framework adapter boundary.
     /// The adapter listens on the host element for the `vooya-` event name.
     pub fn emit(&self, event_name: &str, detail: JsValue) -> Result<(), JsValue> {
@@ -58,6 +76,65 @@ impl View {
         let event = CustomEvent::new_with_event_init_dict(&format!("vooya-{event_name}"), &init)?;
         self.host.dispatch_event(&event)?;
         Ok(())
+    }
+}
+
+impl ViewAnchor {
+    fn parent(&self) -> Result<Node, JsValue> {
+        self.node
+            .parent_node()
+            .ok_or_else(|| JsValue::from_str("Vooya branch anchor is not mounted"))
+    }
+
+    fn insert(&self, child: &ViewElement) -> Result<(), JsValue> {
+        self.parent()?
+            .insert_before(&child.element.clone().unchecked_into(), Some(&self.node))
+            .map(|_| ())
+    }
+
+    fn remove(&self, child: &ViewElement) -> Result<(), JsValue> {
+        child.cleanup.run();
+        self.parent()?.remove_child(&child.element.clone().unchecked_into()).map(|_| ())
+    }
+
+    fn remove_self(&self) -> Result<(), JsValue> {
+        if let Some(parent) = self.node.parent_node() {
+            parent.remove_child(&self.node).map(|_| ())?;
+        }
+        Ok(())
+    }
+}
+
+impl ConditionalBranch {
+    pub fn new(anchor: ViewAnchor) -> Self {
+        Self { anchor, active: None, child: None }
+    }
+
+    pub fn update(
+        &mut self,
+        condition: bool,
+        render: impl FnOnce() -> Result<Option<ViewElement>, JsValue>,
+    ) -> Result<(), JsValue> {
+        if self.active == Some(condition) {
+            return Ok(());
+        }
+        if let Some(child) = self.child.take() {
+            self.anchor.remove(&child)?;
+        }
+        self.active = Some(condition);
+        if let Some(child) = render()? {
+            self.anchor.insert(&child)?;
+            self.child = Some(child);
+        }
+        Ok(())
+    }
+
+    pub fn clear(&mut self) -> Result<(), JsValue> {
+        if let Some(child) = self.child.take() {
+            self.anchor.remove(&child)?;
+        }
+        self.active = None;
+        self.anchor.remove_self()
     }
 }
 
@@ -209,6 +286,10 @@ impl ViewElement {
     /// Register a resource cleanup callback on this element's ownership scope.
     pub fn defer_cleanup(&self, callback: impl FnOnce() + 'static) {
         self.cleanup.defer(callback);
+    }
+
+    pub fn append_anchor(&self, anchor: &ViewAnchor) -> Result<(), JsValue> {
+        self.element.append_child(&anchor.node).map(|_| ())
     }
 
     pub fn append(&self, child: &ViewElement) -> Result<(), JsValue> {

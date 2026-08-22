@@ -13,5 +13,4 @@ This package is an alpha. Rust-file source compilation requires Cargo, the
 The Rust runtime exposes owned DOM views, signals, an opt-in `tracked_effect`
 dependency collector, keyed child reconciliation, and an explicit `batch`
 boundary for coalescing synchronous signal notifications. The public `rsx!`
-loop form supports keyed items; conditional branch syntax is not yet part of
-the macro contract.
+forms support keyed `for` items and conditional `if`/`else` branches.

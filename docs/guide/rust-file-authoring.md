@@ -84,8 +84,9 @@ cleanup ownership while moving or replacing DOM roots.
 release roots whose keys disappear. Duplicate keys are rejected.
 This is the first explicit reactive/event binding layer; the `rsx!` loop form
 `for item in items.get() { <Row key={item.id} /> }` now provides keyed list
-identity. Conditional branch compilation remains under the `rsx!` runtime
-workstream.
+identity. Conditional branches use ordinary Rust-style `if`/`else` blocks:
+`if visible.get() { <Shown /> } else { <Hidden /> }`; the branch root is
+replaced at a comment anchor and its owned resources are released.
 
 Rust-to-host events use an events schema plus the host-bound `View::emit` API:
 

@@ -133,3 +133,19 @@ fn rsx_keyed_tree_compiles(
         </ul>
     )
 }
+
+#[allow(dead_code)]
+fn rsx_conditional_tree_compiles(
+    view: &voo::View,
+    visible: voo::Signal<bool>,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
+    voo::rsx!(view,
+        <section>
+            if visible.get() {
+                <span>"shown"</span>
+            } else {
+                <span>"hidden"</span>
+            }
+        </section>
+    )
+}

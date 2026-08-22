@@ -515,6 +515,7 @@ enum RsxChild {
     Text(syn::LitStr),
     Expression(Expr),
     For(RsxFor),
+    If(RsxIf),
 }
 
 #[derive(Clone)]
@@ -522,6 +523,13 @@ struct RsxFor {
     item: syn::Ident,
     items: Expr,
     body: RsxNode,
+}
+
+#[derive(Clone)]
+struct RsxIf {
+    condition: Expr,
+    then_body: RsxNode,
+    else_body: Option<RsxNode>,
 }
 
 impl Parse for RsxInput {
@@ -568,6 +576,8 @@ impl Parse for RsxNode {
                 children.push(RsxChild::Node(input.parse()?));
             } else if input.peek(Token![for]) {
                 children.push(RsxChild::For(input.parse()?));
+            } else if input.peek(Token![if]) {
+                children.push(RsxChild::If(input.parse()?));
             } else if input.peek(syn::LitStr) {
                 children.push(RsxChild::Text(input.parse()?));
             } else if input.peek(syn::token::Brace) {
@@ -609,6 +619,32 @@ impl Parse for RsxFor {
             return Err(content.error("keyed RSX loops currently accept one root node"));
         }
         Ok(Self { item, items, body })
+    }
+}
+
+impl Parse for RsxIf {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        input.parse::<Token![if]>()?;
+        let condition: Expr = input.parse()?;
+        let content;
+        braced!(content in input);
+        let then_body: RsxNode = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("conditional RSX branches currently accept one root node"));
+        }
+        let else_body = if input.peek(Token![else]) {
+            input.parse::<Token![else]>()?;
+            let content;
+            braced!(content in input);
+            let body: RsxNode = content.parse()?;
+            if !content.is_empty() {
+                return Err(content.error("conditional RSX branches currently accept one root node"));
+            }
+            Some(body)
+        } else {
+            None
+        };
+        Ok(Self { condition, then_body, else_body })
     }
 }
 
@@ -665,6 +701,7 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
             }
         }
         RsxChild::For(loop_node) => expand_rsx_for(loop_node, view),
+        RsxChild::If(branch) => expand_rsx_if(branch, view),
     });
     quote! {{
         let mut __voo_element = (#view).element(#tag)?;
@@ -672,6 +709,52 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
         #(#children)*
         ::core::result::Result::<_, ::vooya::__private::wasm_bindgen::JsValue>::Ok(__voo_element)
     }}
+}
+
+fn expand_rsx_if(branch: &RsxIf, view: &Expr) -> proc_macro2::TokenStream {
+    let condition = &branch.condition;
+    let branch_view: Expr = syn::parse_quote! { __voo_branch_view };
+    let then_body = expand_rsx_node(&branch.then_body, &branch_view);
+    let else_body = branch.else_body.as_ref().map(|body| expand_rsx_node(body, &branch_view));
+    let render = if let Some(else_body) = else_body {
+        quote! {
+            if __voo_branch_condition {
+                Ok(Some(#then_body?))
+            } else {
+                Ok(Some(#else_body?))
+            }
+        }
+    } else {
+        quote! {
+            if __voo_branch_condition {
+                Ok(Some(#then_body?))
+            } else {
+                Ok(None)
+            }
+        }
+    };
+    quote! {
+        {
+            let __voo_branch_anchor = (#view).anchor();
+            __voo_element.append_anchor(&__voo_branch_anchor)?;
+            let __voo_branch = ::std::rc::Rc::new(::std::cell::RefCell::new(
+                ::vooya::ConditionalBranch::new(__voo_branch_anchor.clone()),
+            ));
+            let __voo_branch_for_effect = __voo_branch.clone();
+            let __voo_branch_view = (#view).clone();
+            let __voo_branch_effect = ::vooya::tracked_effect(move || {
+                let __voo_branch_condition = (#condition);
+                let _ = __voo_branch_for_effect.borrow_mut().update(
+                    __voo_branch_condition,
+                    || { #render },
+                );
+            });
+            __voo_element.defer_cleanup(move || {
+                let _ = __voo_branch.borrow_mut().clear();
+                drop(__voo_branch_effect);
+            });
+        }
+    }
 }
 
 fn expand_rsx_for(loop_node: &RsxFor, view: &Expr) -> proc_macro2::TokenStream {
