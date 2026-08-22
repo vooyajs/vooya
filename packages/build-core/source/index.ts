@@ -516,7 +516,10 @@ function syncPackagedAuthoringCrates(root: string): void {
     .replace("license.workspace = true", 'license = "MIT OR Apache-2.0"')
     .replace("repository.workspace = true", 'repository = "https://github.com/vooyajs/vooya"')
     .replace('path = "../../packages/core/rust"', 'path = ".."')
-    .replace('\n[[example]]\nname = "rsx_browser"\ncrate-type = ["cdylib"]\n\n[dev-dependencies]\nwasm-bindgen-test = "=0.3.65"\n', '\n');
+    .replace(
+      /\r?\n\[\[example\]\]\r?\nname = "rsx_browser"\r?\ncrate-type = \["cdylib"\]\r?\n\r?\n\[dev-dependencies\]\r?\nwasm-bindgen-test = "=0\.3\.65"\r?\n?/m,
+      "\n",
+    );
   writeFileSync(manifestPath, manifest);
 
   const macrosManifestPath = resolve(macrosRoot, "Cargo.toml");
