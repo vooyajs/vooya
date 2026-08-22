@@ -98,7 +98,7 @@ test("loads and scopes Rust-file CSS through the bundler hook", () => {
       componentId,
       name: "Counter",
       styles: [{ path: "./Counter.css", scoped: true }],
-    }))}`;
+    }))}.css`;
     const resolved = plugin.resolveId(source);
     const css = plugin.load(resolved);
     assert.match(css, /data-voo-scope/);

@@ -5,7 +5,6 @@ examples/*/dist
 tests/fixtures/*/dist
 examples/rsx-basic/pkg/
 /.vite
-**/.voo-cache
 **/.vooya
 /.playwright-cli
 /playwright-report

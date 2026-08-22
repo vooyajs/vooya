@@ -19,7 +19,6 @@ import { deleteBuildState, getBuildState, setBuildState } from "./state.js";
 const loaderPath = fileURLToPath(new URL("./loader.js", import.meta.url));
 const ignoredDirectories = new Set([
   ".git",
-  ".voo-cache",
   ".vooya",
   "dist",
   "node_modules",
