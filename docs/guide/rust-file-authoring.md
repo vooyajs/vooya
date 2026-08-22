@@ -53,8 +53,10 @@ let count = voo::signal(0u32);
 let root = voo::rsx!(view, <span data-count={count.get()}>{count.get()}</span>)?;
 ```
 
-This is the first explicit reactive binding; dependency inference, keyed
-lists, and conditional branch compilation remain under the `rsx!` runtime
+Event listeners can use the same owned-root syntax, for example
+`on-click={move |_| count.set(1)}`. The listener is removed with the root.
+This is the first explicit reactive/event binding layer; dependency inference,
+keyed lists, and conditional branch compilation remain under the `rsx!` runtime
 workstream.
 
 ## Component and store boundaries

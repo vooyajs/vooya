@@ -517,6 +517,12 @@ fn is_closing_tag(input: ParseStream<'_>) -> syn::Result<bool> {
 fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
     let tag = node.tag.to_string();
     let attributes = node.attributes.iter().map(|(name, value)| {
+        if let Some(event_name) = name.strip_prefix("on-") {
+            let RsxAttributeValue::Expression(expression) = value else {
+                return quote! { compile_error!("RSX on-* event attributes require a braced closure expression"); };
+            };
+            return quote! { __voo_element.on_owned(#event_name, #expression)?; };
+        }
         match value {
             RsxAttributeValue::Literal(value) => quote! { __voo_element = __voo_element.attribute(#name, #value)?; },
             RsxAttributeValue::Expression(expression) => {

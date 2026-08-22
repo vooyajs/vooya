@@ -104,3 +104,12 @@ fn rsx_signal_tree_compiles(
         <span data-count={count.get()}>{count.get()}</span>
     )
 }
+
+#[allow(dead_code)]
+fn rsx_event_tree_compiles(
+    view: &voo::View,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
+    voo::rsx!(view,
+        <button on-click={move |_| {}} >"Click"</button>
+    )
+}

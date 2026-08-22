@@ -140,6 +140,18 @@ impl ViewElement {
         })
     }
 
+    /// Register an event listener owned by this element. It is removed when
+    /// the element's cleanup scope runs.
+    pub fn on_owned(
+        &self,
+        event_name: &str,
+        handler: impl FnMut(Event) + 'static,
+    ) -> Result<(), JsValue> {
+        let listener = self.on(event_name, handler)?;
+        self.cleanup.defer(move || drop(listener));
+        Ok(())
+    }
+
     pub fn remove(&self) {
         self.cleanup.run();
         self.element.remove();
