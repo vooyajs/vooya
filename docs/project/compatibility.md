@@ -12,7 +12,7 @@ SSR and hydration. Each entry is evidence for the named test path only.
 | Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
 | React 19 Rust-file authoring | Vite 7 | Experimental | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
-| Vue Vapor | Vue 3.6 experimental | Targeted, unverified | The adapter will keep the same DOM host/lifecycle boundary; a dedicated Vapor fixture is required before calling this supported |
+| Vue Vapor | Vue 3.6 experimental | Verified, experimental | Vite 8 + Vue 3.6.0-beta.17 mounts a Rust-file component when the app uses Vue's `vaporInteropPlugin`; Vapor remains an upstream Vue opt-in |
 
 ## Verified in local Playwright projects
 
@@ -39,6 +39,7 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Toolchain | Minimum version | Evidence | Boundary |
 | --- | --- | --- | --- |
 | Vite | `>=7 <9` | `npm run test:vite8` | Vite 8.2.1 is the primary packed compatibility target; Vite 7 remains a required regression path in the repository fixtures and release gate |
+| Vite 8 + Vue Vapor | Vite `8.2.1`; Vue `3.6.0-beta.17` | `npm run test:vite8-vapor` | Rust-file component mounts in a Vapor app with `vaporInteropPlugin`; experimental evidence only |
 | Vite+ | `>=0.2.9` | `npm run test:vite-plus` | Production output and browser WASM loading at 0.2.9 using Vite+'s Vite core alias; the alias currently requires npm legacy peer resolution, and development rebuild and HMR behavior are not claimed |
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Strict packed Vue/React/Rslib/native-Rspack builds, WASM and scoped CSS output, Vue/React Chromium lifecycle checks, mapped Rust diagnostics, failed-build recovery, and `.voo` source rebuild/full reload; configured Rust path dependencies require a dev-server restart after edits; exact fixtures use Rspack 2.1.10 and Rsbuild 2.1.13 |
 | Webpack | `>=5` | `npm run test:webpack` | Packed Vue/React production builds, emitted WASM and scoped CSS, centralized declarations, Chromium mount/update/event/dispose checks, mapped Rust failure recovery, configured Rust path-dependency rebuilds, rapid-save final state, and normal Webpack Dev Server live reload; fixtures cover production output at 5.101.0 and Vue/React browser and watch recovery at 5.109.2 |
@@ -61,6 +62,8 @@ toolchain; a production smoke does not imply development-server or HMR support.
   not the beta default authoring path and is not evidence for Rust-file support.
 - Alpha ABI revisions may be breaking; use one exact coordinated `@vooya`
   package version.
+- Vapor applications must use Vue's Vapor runtime, `createVaporApp`, and
+  `vaporInteropPlugin`; Vooya does not replace that host-framework setup.
 
 ## Updating this matrix
 
