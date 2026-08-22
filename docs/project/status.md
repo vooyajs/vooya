@@ -48,8 +48,9 @@ prerelease.
   without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
 - Extract versioned Rust-file schema records from WASM, validate file groups,
   and generate central `.d.rs.ts` declarations for Vue/React consumers.
-- Build a real Rust-file component through Vite 7 + Vue 3.5, including the
-  public `vooya` authoring dependency and generated WASM bindings.
+- Build and exercise a real Rust-file component and store through Vite 7 + Vue
+  3.5, including scoped CSS, the public `vooya` authoring dependency, generated
+  WASM bindings, and Chromium interaction.
 - Build and exercise Rust-file components and instance-scoped stores through
   Vite 7 + React 19, including StrictMode mount cleanup, store actions,
   snapshot subscriptions, and atomic component prop patches.
@@ -63,9 +64,9 @@ prerelease.
 
 - Source consumers need Cargo, the WASM target, and `wasm-bindgen-cli`.
 - Vite `>=7 <9` is the supported source-authoring bundler range, with Vite 8
-  as the primary compatibility target. The Vite 7 Rust-file Vue and React
-  production fixtures pass, and React browser interaction is verified; Vite 8,
-  Vue browser interaction, and Rust-file HMR remain to be verified. Rspack `>=2.1.10`
+  as the primary compatibility target. Vite 7 Rust-file Vue and React
+  production/browser fixtures pass, and the packed Vite 8 fixture covers
+  production, rebuild, HMR, and error recovery. Rspack `>=2.1.10`
   has an experimental first-party adapter with Rsbuild, Rslib, and direct
   Rspack fixtures. Webpack `>=5` has an experimental first-party
   adapter. Webpack 4, Rollup, Turbopack, and other bundlers remain unsupported.
@@ -77,8 +78,8 @@ prerelease.
 - A non-trivial component still uses some direct `web_sys` APIs.
 - The contract is limited to primitive prop and event values.
 - Rust store schema/declarations, the generated `.rs` store module, and the Vue
-  composable are available; browser-level store interaction coverage is still
-  next.
+  composable are available; Vue and React browser-level store interaction are
+  covered by `test:rust-vue` and `test:rust-react`.
 - The public `vooya` Cargo authoring crate is currently resolved from the
   coordinated source checkout; packaging it as a standalone published Rust
   authoring artifact is a separate release task.

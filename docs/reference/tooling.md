@@ -103,20 +103,23 @@ TypeScript projects using an override must point `rootDirs` at that workspace's
 TypeScript resolves declarations from the mirrored generated tree with
 `allowArbitraryExtensions: true` and `rootDirs: [".", ".vooya/types"]`. Vooya
 does not rewrite tsconfig files automatically. Rust compiler diagnostics from
-extracted files are remapped to the source line in the original `.voo` file.
+extracted files are remapped to the source line in the original `.rs` file or
+legacy `.voo` file.
 Rust-file declarations use the same central tree and replace `.rs` with
 `.d.rs.ts`; they are generated from the versioned `__voo_schema` section after
 the WASM build.
 
-The Rust-file Vue fixture is verified end to end with:
+The Rust-file Vue and React fixtures are verified end to end with:
 
 ```sh
 npm run test:rust-vue
+npm run test:rust-react
 ```
 
 This command builds the fixture, serves the production assets with JavaScript
 and WASM MIME types, and checks component mounting, store action dispatch, and
-the resulting snapshot-driven DOM update in Chromium.
+the resulting snapshot-driven DOM update in Chromium. The React fixture also
+mounts under `StrictMode`.
 
 ## Vite development rebuilds
 
