@@ -27,6 +27,8 @@ site without changing its structure or URLs unnecessarily.
   and the next milestones.
 - [Compatibility matrix](project/compatibility.md): automated framework and
   browser evidence, plus explicit unsupported boundaries.
+- [Beta boundary](project/beta-boundary.md): the current product scope,
+  authoring decision, and remaining contract gate.
 - [Scatter-plot demo](guide/scatter-plot.md): a repeatable browser check for a
   Rust-owned Canvas rendering surface.
 
