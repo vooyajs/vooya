@@ -277,6 +277,18 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             });
             call_parameters.push(quote! { #parameter_name });
         }
+        let returns_result = matches!(&method.sig.output, syn::ReturnType::Type(_, ty) if type_name(ty).replace(' ', "").starts_with("Result<"));
+        let invoke = match &method.sig.output {
+            syn::ReturnType::Type(_, ty) if type_name(ty).replace(' ', "").starts_with("Result<") => {
+                quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
+            }
+            _ => quote! { let _ = state.#method_name(#(#call_parameters),*); },
+        };
+        let dispatch = if returns_result {
+            quote! { existing.store.dispatch(|state| { #invoke })?; }
+        } else {
+            quote! { existing.store.dispatch(|state| { #invoke }); }
+        };
         quote! {
             #[::vooya::__private::wasm_bindgen::prelude::wasm_bindgen]
             pub fn #export_name(handle: u32, #(#js_parameters),*) -> ::core::result::Result<(), ::vooya::__private::wasm_bindgen::JsValue> {
@@ -286,9 +298,7 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
                     let Some(Some(existing)) = handles.get(handle as usize) else {
                         return ::core::result::Result::Err(::vooya::abi_error("invalid store handle"));
                     };
-                    existing.store.dispatch(|state| {
-                        state.#method_name(#(#call_parameters),*);
-                    });
+                    #dispatch
                     ::core::result::Result::Ok(())
                 })
             }

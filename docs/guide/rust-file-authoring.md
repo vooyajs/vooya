@@ -101,6 +101,11 @@ accept constructor props. The optional argument to `useCart` is the adapter
 options object (`onError` and `onNotify`); state that must change after
 construction belongs in an explicit `#[voo::action]` method.
 
+Actions are synchronous. A unit-returning action is exposed as a void host
+operation; an action returning `Result<(), JsValue>` propagates its error to
+the generated binding. Failed actions do not roll back mutations made before
+the error, and async actions are outside ABI v1.
+
 The generated `.d.rs.ts` declaration mirrors both sides of the module. For a
 React store it includes the factory, default export, snapshot/store types, and
 the generated hook. In the current ABI-v1 alpha, a snapshot that refers to a

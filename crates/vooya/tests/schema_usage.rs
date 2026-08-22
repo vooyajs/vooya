@@ -34,6 +34,15 @@ impl Cart {
         let _ = quantity;
     }
 
+    #[voo::action]
+    pub fn checked_add(
+        &mut self,
+        quantity: u32,
+    ) -> Result<(), voo::__private::wasm_bindgen::JsValue> {
+        let _ = quantity;
+        Ok(())
+    }
+
     #[voo::snapshot]
     pub fn snapshot(&self) -> CartProps {
         CartProps {
@@ -57,6 +66,7 @@ pub fn CartPanel(
 fn role_macros_compile_for_public_roots() {
     let mut cart = Cart;
     cart.add(1);
+    cart.checked_add(1).unwrap();
     assert_eq!(cart.snapshot().initial_items, 0);
 }
 
