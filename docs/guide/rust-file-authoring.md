@@ -67,12 +67,14 @@ let root = voo::rsx!(view, <span data-count={count.get()}>{count.get()}</span>)?
 
 Multiple synchronous writes can share one notification boundary with
 `voo::batch(|| { ... })`; subscribers run once after the outermost batch.
+If an effect writes a signal that synchronously re-enters the same effect, the
+runtime suppresses that re-entrant invocation instead of recursing indefinitely.
 
 Event listeners can use the same owned-root syntax, for example
 `on-click={move |_| count.set(1)}`. The listener is removed with the root.
-This is the first explicit reactive/event binding layer; dependency inference,
-keyed lists, and conditional branch compilation remain under the `rsx!` runtime
-workstream.
+This is the first explicit reactive/event binding layer; automatic dependency
+inference, keyed lists, and conditional branch compilation remain under the
+`rsx!` runtime workstream.
 
 Rust-to-host events use an events schema plus the host-bound `View::emit` API:
 

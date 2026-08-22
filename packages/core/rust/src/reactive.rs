@@ -1,8 +1,13 @@
-use std::{cell::{Cell, RefCell}, collections::BTreeMap, rc::Rc};
+use std::{cell::{Cell, RefCell}, collections::{BTreeMap, HashSet}, rc::Rc};
 
 thread_local! {
     static BATCH_DEPTH: Cell<u32> = const { Cell::new(0) };
     static PENDING_SIGNALS: RefCell<Vec<Rc<dyn Fn()>>> = const { RefCell::new(Vec::new()) };
+    // Effects are allowed to write signals, so a callback can synchronously
+    // trigger itself. Keep the currently executing callbacks out of nested
+    // notifications; this turns a direct reactive cycle into one stable
+    // commit instead of unbounded recursion.
+    static ACTIVE_EFFECTS: RefCell<HashSet<usize>> = RefCell::new(HashSet::new());
 }
 
 pub type Effect = Rc<dyn Fn()>;
@@ -117,14 +122,22 @@ impl<T> Signal<T> {
 }
 
 fn flush_effects(effects: &Rc<RefCell<BTreeMap<u64, Effect>>>, pending: &Rc<Cell<bool>>) {
-        pending.set(false);
-        let ids = effects.borrow().keys().copied().collect::<Vec<_>>();
-        for id in ids {
-            let callback = effects.borrow().get(&id).cloned();
-            if let Some(callback) = callback {
-                callback();
+    pending.set(false);
+    let ids = effects.borrow().keys().copied().collect::<Vec<_>>();
+    for id in ids {
+        let callback = effects.borrow().get(&id).cloned();
+        if let Some(callback) = callback {
+            let identity = Rc::as_ptr(&callback) as *const () as usize;
+            let entered = ACTIVE_EFFECTS.with(|active| active.borrow_mut().insert(identity));
+            if !entered {
+                continue;
             }
+            callback();
+            ACTIVE_EFFECTS.with(|active| {
+                active.borrow_mut().remove(&identity);
+            });
         }
+    }
 }
 
 impl<T> SignalSubscription<T> {
@@ -204,5 +217,22 @@ mod tests {
 
         assert_eq!(count.get(), 2);
         assert_eq!(calls.get(), 1);
+    }
+
+    #[test]
+    fn a_reentrant_effect_cycle_is_suppressed() {
+        let count = signal(0);
+        let runs = Rc::new(Cell::new(0));
+        let observed = runs.clone();
+        let next = count.clone();
+        let _subscription = count.subscribe(effect(move || {
+            observed.set(observed.get() + 1);
+            next.set(next.get() + 1);
+        }));
+
+        count.set(1);
+
+        assert_eq!(runs.get(), 1);
+        assert_eq!(count.get(), 2);
     }
 }
