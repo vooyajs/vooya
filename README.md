@@ -20,7 +20,7 @@ React are the current first-party adapters.
 
 ```vue
 <script setup lang="ts">
-import RustChart from "./RustChart.voo";
+import RustChart from "./RustChart.rs";
 </script>
 
 <template>
@@ -142,58 +142,37 @@ reports the required change when it finds an incomplete TypeScript config.
 
 ### 4. Create your first component
 
-Create `src/Greeting.voo`:
+Create `src/Greeting.rs`:
 
-```voo
-<component name="Greeting">
-props:
-  name: String = "world"
-</component>
-
-<rust>
+```rust
 use wasm_bindgen::JsValue;
+use vooya as voo;
 
-use crate::{View, ViewElement};
-
-pub struct Component {
-    root: ViewElement,
+#[voo::props]
+#[derive(voo::FromJs)]
+pub struct GreetingProps {
+    pub name: String,
 }
 
-impl Component {
-    pub fn update_name(&self, name: String) {
-        self.root.set_text(&format!("Hello, {name}."));
-    }
-
-    pub fn dispose(&mut self) {
-        self.root.remove();
-    }
+#[voo::component]
+pub fn Greeting(
+    view: &voo::View,
+    props: GreetingProps,
+) -> Result<voo::ViewElement, JsValue> {
+    let label = format!("Hello, {}.", props.name);
+    voo::rsx!(view, <p class="greeting">{label}</p>)
 }
-
-pub fn mount(context: Context) -> Result<Component, JsValue> {
-    let view = View::from_host(&context.host)?;
-    let root = view
-        .element("p")?
-        .class("greeting")
-        .text(&format!("Hello, {}.", context.props.name));
-    root.mount(&context.host)?;
-    Ok(Component { root })
-}
-</rust>
-
-<style scoped>
-.greeting {
-    color: #2f7d68;
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-</style>
 ```
+
+Put optional styles in `src/Greeting.css` and declare them with
+`#[voo::style("./Greeting.css", scoped)]` on the component. The bundler owns
+CSS loading and HMR; CSS is not embedded in WASM.
 
 Replace `src/App.vue` with:
 
 ```vue
 <script setup lang="ts">
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 </script>
 
 <template>
@@ -240,10 +219,10 @@ export default defineConfig({
 });
 ```
 
-The same `Greeting.voo` can then be imported from React:
+The same `Greeting.rs` can then be imported from React:
 
 ```tsx
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 
 export default function App() {
   return <Greeting name="Vooya" />;
@@ -296,7 +275,7 @@ APIs when necessary.
 - typed primitive props and component events;
 - generated mount, prop-update, error, dispose, and ABI bindings;
 - TypeScript declarations and scoped CSS;
-- Rust diagnostics mapped back to `.voo` source lines;
+- Rust diagnostics mapped back to `.rs` and legacy `.voo` source lines;
 - crates.io, Git, feature, and watched path dependencies;
 - failed-build recovery and reliable full-page reload after Rust rebuilds;
 - `vooya doctor`, `.voo` formatting, and a VS Code diagnostics extension;
@@ -338,6 +317,7 @@ behind these statements.
 ## Documentation
 
 - [Getting started](docs/guide/getting-started.md)
+- [Rust-file authoring](docs/guide/rust-file-authoring.md)
 - [Writing `.voo` components](docs/guide/voo-components.md)
 - [Component ownership boundary](docs/concepts/component-boundary.md)
 - [Tooling and Rust dependencies](docs/reference/tooling.md)
