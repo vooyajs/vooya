@@ -18,15 +18,13 @@ import type { SourceComponent } from "@vooya/compiler";
 import { deleteBuildState, getBuildState, setBuildState } from "./state.js";
 
 const loaderPath = fileURLToPath(new URL("./loader.js", import.meta.url));
-const ignoredDirectories = new Set([".git", ".voo-cache", ".vooya", "dist", "node_modules", "target"]);
+const ignoredDirectories = new Set([".git", ".vooya", "dist", "node_modules", "target"]);
 let nextInstance = 0;
 
 export interface VooyaRspackOptions {
   framework?: "vue" | "react";
   rust?: RustBuildOptions;
   workspaceRoot?: string;
-  /** @deprecated Use workspaceRoot. */
-  cacheRoot?: string;
 }
 
 export interface VooyaRspackRule {
@@ -109,15 +107,11 @@ export class VooyaRspackPlugin implements RspackPluginLike {
     framework = "vue",
     rust = {},
     workspaceRoot,
-    cacheRoot,
   }: VooyaRspackOptions = {}) {
     if (framework !== "vue" && framework !== "react") throw new Error(`Unknown Vooya framework ${framework}.`);
-    if (workspaceRoot !== undefined && cacheRoot !== undefined) {
-      throw new Error("Use either workspaceRoot or the deprecated cacheRoot option, not both.");
-    }
     this.framework = framework;
     this.rust = rust;
-    this.workspaceRoot = workspaceRoot ?? cacheRoot;
+    this.workspaceRoot = workspaceRoot;
     this.instanceId = `vooya-rspack-${nextInstance++}`;
     this.buildError = undefined;
     this.buildId = undefined;

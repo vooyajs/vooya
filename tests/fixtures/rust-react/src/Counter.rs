@@ -7,11 +7,18 @@ pub struct CounterProps {
     pub count: u32,
 }
 
+#[voo::events]
+pub trait CounterEvents {
+    fn selected(value: u32);
+}
+
 #[voo::component]
 pub fn Counter(
     view: &voo::View,
     props: CounterProps,
 ) -> Result<voo::ViewElement, JsValue> {
     let label = format!("Count: {}", props.count);
-    voo::rsx!(view, <button>{label}</button>)
+    let root = voo::rsx!(view, <button>{label}</button>)?;
+    view.emit("selected", JsValue::from_f64(props.count as f64))?;
+    Ok(root)
 }

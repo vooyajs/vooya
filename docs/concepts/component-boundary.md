@@ -47,17 +47,24 @@ libraries. It is not a claim that WASM makes ordinary DOM work faster.
 ## Current runtime layers
 
 The generated framework adapter owns asynchronous WASM loading, host lifecycle,
-prop forwarding, event forwarding, mount errors, and disposal. The generated
+prop forwarding, event forwarding, lifecycle errors, and disposal. Load, mount,
+update, and dispose failures use the same Vue `error` / React `onError` channel.
+The generated
 application crate owns the stable export shape and ABI version check.
 
 `@vooya/core` provides the Rust runtime source used by that generated crate:
 
 - `View` and `ViewElement` for structured DOM creation;
 - `EventListener` for owned browser callbacks;
-- `Signal<T>` and `Effect` for the current explicit subscription prototype.
+- `Signal<T>`, `Effect`, disposable `SignalSubscription<T>` handles, and the
+  opt-in `tracked_effect` dependency collector;
+- synchronous `batch` boundaries and owned child move/replace primitives for
+  the in-progress branch and keyed-list runtime.
 
-The reactive API is intentionally small. It does not yet infer dependencies,
-batch updates, schedule asynchronous work, or register cleanup callbacks.
+The reactive API is intentionally small. The `rsx!` macro still emits explicit
+bindings, while `tracked_effect` provides opt-in dependency collection; async
+work is not scheduled by this runtime. Subscriptions unregister when their
+handle is dropped, so component and branch cleanup is deterministic.
 
 ## Explicit non-goals
 

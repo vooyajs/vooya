@@ -38,3 +38,36 @@ test("useVooyaStore mirrors snapshots and disposes an owned instance", async () 
   assert.equal(disposed, true);
   dom.window.close();
 });
+
+test("useVooyaStore disposes a store that resolves after unmount", async () => {
+  const dom = new JSDOM("<div id='app'></div>");
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.Node = dom.window.Node;
+  globalThis.Element = dom.window.Element;
+  globalThis.HTMLElement = dom.window.HTMLElement;
+  globalThis.SVGElement = dom.window.SVGElement;
+  const { createApp, defineComponent, h, nextTick } = await import("vue");
+  const { useVooyaStore } = await import("../dist/index.js");
+
+  let resolveStore;
+  let disposed = false;
+  const source = new Promise((resolve) => { resolveStore = resolve; });
+  const store = {
+    getSnapshot: () => 1,
+    subscribe: () => () => {},
+    dispose: () => { disposed = true; },
+  };
+  const app = createApp(defineComponent({
+    setup() {
+      useVooyaStore(source, { disposeOnUnmount: true });
+      return () => h("span", "pending");
+    },
+  }));
+  app.mount(dom.window.document.querySelector("#app"));
+  app.unmount();
+  resolveStore(store);
+  await nextTick();
+  assert.equal(disposed, true);
+  dom.window.close();
+});

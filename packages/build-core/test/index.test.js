@@ -21,8 +21,8 @@ test("build manifest keeps compiler-managed dependencies pinned", () => {
 
 test("maps Cargo diagnostics using compiler source location metadata", () => {
   const generated = "/project/cache/src/components/0-Counter.rs";
-  const diagnostic = remapRustDiagnostic({ level: "error", message: "missing", rendered: `error\n --> ${generated}:4:9\n  |\n4 | missing\n`, spans: [{ file_name: generated, line_start: 4, column_start: 9 }] }, new Map([[generated, { id: "/project/src/Counter.voo", startLine: 10, generatedLineOffset: 1 }]]));
-  assert.match(diagnostic, /\/project\/src\/Counter\.voo:12:9/);
+  const diagnostic = remapRustDiagnostic({ level: "error", message: "missing", rendered: `error\n --> ${generated}:4:9\n  |\n4 | missing\n`, spans: [{ file_name: generated, line_start: 4, column_start: 9 }] }, new Map([[generated, { id: "/project/src/Counter.rs", startLine: 10, generatedLineOffset: 1 }]]));
+  assert.match(diagnostic, /\/project\/src\/Counter\.rs:12:9/);
   assert.match(diagnostic, /12 \| missing/);
 });
 

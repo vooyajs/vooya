@@ -1,6 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 
-use vooya::{View, rsx};
+use vooya::{KeyedChildren, View, signal, rsx};
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -42,5 +42,147 @@ fn rsx_creates_a_nested_dom_tree() -> Result<(), wasm_bindgen::JsValue> {
             .as_deref(),
         Some("3")
     );
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn rsx_signal_text_updates_and_cleans_up() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let count = signal(1u32);
+    let tree = rsx!(view, <span data-count={count.get()}>{count.get()}</span>).unwrap();
+    tree.mount(&host).unwrap();
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("1"));
+    assert_eq!(tree.as_element().get_attribute("data-count").as_deref(), Some("1"));
+
+    count.set(2);
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("2"));
+    assert_eq!(tree.as_element().get_attribute("data-count").as_deref(), Some("2"));
+
+    tree.remove();
+    count.set(3);
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("2"));
+    assert_eq!(tree.as_element().get_attribute("data-count").as_deref(), Some("2"));
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn rsx_event_bindings_are_owned_by_the_root() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let count = signal(0u32);
+    let next = count.clone();
+    let tree = rsx!(view,
+        <button on-click={move |_| next.set(1)} >"Click"</button>
+    )
+    .unwrap();
+    tree.mount(&host).unwrap();
+
+    let event = web_sys::Event::new("click")?;
+    tree.as_element().dispatch_event(&event)?;
+    assert_eq!(count.get(), 1);
+
+    tree.remove();
+    let event = web_sys::Event::new("click")?;
+    tree.as_element().dispatch_event(&event)?;
+    assert_eq!(count.get(), 1);
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn owned_children_can_be_reordered_and_replaced() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let root = rsx!(view, <div></div>)?;
+    let first = rsx!(view, <span>"first"</span>)?;
+    let second = rsx!(view, <span>"second"</span>)?;
+    root.append(&first)?;
+    root.append(&second)?;
+    root.insert_before(&second, Some(&first))?;
+    assert_eq!(root.as_element().text_content().as_deref(), Some("secondfirst"));
+
+    let replacement = rsx!(view, <span>"replacement"</span>)?;
+    root.replace_child(&second, Some(&replacement))?;
+    assert_eq!(
+        root.as_element().text_content().as_deref(),
+        Some("firstreplacement")
+    );
+    root.remove();
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn keyed_children_reuse_identity_and_release_removed_roots() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let root = rsx!(view, <div></div>)?;
+    root.mount(&host)?;
+    let mut children = KeyedChildren::<u32>::default();
+    children.reconcile(&root, &[1, 2], |key| rsx!(view, <span>{key}</span>))?;
+    let first = root.as_element().children().item(0).unwrap();
+    children.reconcile(&root, &[2, 1, 3], |key| rsx!(view, <span>{key}</span>))?;
+    assert_eq!(root.as_element().children().length(), 3);
+    assert!(root.as_element().children().item(1).unwrap().is_same_node(Some(&first)));
+    children.clear(&root)?;
+    assert_eq!(root.as_element().children().length(), 0);
+    root.remove();
+    Ok(())
+}
+
+#[derive(Clone)]
+struct Row {
+    id: u32,
+}
+
+#[wasm_bindgen_test]
+fn rsx_for_loop_reuses_keyed_rows() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let rows = signal(vec![Row { id: 1 }, Row { id: 2 }]);
+    let rows_for_view = rows.clone();
+    let tree = rsx!(view,
+        <ul>
+            for item in rows_for_view.get() {
+                <li key={item.id}>{item.id}</li>
+            }
+        </ul>
+    )?;
+    tree.mount(&host)?;
+    let first = tree.as_element().children().item(0).unwrap();
+    rows.set(vec![Row { id: 2 }, Row { id: 1 }, Row { id: 3 }]);
+    assert_eq!(tree.as_element().children().length(), 3);
+    assert!(tree.as_element().children().item(1).unwrap().is_same_node(Some(&first)));
+    tree.remove();
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn rsx_if_else_replaces_the_branch_and_cleans_up() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let visible = signal(true);
+    let visible_for_view = visible.clone();
+    let tree = rsx!(view,
+        <section>
+            if visible_for_view.get() {
+                <span>"shown"</span>
+            } else {
+                <span>"hidden"</span>
+            }
+        </section>
+    )?;
+    tree.mount(&host)?;
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("shown"));
+    visible.set(false);
+    assert_eq!(tree.as_element().text_content().as_deref(), Some("hidden"));
+    tree.remove();
+    visible.set(true);
+    assert_eq!(host.text_content().as_deref(), Some(""));
     Ok(())
 }

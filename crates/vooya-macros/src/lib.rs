@@ -5,7 +5,7 @@ use quote::{format_ident, quote};
 use serde_json::{Value, json};
 use syn::{
     Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct,
-    ItemTrait, Lit, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
+    ItemTrait, Lit, LitStr, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
 };
 use syn::spanned::Spanned;
 use syn::{
@@ -79,13 +79,29 @@ pub fn events(attribute: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(input as ItemFn);
+    let mut item = parse_macro_input!(input as ItemFn);
     let name = item.sig.ident.to_string();
     let function_name = item.sig.ident.clone();
     let metadata = match schema_metadata(attribute, &name, item.span().file()) {
         Ok(id) => id,
         Err(error) => return error.into_compile_error().into(),
     };
+    let styles = match component_styles(&item.attrs) {
+        Ok(styles) => styles,
+        Err(error) => return error.into_compile_error().into(),
+    };
+    item.attrs.retain(|attribute| {
+        if !attribute.path().is_ident("doc") { return true; }
+        let text = attribute.meta.require_name_value().ok()
+            .and_then(|meta| match &meta.value {
+                Expr::Lit(expression) => match &expression.lit {
+                    Lit::Str(value) => Some(value.value()),
+                    _ => None,
+                },
+                _ => None,
+            });
+        !text.is_some_and(|value| value.starts_with("__voo_style:"))
+    });
     let record = json!({
         "version": SCHEMA_VERSION,
         "kind": "component",
@@ -94,6 +110,7 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "group": metadata.group,
         "params": parameters(&item.sig.inputs),
         "return": return_type(&item.sig.output),
+        "styles": styles,
     });
     let schema: proc_macro2::TokenStream = emit_schema(item.clone(), record, "component").into();
     let Some(props_type) = component_parameters(&item) else {
@@ -277,6 +294,18 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             });
             call_parameters.push(quote! { #parameter_name });
         }
+        let returns_result = matches!(&method.sig.output, syn::ReturnType::Type(_, ty) if type_name(ty).replace(' ', "").starts_with("Result<"));
+        let invoke = match &method.sig.output {
+            syn::ReturnType::Type(_, ty) if type_name(ty).replace(' ', "").starts_with("Result<") => {
+                quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
+            }
+            _ => quote! { let _ = state.#method_name(#(#call_parameters),*); },
+        };
+        let dispatch = if returns_result {
+            quote! { existing.store.dispatch(|state| { #invoke })?; }
+        } else {
+            quote! { existing.store.dispatch(|state| { #invoke }); }
+        };
         quote! {
             #[::vooya::__private::wasm_bindgen::prelude::wasm_bindgen]
             pub fn #export_name(handle: u32, #(#js_parameters),*) -> ::core::result::Result<(), ::vooya::__private::wasm_bindgen::JsValue> {
@@ -286,9 +315,7 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
                     let Some(Some(existing)) = handles.get(handle as usize) else {
                         return ::core::result::Result::Err(::vooya::abi_error("invalid store handle"));
                     };
-                    existing.store.dispatch(|state| {
-                        state.#method_name(#(#call_parameters),*);
-                    });
+                    #dispatch
                     ::core::result::Result::Ok(())
                 })
             }
@@ -395,6 +422,67 @@ pub fn snapshot(_attribute: TokenStream, input: TokenStream) -> TokenStream {
     input
 }
 
+/// Declares a stylesheet owned by a Rust-file component. The component macro
+/// consumes the metadata; this attribute itself intentionally leaves the item
+/// unchanged for Rust compilation.
+#[proc_macro_attribute]
+pub fn style(_attribute: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(_attribute as StyleArgs);
+    let marker = format!("__voo_style:{}:{}", args.path.value(), args.scoped);
+    let input: proc_macro2::TokenStream = input.into();
+    quote! { #[doc = #marker] #input }.into()
+}
+
+struct StyleArgs {
+    path: LitStr,
+    scoped: bool,
+}
+
+impl Parse for StyleArgs {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let path = input.parse::<LitStr>()?;
+        let scoped = if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+            let marker: syn::Ident = input.parse()?;
+            if marker != "scoped" {
+                return Err(syn::Error::new_spanned(marker, "expected `scoped`"));
+            }
+            true
+        } else {
+            false
+        };
+        if !input.is_empty() {
+            return Err(input.error("unexpected tokens in `voo::style`"));
+        }
+        Ok(Self { path, scoped })
+    }
+}
+
+fn component_styles(attrs: &[Attribute]) -> syn::Result<Vec<Value>> {
+    attrs
+        .iter()
+        .filter_map(|attribute| {
+            let attribute_name = attribute.path().segments.last().map(|segment| segment.ident.to_string());
+            if attribute_name.as_deref() == Some("style") {
+                return Some(attribute.parse_args::<StyleArgs>()
+                    .map(|args| json!({ "path": args.path.value(), "scoped": args.scoped })));
+            }
+            if !attribute.path().is_ident("doc") { return None; }
+            let text = attribute.meta.require_name_value().ok()
+                .and_then(|meta| match &meta.value {
+                    Expr::Lit(expression) => match &expression.lit {
+                        Lit::Str(value) => Some(value.value()),
+                        _ => None,
+                    },
+                    _ => None,
+                })?;
+            let marker = text.strip_prefix("__voo_style:")?;
+            let (path, scoped) = marker.rsplit_once(':')?;
+            Some(Ok(json!({ "path": path, "scoped": scoped == "true" })))
+        })
+        .collect()
+}
+
 /// Builds the initial DOM-only RSX tree. The first argument is a `View` and
 /// the remaining input is a deliberately small XML-like tree.
 #[proc_macro]
@@ -408,16 +496,40 @@ struct RsxInput {
     root: RsxNode,
 }
 
+#[derive(Clone)]
 struct RsxNode {
     tag: syn::Ident,
-    attributes: Vec<(syn::Ident, syn::LitStr)>,
+    attributes: Vec<(String, RsxAttributeValue)>,
     children: Vec<RsxChild>,
 }
 
+#[derive(Clone)]
+enum RsxAttributeValue {
+    Literal(syn::LitStr),
+    Expression(Expr),
+}
+
+#[derive(Clone)]
 enum RsxChild {
     Node(RsxNode),
     Text(syn::LitStr),
     Expression(Expr),
+    For(RsxFor),
+    If(RsxIf),
+}
+
+#[derive(Clone)]
+struct RsxFor {
+    item: syn::Ident,
+    items: Expr,
+    body: RsxNode,
+}
+
+#[derive(Clone)]
+struct RsxIf {
+    condition: Expr,
+    then_body: RsxNode,
+    else_body: Option<RsxNode>,
 }
 
 impl Parse for RsxInput {
@@ -437,15 +549,35 @@ impl Parse for RsxNode {
         let tag: syn::Ident = input.parse()?;
         let mut attributes = Vec::new();
         while !input.peek(Token![>]) {
-            let name: syn::Ident = input.parse()?;
+            let first: syn::Ident = input.parse()?;
+            let mut name = first.to_string();
+            while input.peek(Token![-]) {
+                input.parse::<Token![-]>()?;
+                let segment: syn::Ident = input.parse()?;
+                name.push('-');
+                name.push_str(&segment.to_string());
+            }
             input.parse::<Token![=]>()?;
-            attributes.push((name, input.parse()?));
+            let value = if input.peek(syn::LitStr) {
+                RsxAttributeValue::Literal(input.parse()?)
+            } else if input.peek(syn::token::Brace) {
+                let content;
+                braced!(content in input);
+                RsxAttributeValue::Expression(content.parse()?)
+            } else {
+                return Err(input.error("expected a string literal or braced RSX attribute expression"));
+            };
+            attributes.push((name, value));
         }
         input.parse::<Token![>]>()?;
         let mut children = Vec::new();
         while !is_closing_tag(input)? {
             if input.peek(Token![<]) {
                 children.push(RsxChild::Node(input.parse()?));
+            } else if input.peek(Token![for]) {
+                children.push(RsxChild::For(input.parse()?));
+            } else if input.peek(Token![if]) {
+                children.push(RsxChild::If(input.parse()?));
             } else if input.peek(syn::LitStr) {
                 children.push(RsxChild::Text(input.parse()?));
             } else if input.peek(syn::token::Brace) {
@@ -474,6 +606,48 @@ impl Parse for RsxNode {
     }
 }
 
+impl Parse for RsxFor {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        input.parse::<Token![for]>()?;
+        let item: syn::Ident = input.parse()?;
+        input.parse::<Token![in]>()?;
+        let items: Expr = input.parse()?;
+        let content;
+        braced!(content in input);
+        let body: RsxNode = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("keyed RSX loops currently accept one root node"));
+        }
+        Ok(Self { item, items, body })
+    }
+}
+
+impl Parse for RsxIf {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        input.parse::<Token![if]>()?;
+        let condition: Expr = input.parse()?;
+        let content;
+        braced!(content in input);
+        let then_body: RsxNode = content.parse()?;
+        if !content.is_empty() {
+            return Err(content.error("conditional RSX branches currently accept one root node"));
+        }
+        let else_body = if input.peek(Token![else]) {
+            input.parse::<Token![else]>()?;
+            let content;
+            braced!(content in input);
+            let body: RsxNode = content.parse()?;
+            if !content.is_empty() {
+                return Err(content.error("conditional RSX branches currently accept one root node"));
+            }
+            Some(body)
+        } else {
+            None
+        };
+        Ok(Self { condition, then_body, else_body })
+    }
+}
+
 fn is_closing_tag(input: ParseStream<'_>) -> syn::Result<bool> {
     if !input.peek(Token![<]) {
         return Ok(false);
@@ -486,8 +660,27 @@ fn is_closing_tag(input: ParseStream<'_>) -> syn::Result<bool> {
 fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
     let tag = node.tag.to_string();
     let attributes = node.attributes.iter().map(|(name, value)| {
-        let name = name.to_string();
-        quote! { __voo_element = __voo_element.attribute(#name, #value)?; }
+        if let Some(event_name) = name.strip_prefix("on-") {
+            let RsxAttributeValue::Expression(expression) = value else {
+                return quote! { compile_error!("RSX on-* event attributes require a braced closure expression"); };
+            };
+            return quote! { __voo_element.on_owned(#event_name, #expression)?; };
+        }
+        match value {
+            RsxAttributeValue::Literal(value) => quote! { __voo_element = __voo_element.attribute(#name, #value)?; },
+            RsxAttributeValue::Expression(expression) => {
+                if let Expr::MethodCall(call) = expression {
+                    if call.method == "get" && call.args.is_empty() {
+                        let receiver = &call.receiver;
+                        quote! { __voo_element.bind_attribute(#name, &(#receiver))?; }
+                    } else {
+                        quote! { __voo_element = __voo_element.attribute(#name, &::std::format!("{}", #expression))?; }
+                    }
+                } else {
+                    quote! { __voo_element = __voo_element.attribute(#name, &::std::format!("{}", #expression))?; }
+                }
+            }
+        }
     });
     let children = node.children.iter().map(|child| match child {
         RsxChild::Node(child) => {
@@ -496,8 +689,19 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
         }
         RsxChild::Text(value) => quote! { __voo_element = __voo_element.text(#value); },
         RsxChild::Expression(expression) => {
-            quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+            if let Expr::MethodCall(call) = expression {
+                if call.method == "get" && call.args.is_empty() {
+                    let receiver = &call.receiver;
+                    quote! { __voo_element.bind_text(&(#receiver)); }
+                } else {
+                    quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+                }
+            } else {
+                quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+            }
         }
+        RsxChild::For(loop_node) => expand_rsx_for(loop_node, view),
+        RsxChild::If(branch) => expand_rsx_if(branch, view),
     });
     quote! {{
         let mut __voo_element = (#view).element(#tag)?;
@@ -505,6 +709,96 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
         #(#children)*
         ::core::result::Result::<_, ::vooya::__private::wasm_bindgen::JsValue>::Ok(__voo_element)
     }}
+}
+
+fn expand_rsx_if(branch: &RsxIf, view: &Expr) -> proc_macro2::TokenStream {
+    let condition = &branch.condition;
+    let branch_view: Expr = syn::parse_quote! { __voo_branch_view };
+    let then_body = expand_rsx_node(&branch.then_body, &branch_view);
+    let else_body = branch.else_body.as_ref().map(|body| expand_rsx_node(body, &branch_view));
+    let render = if let Some(else_body) = else_body {
+        quote! {
+            if __voo_branch_condition {
+                Ok(Some(#then_body?))
+            } else {
+                Ok(Some(#else_body?))
+            }
+        }
+    } else {
+        quote! {
+            if __voo_branch_condition {
+                Ok(Some(#then_body?))
+            } else {
+                Ok(None)
+            }
+        }
+    };
+    quote! {
+        {
+            let __voo_branch_anchor = (#view).anchor();
+            __voo_element.append_anchor(&__voo_branch_anchor)?;
+            let __voo_branch = ::std::rc::Rc::new(::std::cell::RefCell::new(
+                ::vooya::ConditionalBranch::new(__voo_branch_anchor.clone()),
+            ));
+            let __voo_branch_for_effect = __voo_branch.clone();
+            let __voo_branch_view = (#view).clone();
+            let __voo_branch_effect = ::vooya::tracked_effect(move || {
+                let __voo_branch_condition = (#condition);
+                let _ = __voo_branch_for_effect.borrow_mut().update(
+                    __voo_branch_condition,
+                    || { #render },
+                );
+            });
+            __voo_element.defer_cleanup(move || {
+                let _ = __voo_branch.borrow_mut().clear();
+                drop(__voo_branch_effect);
+            });
+        }
+    }
+}
+
+fn expand_rsx_for(loop_node: &RsxFor, view: &Expr) -> proc_macro2::TokenStream {
+    let item = &loop_node.item;
+    let items = &loop_node.items;
+    let Some((_, RsxAttributeValue::Expression(key))) = loop_node
+        .body
+        .attributes
+        .iter()
+        .find(|(name, _)| name == "key")
+    else {
+        return quote! { compile_error!("keyed RSX loops require a `key={...}` attribute"); };
+    };
+    let mut body = loop_node.body.clone();
+    body.attributes.retain(|(name, _)| name != "key");
+    let body_view: Expr = syn::parse_quote! { __voo_loop_view };
+    let body = expand_rsx_node(&body, &body_view);
+    quote! {
+        {
+            let __voo_loop_parent = __voo_element.clone();
+            let __voo_loop_parent_for_effect = __voo_loop_parent.clone();
+            let __voo_loop_view = (#view).clone();
+            let __voo_loop_children = ::std::rc::Rc::new(
+                ::std::cell::RefCell::new(::vooya::KeyedChildren::default()),
+            );
+            let __voo_loop_children_for_effect = __voo_loop_children.clone();
+            let __voo_loop_effect = ::vooya::tracked_effect(move || {
+                let __voo_loop_items = (#items);
+                let _ = __voo_loop_children_for_effect.borrow_mut().reconcile_with(
+                    &__voo_loop_parent_for_effect,
+                    &__voo_loop_items,
+                    |#item| #key,
+                    |#item| #body,
+                );
+            });
+            let __voo_loop_parent_for_cleanup = __voo_loop_parent.clone();
+            __voo_element.defer_cleanup(move || {
+                let _ = __voo_loop_children
+                    .borrow_mut()
+                    .clear(&__voo_loop_parent_for_cleanup);
+                drop(__voo_loop_effect);
+            });
+        }
+    }
 }
 
 #[proc_macro_derive(FromJs)]

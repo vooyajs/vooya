@@ -11,14 +11,16 @@
   <a href="https://deepwiki.com/vooyajs/vooya"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
-Vooya compiles Rust from a `.voo` component into WebAssembly and exposes it
-through host-framework adapters for use in web applications. The application
-shell keeps routing and surrounding UI; Rust owns one isolated component
-surface. Vue and React are the current first-party adapters.
+Vooya compiles Rust component and store files into WebAssembly and exposes
+them through host-framework adapters for use in web applications. Rust-file
+authoring uses ordinary `.rs` files; the older `.voo` component path remains
+available for legacy projects and experimental fixtures only. The application shell keeps
+routing and surrounding UI; Rust owns one isolated component surface. Vue and
+React are the current first-party adapters.
 
 ```vue
 <script setup lang="ts">
-import RustChart from "./RustChart.voo";
+import RustChart from "./RustChart.rs";
 </script>
 
 <template>
@@ -31,9 +33,11 @@ Vooya generates the framework adapter, TypeScript declarations, WASM lifecycle,
 event forwarding, and diagnostic mappings.
 
 > [!IMPORTANT]
-> Vooya is a public alpha. Source `.voo` authoring supports Vite `>=7`, with
-> experimental Rspack `>=2.1.10` and Webpack `>=5` paths and a local Rust/WASM
-> toolchain.
+> Vooya is a public alpha. Rust-file (`.rs`) authoring targets Vite `>=7 <9`, with
+> experimental Rspack `>=2.1.10` and Webpack `>=5` paths. The legacy `.voo`
+> source path is retained for existing fixtures and projects, not as the default
+> authoring path. Both paths require a local
+> Rust/WASM toolchain.
 > Published alpha APIs may still change.
 
 ## Why Vooya?
@@ -49,7 +53,7 @@ Vooya is exploring a repeatable component boundary for that work:
 - reuse browser-compatible Rust crates;
 - generate typed props and events;
 - manage mount, updates, failures, and disposal;
-- develop from a single `.voo` component;
+- develop from a single Rust-file component or store;
 - eventually distribute precompiled components whose consumers do not need
   Rust installed.
 
@@ -139,58 +143,37 @@ reports the required change when it finds an incomplete TypeScript config.
 
 ### 4. Create your first component
 
-Create `src/Greeting.voo`:
+Create `src/Greeting.rs`:
 
-```voo
-<component name="Greeting">
-props:
-  name: String = "world"
-</component>
-
-<rust>
+```rust
 use wasm_bindgen::JsValue;
+use vooya as voo;
 
-use crate::{View, ViewElement};
-
-pub struct Component {
-    root: ViewElement,
+#[voo::props]
+#[derive(voo::FromJs)]
+pub struct GreetingProps {
+    pub name: String,
 }
 
-impl Component {
-    pub fn update_name(&self, name: String) {
-        self.root.set_text(&format!("Hello, {name}."));
-    }
-
-    pub fn dispose(&mut self) {
-        self.root.remove();
-    }
+#[voo::component]
+pub fn Greeting(
+    view: &voo::View,
+    props: GreetingProps,
+) -> Result<voo::ViewElement, JsValue> {
+    let label = format!("Hello, {}.", props.name);
+    voo::rsx!(view, <p class="greeting">{label}</p>)
 }
-
-pub fn mount(context: Context) -> Result<Component, JsValue> {
-    let view = View::from_host(&context.host)?;
-    let root = view
-        .element("p")?
-        .class("greeting")
-        .text(&format!("Hello, {}.", context.props.name));
-    root.mount(&context.host)?;
-    Ok(Component { root })
-}
-</rust>
-
-<style scoped>
-.greeting {
-    color: #2f7d68;
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-</style>
 ```
+
+Put optional styles in `src/Greeting.css` and declare them with
+`#[voo::style("./Greeting.css", scoped)]` on the component. The bundler owns
+CSS loading and HMR; CSS is not embedded in WASM.
 
 Replace `src/App.vue` with:
 
 ```vue
 <script setup lang="ts">
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 </script>
 
 <template>
@@ -237,10 +220,10 @@ export default defineConfig({
 });
 ```
 
-The same `Greeting.voo` can then be imported from React:
+The same `Greeting.rs` can then be imported from React:
 
 ```tsx
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 
 export default function App() {
   return <Greeting name="Vooya" />;
@@ -284,15 +267,16 @@ APIs when necessary.
 
 ## What works today
 
-- source `.voo` components in Vite `>=7`;
+- Rust-file (`.rs`) components and stores in Vite `>=7`;
+- legacy source `.voo` components in Vite `>=7` for existing projects;
 - experimental source `.voo` components in Rspack `>=2.1.10` through Rsbuild
   or the first-party Rspack plugin;
 - experimental source `.voo` components in Webpack `>=5`;
 - Vue `>=3.5.2` and React `>=19` adapters;
-- typed primitive props and component events;
+- typed ABI v1 props, events, and store actions;
 - generated mount, prop-update, error, dispose, and ABI bindings;
 - TypeScript declarations and scoped CSS;
-- Rust diagnostics mapped back to `.voo` source lines;
+- Rust diagnostics mapped back to `.rs` and legacy `.voo` source lines;
 - crates.io, Git, feature, and watched path dependencies;
 - failed-build recovery and reliable full-page reload after Rust rebuilds;
 - `vooya doctor`, `.voo` formatting, and a VS Code diagnostics extension;
@@ -304,7 +288,7 @@ APIs when necessary.
 
 | Layer | Minimum version | Status | Exact evidence |
 | --- | --- | --- | --- |
-| Node.js | `^20.19.0 \|\| >=22.12.0` | supported | Vite 7/8 toolchain floor |
+| Node.js | `^20.19.0 \|\| >=22.12.0` | supported | Source quickstarts run on Ubuntu + Node 20, macOS + Node 22, and Windows + Node 22; the release gate also runs on Ubuntu + Node 22 |
 | Vue | `>=3.5.2` | supported | adapter checks through 3.5.41; browser fixtures at 3.5.40/3.5.41 |
 | React | `>=19` | supported | browser fixtures at 19.0.0 and 19.2.0 |
 | Vite | `>=7` | supported | repository Vite 7 path and packed Vite 8.2.1 fixture |
@@ -334,6 +318,7 @@ behind these statements.
 ## Documentation
 
 - [Getting started](docs/guide/getting-started.md)
+- [Rust-file authoring](docs/guide/rust-file-authoring.md)
 - [Writing `.voo` components](docs/guide/voo-components.md)
 - [Component ownership boundary](docs/concepts/component-boundary.md)
 - [Tooling and Rust dependencies](docs/reference/tooling.md)

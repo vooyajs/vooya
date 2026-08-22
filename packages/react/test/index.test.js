@@ -71,7 +71,7 @@ test("re-applies a declared default when a prop is later removed", async () => {
   await act(async () => root.unmount());
 });
 
-test("prefers the atomic update entry point when a handle provides it", async () => {
+test("uses the atomic update entry point for changed props", async () => {
   const definition = {
     abiVersion: 1,
     name: "Atomic",
@@ -86,19 +86,55 @@ test("prefers the atomic update entry point when a handle provides it", async ()
     second: 1,
   }, (values) => ({
     dispose() {},
-    update(key, value) {
-      updates.push([key, value]);
+    updateProps(values) {
+      updates.push(values);
     },
     update_first() {
-      throw new Error("legacy update should not be selected");
+      throw new Error("per-property fallback should not be selected");
     },
   }));
 
   await act(async () => {
     root.render(createElement(Component, { first: "b", second: 2 }));
   });
-  assert.deepEqual(updates, [["first", "b"], ["second", 2]]);
+  assert.deepEqual(updates, [{ first: "b", second: 2 }]);
   await act(async () => root.unmount());
+});
+
+test("reports update and dispose failures through the lifecycle error channel", async () => {
+  const errors = [];
+  const definition = {
+    abiVersion: 1,
+    name: "LifecycleErrors",
+    props: [{ name: "value", type: "number", required: true }],
+    events: [],
+  };
+  const Component = defineVooyaComponent(definition, async () => ({
+    mount() {
+      return {
+        updateProps() {
+          throw new Error("update failed");
+        },
+        dispose() {
+          throw new Error("dispose failed");
+        },
+      };
+    },
+  }));
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  await act(async () => root.render(createElement(Component, {
+    value: 1,
+    onError(error) { errors.push(error); },
+  })));
+  await act(async () => root.render(createElement(Component, {
+    value: 2,
+    onError(error) { errors.push(error); },
+  })));
+  await act(async () => root.unmount());
+
+  assert.deepEqual(errors.map((error) => error.stage), ["update", "dispose"]);
 });
 
 test("does not mount a binding that resolves after React unmounts", async () => {

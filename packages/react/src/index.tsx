@@ -7,7 +7,7 @@ import {
 } from "react";
 
 export interface VooyaMountError {
-  stage: "load" | "mount";
+  stage: "load" | "mount" | "update" | "dispose";
   cause: unknown;
 }
 
@@ -30,7 +30,6 @@ export interface VooyaComponentDefinition {
 export interface VooyaComponentHandle {
   dispose(): void;
   updateProps?(values: Record<string, unknown>): void;
-  update?(key: string, value: unknown): void;
   [method: string]: unknown;
 }
 
@@ -112,6 +111,7 @@ export function defineVooyaComponent(
             emitDiagnostic(element, definition, "dispose", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(element, definition, "dispose", elapsedSince(startedAt), cause);
+            props.current.onError?.({ stage: "dispose", cause });
           }
         }
         handle.current = undefined;
@@ -136,15 +136,14 @@ export function defineVooyaComponent(
             } else {
               for (const prop of definition.props) {
                 if (!Object.hasOwn(changed, prop.name)) continue;
-                const dispatch = handleValue.update;
                 const update = handleValue[`update_${prop.name}`];
-                if (typeof dispatch === "function") dispatch.call(handleValue, prop.name, changed[prop.name]);
-                else if (typeof update === "function") update.call(handleValue, changed[prop.name]);
+                if (typeof update === "function") update.call(handleValue, changed[prop.name]);
               }
             }
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt), cause);
+            props.current.onError?.({ stage: "update", cause });
           }
         }
       }

@@ -8,7 +8,7 @@ SSR and hydration. Each entry is evidence for the named test path only.
 
 | Layer | Minimum version | Status | Evidence and boundary |
 | --- | --- | --- | --- |
-| Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Required by the verified Vite 7/8 path; other bundlers may accept older Node versions, but Vooya does not test a separate lower floor |
+| Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Source quickstarts run on Ubuntu + Node 20, macOS + Node 22, Windows + Node 22; the full release gate runs on Ubuntu + Node 22 |
 | Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
 | React 19 Rust-file authoring | Vite 7 | Experimental | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
@@ -18,13 +18,17 @@ SSR and hydration. Each entry is evidence for the named test path only.
 
 | Consumer path | Verified behavior | Evidence |
 | --- | --- | --- |
-| Vue 3 source `.voo` | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e` (Vue target) |
-| React 19 source `.voo` | Mount, prop updates, typed events, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e` (React target) |
+| Vue 3 Rust-file component/store | Vite 7 production build, scoped CSS, store action and snapshot-driven component update | `npm run test:rust-vue`; packed source quickstarts run on the OS/Node jobs in `.github/workflows/verify.yml` |
+| React 19 Rust-file component/store | Vite 7 production build, StrictMode mount, store action and snapshot-driven component update | `npm run test:rust-react` |
+| Rust-file Vite development path | Rust source edit, failed rebuild recovery, subsequent successful rebuild, and full reload | `npm run test:rust-hmr` |
+| Rust `rsx!` DOM runtime | Signal text/attribute updates, owned events, conditional `if`/`else`, keyed `for` reorder and DOM identity, disposal | `npm run test:rsx` |
+| Vue 3 legacy `.voo` component | Legacy mount, prop/event/lifecycle and scoped-style regression coverage only | `npm run test:e2e` (Vue target) |
+| React 19 legacy `.voo` component | Legacy mount, prop/event/lifecycle regression coverage only | `npm run test:e2e` (React target) |
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
 | Vue DataGrid | Filter, sort, virtual scroll, local measurement control | `npm run test:e2e` (benchmark target) |
 | Vue Canvas scatter | 150,000-point initial island, point-count update, zoom/reset, no page or console error | `npm run test:e2e:scatter` |
 | Vue precompiled build fixture | Generated WASM in a clean Vite consumer without Rust tooling; mount and prop update | `npm run test:precompiled-vue` |
-| Vue 3 source `.voo` in Firefox | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e:firefox` |
+| Vue 3 legacy `.voo` component in Firefox | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e:firefox` |
 
 ## Verified bundler/toolchain matrix
 
@@ -52,6 +56,9 @@ toolchain; a production smoke does not imply development-server or HMR support.
 - Vite+ adds a CLI, runtime/package-manager management, and a Vite core alias;
   it does not remove the need for the normal `vooya()` Vite plugin. Its smoke
   path is intentionally tracked separately from the Vite support promise.
+- The older `.voo` source component path remains available for existing Vite
+  projects and for the explicitly experimental Webpack/Rspack fixtures. It is
+  not the beta default authoring path and is not evidence for Rust-file support.
 - Alpha ABI revisions may be breaking; use one exact coordinated `@vooya`
   package version.
 

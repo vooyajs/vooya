@@ -35,7 +35,7 @@ try {
 
 function verifyGettingStarted() {
   const guide = readFileSync(resolve(repositoryRoot, "docs/guide/getting-started.md"), "utf8");
-  const greeting = readFileSync(resolve(repositoryRoot, "tests/fixtures/quickstart-vue/src/Greeting.voo"), "utf8");
+  const greeting = readFileSync(resolve(repositoryRoot, "tests/fixtures/quickstart-vue/src/Greeting.rs"), "utf8");
   const shared = [
     "npm exec -- vooya doctor",
     "npm run dev",
@@ -59,8 +59,8 @@ function verifyGettingStarted() {
       'pnpm add @vooya/vue@alpha',
       'npm install --save-dev @vooya/vite@alpha',
       "plugins: [vue(), vooya()]",
-      'import Greeting from "./Greeting.voo";',
-      "<Greeting />",
+      'import Greeting from "./Greeting.rs";',
+      '<Greeting name="world" />',
     ],
     react: [
       "## React",
@@ -68,6 +68,7 @@ function verifyGettingStarted() {
       'pnpm add @vooya/react@alpha',
       'npm install --save-dev @vooya/vite@alpha',
       "plugins: [react(), vooya({ framework: \"react\" })]",
+      'import Greeting from "./Greeting.rs";',
       "return <Greeting name=\"Rust\" />;",
       "[React counter](../../examples/react-counter)",
     ],
@@ -89,10 +90,10 @@ function verifyQuickstart(framework, packages) {
   run(npmCommand, ["run", "typecheck"], project);
 
   const typesRoot = resolve(project, ".vooya/types/src");
-  if (!readdirSync(typesRoot).some((file) => file.endsWith(".d.voo.ts"))) {
-    throw new Error(`${framework} quickstart did not generate central component declarations.`);
+  if (!readdirSync(typesRoot).some((file) => file.endsWith(".d.rs.ts"))) {
+    throw new Error(`${framework} quickstart did not generate central Rust-file declarations.`);
   }
-  if (readdirSync(resolve(project, "src")).some((file) => file.endsWith(".d.voo.ts"))) {
+  if (readdirSync(resolve(project, "src")).some((file) => file.endsWith(".d.rs.ts") || file.endsWith(".d.voo.ts"))) {
     throw new Error(`${framework} quickstart polluted its source directory with declarations.`);
   }
   const metadata = JSON.parse(readFileSync(resolve(project, ".vooya/metadata.json"), "utf8"));

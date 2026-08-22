@@ -5,8 +5,9 @@ examples/*/dist
 tests/fixtures/*/dist
 examples/rsx-basic/pkg/
 /.vite
-**/.voo-cache
 **/.vooya
+/packages/core/rust/authoring/
+/packages/core/rust/vooya-macros/
 /.playwright-cli
 /playwright-report
 /test-results

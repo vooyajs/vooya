@@ -1,7 +1,8 @@
 # `@vooya/vite`
 
-Compile Rust implementations from `.voo` files with Vite `>=7` and import them
-as Vue or React components.
+Compile Rust components and stores from ordinary `.rs` files with Vite `>=7 <9`
+and import them as Vue or React modules. The older `.voo` component path remains
+available for existing projects and legacy fixtures.
 
 ```sh
 npm install --save-dev @vooya/vite@alpha

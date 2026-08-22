@@ -8,8 +8,9 @@ npm install --save-dev @vooya/vite@alpha
 ```
 
 Configure `vooya({ framework: "react" })` after `@vitejs/plugin-react`, then
-import a `.voo` file as a normal React component. Generated declarations expose
-its props and event callbacks to TypeScript.
+import a Rust-file `.rs` component as a normal React component. Generated
+declarations expose its props and event callbacks to TypeScript. The older
+`.voo` component path is retained for legacy Vite projects.
 
 Rust-file authoring uses ordinary `.rs` files. A `#[voo::component]` import is
 exposed as a React component, while a `#[voo::store]` import exposes a generated
@@ -24,7 +25,7 @@ The generated `.d.rs.ts` declaration includes the store interface, the
 Rust snapshots preserve JavaScript identity until their value changes, which is
 required by `useSyncExternalStore`.
 
-## Prop defaults
+## Legacy `.voo` prop defaults
 
 A `.voo` prop declared with a default (for example `name: String = "world"`) is
 optional in the generated React props, and the default is passed to the WASM
