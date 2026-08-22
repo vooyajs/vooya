@@ -94,3 +94,13 @@ fn rsx_tree_compiles(
         </section>
     )
 }
+
+#[allow(dead_code)]
+fn rsx_signal_tree_compiles(
+    view: &voo::View,
+    count: &voo::Signal<u32>,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
+    voo::rsx!(view,
+        <span>{count.get()}</span>
+    )
+}

@@ -64,12 +64,14 @@ not implicit deep proxies. A host update is one atomic patch: decode and
 validate every field, then commit once. Rust asks for a controlled prop change
 by emitting an event.
 
-Static structure is compiled by the macro; the runtime dynamically tracks
-signal reads and updates fine-grained bindings rather than re-running an entire
-component. Signal writes are synchronous. Event handlers, actions, and prop
-patches are transaction boundaries, so bindings deduplicate and commit once.
-Leaving a conditional branch disposes its nodes, listeners, and subscriptions.
-Lists remain keyed because change detection does not establish item identity.
+Static structure is compiled by the macro. The current runtime supports
+explicit `Signal::get()` text bindings and disposes their subscriptions with
+the owning root; broader dependency inference and keyed reconciliation remain
+later work. Signal writes are synchronous. Event handlers, actions, and prop
+patches are transaction boundaries, so bindings commit without re-running the
+whole component. Leaving a conditional branch disposes its nodes, listeners,
+and subscriptions. Lists remain keyed because change detection does not
+establish item identity.
 
 ```rust
 rsx! {

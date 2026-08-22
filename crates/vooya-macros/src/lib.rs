@@ -506,7 +506,16 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
         }
         RsxChild::Text(value) => quote! { __voo_element = __voo_element.text(#value); },
         RsxChild::Expression(expression) => {
-            quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+            if let Expr::MethodCall(call) = expression {
+                if call.method == "get" && call.args.is_empty() {
+                    let receiver = &call.receiver;
+                    quote! { __voo_element.bind_text(&(#receiver)); }
+                } else {
+                    quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+                }
+            } else {
+                quote! { __voo_element = __voo_element.text(&::std::format!("{}", #expression)); }
+            }
         }
     });
     quote! {{

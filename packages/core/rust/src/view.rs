@@ -1,6 +1,8 @@
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use web_sys::{Document, Element, Event, EventTarget};
 
+use crate::{Signal, SignalSubscription, effect};
+
 /// Cleanup callbacks owned by one generated component mount attempt.
 ///
 /// Generated bindings run this scope if `mount` returns an error and disarm it
@@ -50,11 +52,12 @@ impl View {
 #[derive(Clone)]
 pub struct ViewElement {
     element: Element,
+    cleanup: MountCleanup,
 }
 
 impl ViewElement {
     fn new(element: Element) -> Self {
-        Self { element }
+        Self { element, cleanup: MountCleanup::default() }
     }
 
     pub fn class(self, class_name: &str) -> Self {
@@ -76,11 +79,28 @@ impl ViewElement {
         self.element.set_text_content(Some(value));
     }
 
+    /// Bind this element's text to a signal. The returned subscription is
+    /// owned by the element and released when its root is removed.
+    pub fn bind_text<T>(&self, signal: &Signal<T>)
+    where
+        T: Clone + ::core::fmt::Display + 'static,
+    {
+        let signal = signal.clone();
+        self.set_text(&signal.get().to_string());
+        let element = self.clone();
+        let subscription: SignalSubscription<T> = signal.clone().subscribe(effect(move || {
+            element.set_text(&signal.get().to_string());
+        }));
+        self.cleanup.defer(move || drop(subscription));
+    }
+
     pub fn as_element(&self) -> &Element {
         &self.element
     }
 
     pub fn append(&self, child: &ViewElement) -> Result<(), JsValue> {
+        let child_cleanup = child.cleanup.clone();
+        self.cleanup.defer(move || child_cleanup.run());
         self.element.append_child(&child.element).map(|_| ())
     }
 
@@ -104,6 +124,7 @@ impl ViewElement {
     }
 
     pub fn remove(&self) {
+        self.cleanup.run();
         self.element.remove();
     }
 }

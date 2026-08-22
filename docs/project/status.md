@@ -99,8 +99,8 @@ prerelease.
 
 ## Next milestones
 
-1. Grow the Rust view layer into declarative trees, reactive bindings, and
-   explicit effect cleanup.
+1. Extend the Rust view layer from explicit `Signal::get()` text bindings into
+   full declarative trees, keyed updates, and broader effect cleanup.
 2. Design a supported, explicitly named component product on top of the generic
    precompiled Vue producer.
 3. Evaluate editor interactions beyond diagnostics only after their `.voo`
