@@ -4,16 +4,30 @@ import test from "node:test";
 import {
   generateRustSchemaDeclaration,
   generateRustStoreDeclaration,
+  rustTypeToRuntimeType,
   rustTypeToTypeScript,
 } from "../dist/schema-declarations.js";
 
 test("maps ABI v1 Rust types to TypeScript without losing bigint precision", () => {
+  for (const type of ["i8", "u8", "i16", "u16", "i32", "u32", "isize", "usize", "f32", "f64"]) {
+    assert.equal(rustTypeToTypeScript(type), "number", type);
+    assert.equal(rustTypeToRuntimeType(type), "number", type);
+  }
+  for (const type of ["i64", "u64", "i128", "u128"]) {
+    assert.equal(rustTypeToTypeScript(type), "bigint", type);
+    assert.equal(rustTypeToRuntimeType(type), "bigint", type);
+  }
   assert.equal(rustTypeToTypeScript("u32"), "number");
   assert.equal(rustTypeToTypeScript("u128"), "bigint");
   assert.equal(rustTypeToTypeScript("Option<Vec<String>>"), "Array<string> | null");
   assert.equal(rustTypeToTypeScript("(u32, Option<String>)"), "[number, string | null]");
   assert.equal(rustTypeToTypeScript("HashMap<String, u64>"), "Record<string, bigint>");
   assert.throws(() => rustTypeToTypeScript("HashMap<u32, String>"), /Unsupported map key type/);
+  assert.throws(() => rustTypeToTypeScript("&str"), /Unsupported Rust schema type/);
+  assert.throws(() => rustTypeToTypeScript("Vec<T, U>"), /Unsupported Rust schema type/);
+  assert.equal(rustTypeToRuntimeType("Option<u128>"), "bigint");
+  assert.equal(rustTypeToRuntimeType("(u32, Option<String>)"), "array");
+  assert.equal(rustTypeToRuntimeType("BTreeMap<String, u64>"), "object");
 });
 
 test("generates Vue declarations from a Rust component contract", () => {

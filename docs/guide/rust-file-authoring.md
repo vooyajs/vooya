@@ -122,6 +122,25 @@ Snapshots returned by the generated Rust store keep JavaScript identity until
 the Rust snapshot actually changes. This stable identity is required by
 React's `useSyncExternalStore` contract.
 
+## ABI v1 value boundary
+
+Props, event payloads, action arguments, and snapshots use one shared mapping:
+
+| Rust value | TypeScript value | Notes |
+| --- | --- | --- |
+| `i8`–`u32`, `isize`, `usize`, `f32`, `f64` | `number` | Integers are finite, integral, and range checked. |
+| `i64`, `u64`, `i128`, `u128` | `bigint` | Exact conversion; never pass these through `number`. |
+| `bool`, `String` | `boolean`, `string` | Owned values only. |
+| `Vec<T>` | `T[]` | Every element must be supported. |
+| `Option<T>` | `T \| null` | `undefined` and `null` input decode as `None`; output is `null`. |
+| `(A, B, ...)` | `[A, B, ...]` | Fixed-length tuples. |
+| `HashMap<String, T>` / `BTreeMap<String, T>` | `Record<string, T>` | Only string keys are supported. |
+
+Borrowed values, recursive public types, arbitrary generics, non-string-key
+maps, and zero-copy `TypedArray` transport are outside ABI v1. Keep those
+values behind an owned Rust boundary or encode them using a supported fallback;
+the build must reject them rather than silently coerce them.
+
 The composable mirrors `getSnapshot()` after each `subscribe()` notification;
 it does not deep-proxy the Rust state or invent a second notification queue.
 `disposeOnUnmount` is explicit because a store may be shared by multiple Vue
