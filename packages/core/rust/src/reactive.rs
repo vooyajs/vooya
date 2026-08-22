@@ -8,9 +8,59 @@ thread_local! {
     // notifications; this turns a direct reactive cycle into one stable
     // commit instead of unbounded recursion.
     static ACTIVE_EFFECTS: RefCell<HashSet<usize>> = RefCell::new(HashSet::new());
+    static CURRENT_TRACKER: RefCell<Option<Rc<TrackedEffectState>>> = const { RefCell::new(None) };
 }
 
 pub type Effect = Rc<dyn Fn()>;
+
+struct TrackedEffectState {
+    user_callback: Effect,
+    runner: RefCell<Option<Effect>>,
+    subscriptions: RefCell<Vec<Box<dyn FnOnce()>>>,
+    dependencies: RefCell<HashSet<usize>>,
+}
+
+/// An effect whose signal dependencies are collected from `Signal::get()`.
+/// Dependencies are replaced on every run, so conditional reads switch
+/// subscriptions without retaining stale branches.
+pub struct TrackedEffect {
+    state: Rc<TrackedEffectState>,
+}
+
+impl TrackedEffectState {
+    fn run(self: &Rc<Self>) {
+        self.clear();
+        let previous = CURRENT_TRACKER.with(|current| current.replace(Some(self.clone())));
+        (self.user_callback)();
+        CURRENT_TRACKER.with(|current| current.replace(previous));
+    }
+
+    fn clear(&self) {
+        self.dependencies.borrow_mut().clear();
+        for unsubscribe in self.subscriptions.borrow_mut().drain(..) {
+            unsubscribe();
+        }
+    }
+
+    fn track<T>(self: &Rc<Self>, signal: &Signal<T>) {
+        let identity = Rc::as_ptr(&signal.effects) as usize;
+        if !self.dependencies.borrow_mut().insert(identity) {
+            return;
+        }
+        let Some(runner) = self.runner.borrow().as_ref().cloned() else {
+            return;
+        };
+        self.subscriptions
+            .borrow_mut()
+            .push(signal.subscribe_callback(runner));
+    }
+}
+
+impl Drop for TrackedEffect {
+    fn drop(&mut self) {
+        self.state.clear();
+    }
+}
 
 /// Single-threaded reactive state for browser components.
 pub struct Signal<T> {
@@ -76,8 +126,34 @@ pub fn effect(callback: impl Fn() + 'static) -> Effect {
     Rc::new(callback)
 }
 
+/// Runs `callback` immediately and subscribes it to every signal read through
+/// `Signal::get()`. The returned handle owns those subscriptions.
+pub fn tracked_effect(callback: impl Fn() + 'static) -> TrackedEffect {
+    let user_callback: Effect = Rc::new(callback);
+    let state = Rc::new(TrackedEffectState {
+        user_callback,
+        runner: RefCell::new(None),
+        subscriptions: RefCell::new(Vec::new()),
+        dependencies: RefCell::new(HashSet::new()),
+    });
+    let weak = Rc::downgrade(&state);
+    let runner: Effect = Rc::new(move || {
+        if let Some(state) = weak.upgrade() {
+            state.run();
+        }
+    });
+    *state.runner.borrow_mut() = Some(runner);
+    state.run();
+    TrackedEffect { state }
+}
+
 impl<T: Clone> Signal<T> {
     pub fn get(&self) -> T {
+        CURRENT_TRACKER.with(|current| {
+            if let Some(tracker) = current.borrow().as_ref() {
+                tracker.track(self);
+            }
+        });
         self.value.borrow().clone()
     }
 }
@@ -98,6 +174,16 @@ impl<T> Signal<T> {
         self.next_effect.set(id.wrapping_add(1));
         self.effects.borrow_mut().insert(id, callback);
         SignalSubscription { signal: self.clone(), id, active: true }
+    }
+
+    fn subscribe_callback(&self, callback: Effect) -> Box<dyn FnOnce()> {
+        let id = self.next_effect.get();
+        self.next_effect.set(id.wrapping_add(1));
+        self.effects.borrow_mut().insert(id, callback);
+        let effects = self.effects.clone();
+        Box::new(move || {
+            effects.borrow_mut().remove(&id);
+        })
     }
 
     pub fn unsubscribe(&self, id: u64) {
@@ -159,7 +245,7 @@ impl<T> Drop for SignalSubscription<T> {
 mod tests {
     use std::{cell::Cell, rc::Rc};
 
-    use super::{effect, signal};
+    use super::{effect, signal, tracked_effect};
 
     #[test]
     fn signals_run_subscribed_effects_after_updates() {
@@ -234,5 +320,62 @@ mod tests {
 
         assert_eq!(runs.get(), 1);
         assert_eq!(count.get(), 2);
+    }
+
+    #[test]
+    fn tracked_effect_switches_conditional_dependencies() {
+        let use_first = signal(true);
+        let first = signal(1);
+        let second = signal(10);
+        let tracked_use_first = use_first.clone();
+        let tracked_first = first.clone();
+        let tracked_second = second.clone();
+        let seen = Rc::new(Cell::new(0));
+        let observed = seen.clone();
+        let _tracked = tracked_effect(move || {
+            observed.set(if tracked_use_first.get() { tracked_first.get() } else { tracked_second.get() });
+        });
+
+        assert_eq!(seen.get(), 1);
+        first.set(2);
+        assert_eq!(seen.get(), 2);
+        use_first.set(false);
+        assert_eq!(seen.get(), 10);
+        first.set(3);
+        assert_eq!(seen.get(), 10);
+        second.set(11);
+        assert_eq!(seen.get(), 11);
+    }
+
+    #[test]
+    fn dropping_tracked_effect_removes_automatic_dependencies() {
+        let count = signal(0);
+        let tracked_count = count.clone();
+        let runs = Rc::new(Cell::new(0));
+        let observed = runs.clone();
+        let tracked = tracked_effect(move || {
+            let _ = tracked_count.get();
+            observed.set(observed.get() + 1);
+        });
+        assert_eq!(runs.get(), 1);
+        drop(tracked);
+        count.set(1);
+        assert_eq!(runs.get(), 1);
+    }
+
+    #[test]
+    fn tracked_effect_deduplicates_repeated_reads() {
+        let count = signal(1);
+        let runs = Rc::new(Cell::new(0));
+        let observed = runs.clone();
+        let tracked_count = count.clone();
+        let _tracked = tracked_effect(move || {
+            let _ = tracked_count.get();
+            let _ = tracked_count.get();
+            observed.set(observed.get() + 1);
+        });
+
+        count.set(2);
+        assert_eq!(runs.get(), 2);
     }
 }

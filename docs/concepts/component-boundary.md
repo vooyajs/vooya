@@ -56,14 +56,15 @@ application crate owns the stable export shape and ABI version check.
 
 - `View` and `ViewElement` for structured DOM creation;
 - `EventListener` for owned browser callbacks;
-- `Signal<T>`, `Effect`, and disposable `SignalSubscription<T>` handles for
-  the current explicit subscription prototype;
+- `Signal<T>`, `Effect`, disposable `SignalSubscription<T>` handles, and the
+  opt-in `tracked_effect` dependency collector;
 - synchronous `batch` boundaries and owned child move/replace primitives for
   the in-progress branch and keyed-list runtime.
 
-The reactive API is intentionally small. It does not yet infer dependencies or
-schedule asynchronous work. Subscriptions unregister when their handle is
-dropped, so component and branch cleanup is deterministic.
+The reactive API is intentionally small. The `rsx!` macro still emits explicit
+bindings, while `tracked_effect` provides opt-in dependency collection; async
+work is not scheduled by this runtime. Subscriptions unregister when their
+handle is dropped, so component and branch cleanup is deterministic.
 
 ## Explicit non-goals
 

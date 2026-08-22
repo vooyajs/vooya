@@ -69,6 +69,11 @@ Multiple synchronous writes can share one notification boundary with
 `voo::batch(|| { ... })`; subscribers run once after the outermost batch.
 If an effect writes a signal that synchronously re-enters the same effect, the
 runtime suppresses that re-entrant invocation instead of recursing indefinitely.
+`voo::tracked_effect` is available for code that wants automatic dependency
+collection: each `Signal::get()` during the callback is subscribed, and the
+next run replaces the previous dependency set. The current `rsx!` macro still
+uses explicit bindings, so this is a runtime API rather than implicit template
+syntax.
 
 Event listeners can use the same owned-root syntax, for example
 `on-click={move |_| count.set(1)}`. The listener is removed with the root.
