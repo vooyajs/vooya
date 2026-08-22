@@ -273,7 +273,7 @@ APIs when necessary.
   or the first-party Rspack plugin;
 - experimental source `.voo` components in Webpack `>=5`;
 - Vue `>=3.5.2` and React `>=19` adapters;
-- typed primitive props and component events;
+- typed ABI v1 props, events, and store actions;
 - generated mount, prop-update, error, dispose, and ABI bindings;
 - TypeScript declarations and scoped CSS;
 - Rust diagnostics mapped back to `.rs` and legacy `.voo` source lines;

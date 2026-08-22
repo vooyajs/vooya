@@ -77,7 +77,11 @@ prerelease.
 - No precompiled component product is currently published; the retained Vue
   fixture is build-contract evidence, not a user-facing package.
 - A non-trivial component still uses some direct `web_sys` APIs.
-- The contract is limited to primitive prop and event values.
+- Props, event payloads, action arguments, and store snapshots share the
+  owned ABI v1 mapping for finite numbers, bigint, nullability, vectors,
+  tuples, and string-key maps. User-defined recursive schemas, borrowed
+  values, arbitrary generics, non-string maps, and TypedArray transport remain
+  outside the current boundary.
 - Rust store schema/declarations, the generated `.rs` store module, and the Vue
   composable are available; Vue and React browser-level store interaction are
   covered by `test:rust-vue` and `test:rust-react`.
@@ -113,7 +117,9 @@ prerelease.
 3. Evaluate editor interactions beyond diagnostics only after their `.voo`
    source mapping and lifecycle semantics can be specified and tested.
 4. Define state-preserving HMR semantics.
-5. Expand component contracts beyond primitive values.
+5. Emit standalone schema records and precise declarations for user-defined
+   struct/enum payloads; keep recursive and borrowed values explicitly out of
+   the ABI until their ownership model is designed.
 6. Expand the established browser and framework compatibility matrix with
    named Vue 3.6/Vapor evidence before changing its support claims.
 
