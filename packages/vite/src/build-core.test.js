@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -65,6 +65,51 @@ test("build uses the paths selected by the resolved toolchain", () => {
   assert.equal(calls.wasmBindgen.options.env, environment);
   assert.equal(calls.cargo.args.includes("--target"), true);
   assert.equal(calls.cargo.args.includes("wasm32-unknown-unknown"), true);
+});
+
+test("reconciles the generated Rust root after source topology changes", () => {
+  const root = mkdtempSync(join(tmpdir(), "vooya-topology-test-"));
+  const workspaceRoot = join(root, ".vooya");
+  const toolchain = {
+    environment: {},
+    cargo: { path: "/selected/cargo", version: "cargo 1.94.0" },
+    rustc: { path: "/selected/rustc", version: "rustc 1.94.0", verboseVersion: "rustc 1.94.0", sysroot: "/selected" },
+    target: { triple: "wasm32-unknown-unknown", libdir: "/selected/wasm" },
+    wasmBindgen: { path: "/selected/wasm-bindgen", version: "0.2.115" },
+  };
+  const build = () => buildApplication({
+    applicationRoot: root,
+    runtimeCrateRoot: "/runtime",
+    workspaceRoot,
+    toolchain,
+    spawn() { return { status: 0, stdout: "", stderr: "" }; },
+    exec(command, args) {
+      const outputDir = args[args.indexOf("--out-dir") + 1];
+      writeFileSync(join(outputDir, "vooya_app.js"), "");
+      writeFileSync(join(outputDir, "vooya_app_bg.wasm"), Buffer.alloc(0));
+    },
+  });
+
+  try {
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src/alpha.rs"), "pub struct Alpha;\n");
+    writeFileSync(join(root, "src/beta.rs"), "pub struct Beta;\n");
+    build();
+    let generatedRoot = readFileSync(join(workspaceRoot, "build/src/lib.rs"), "utf8");
+    assert.match(generatedRoot, /rust\/src\/alpha\.rs/);
+    assert.match(generatedRoot, /rust\/src\/beta\.rs/);
+
+    unlinkSync(join(root, "src/beta.rs"));
+    writeFileSync(join(root, "src/gamma.rs"), "pub struct Gamma;\n");
+    build();
+    generatedRoot = readFileSync(join(workspaceRoot, "build/src/lib.rs"), "utf8");
+    assert.match(generatedRoot, /rust\/src\/alpha\.rs/);
+    assert.match(generatedRoot, /rust\/src\/gamma\.rs/);
+    assert.doesNotMatch(generatedRoot, /rust\/src\/beta\.rs/);
+    assert.equal(existsSync(join(workspaceRoot, "build/src/rust/src/beta.rs")), false);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
 });
 
 test("preserves Cargo process startup errors", () => {
