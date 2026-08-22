@@ -59,6 +59,8 @@ async function verifyBrowser() {
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Store 0" }).click();
     await page.getByRole("button", { name: "Store 1" }).waitFor();
+    await page.getByRole("button", { name: /ABI 3 9007199254740993 none 7 2/ }).waitFor();
+    await page.getByText("ABI payload 9007199254740993").waitFor();
     const counter = page.getByRole("button", { name: "Count: 1" });
     await counter.waitFor();
     await page.getByText("Selected 1").waitFor();
