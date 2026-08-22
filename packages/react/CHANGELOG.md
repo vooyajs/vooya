@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.0-alpha.10
+
+### Fixes
+
+- Make the VS Code diagnostics bridge tolerate cold rust-analyzer startups and distinguish a missing rust-analyzer component from a diagnostics timeout.
+- Compile functional :host selectors in scoped styles and reject unsupported forms with a source-oriented error.
+
 ## v0.1.0-alpha.9
 
 ### Features

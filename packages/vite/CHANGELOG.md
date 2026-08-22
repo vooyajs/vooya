@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.1.0-alpha.10
+
+### Fixes
+
+- Make the VS Code diagnostics bridge tolerate cold rust-analyzer startups and distinguish a missing rust-analyzer component from a diagnostics timeout.
+- Compile functional :host selectors in scoped styles and reject unsupported forms with a source-oriented error.
+
+### Dependencies
+
+- Update vooya-build-core to 0.1.0-alpha.10.
+- Update vooya-compiler to 0.1.0-alpha.10.
+- Update vooya-core to 0.1.0-alpha.10.
+
 ## v0.1.0-alpha.9
 
 ### Features

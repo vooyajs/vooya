@@ -1,6 +1,6 @@
 {
   "name": "@vooya/vite",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.10",
   "description": "Vite integration for Vooya component islands.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
@@ -50,8 +50,8 @@
     "vite": ">=7 <9"
   },
   "dependencies": {
-    "@vooya/build-core": "0.1.0-alpha.9",
-    "@vooya/core": "0.1.0-alpha.9",
-    "@vooya/compiler": "0.1.0-alpha.9"
+    "@vooya/build-core": "0.1.0-alpha.10",
+    "@vooya/core": "0.1.0-alpha.10",
+    "@vooya/compiler": "0.1.0-alpha.10"
   }
 }
