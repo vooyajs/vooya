@@ -208,3 +208,5 @@ Vooya owns generated Rust roots, WASM output, and TypeScript declarations under
 The generated Cargo application depends on the public `vooya` authoring crate,
 so Rust files can write `use vooya as voo;`; users do not add a Cargo manifest
 or maintain the generated crate root.
+The generated root is reconciled on each build, so removed or renamed `.rs`
+files cannot remain as stale modules in the application crate.

@@ -56,6 +56,8 @@ prerelease.
   opt-in unmount disposal.
 - Generate a Vite virtual module for `.rs` stores, including independent
   factory creation, snapshot reads, subscriptions, actions, and disposal.
+- Reconcile the generated Rust root and copied module tree when `.rs` files are
+  added, removed, or renamed.
 
 ## Current limits
 
