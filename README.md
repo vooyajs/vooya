@@ -287,7 +287,7 @@ APIs when necessary.
 
 | Layer | Minimum version | Status | Exact evidence |
 | --- | --- | --- | --- |
-| Node.js | `^20.19.0 \|\| >=22.12.0` | supported | Vite 7/8 toolchain floor |
+| Node.js | `^20.19.0 \|\| >=22.12.0` | supported | Source quickstarts run on Ubuntu + Node 20, macOS + Node 22, and Windows + Node 22; the release gate also runs on Ubuntu + Node 22 |
 | Vue | `>=3.5.2` | supported | adapter checks through 3.5.41; browser fixtures at 3.5.40/3.5.41 |
 | React | `>=19` | supported | browser fixtures at 19.0.0 and 19.2.0 |
 | Vite | `>=7` | supported | repository Vite 7 path and packed Vite 8.2.1 fixture |

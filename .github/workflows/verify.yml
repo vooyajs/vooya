@@ -10,6 +10,52 @@ permissions:
   contents: read
 
 jobs:
+  source-compatibility:
+    name: Source quickstart (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: 20
+          - os: macos-latest
+            node: 22
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Restore wasm-bindgen CLI cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.115-${{ runner.os }}
+
+      - name: Install wasm-bindgen CLI
+        run: |
+          if ! wasm-bindgen --version 2>/dev/null | grep -Fx 'wasm-bindgen 0.2.115'; then
+            cargo install wasm-bindgen-cli --version 0.2.115 --locked --force
+          fi
+          wasm-bindgen --version | grep -Fx 'wasm-bindgen 0.2.115'
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Verify source quickstarts
+        run: npm run test:quickstart
+
   windows-source-quickstart:
     name: Windows source quickstart
     runs-on: windows-latest
