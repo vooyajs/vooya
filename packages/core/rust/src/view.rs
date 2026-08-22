@@ -67,6 +67,61 @@ pub struct ViewElement {
     cleanup: MountCleanup,
 }
 
+/// Owns a keyed sequence of DOM roots. Reconciliation reuses an existing
+/// root when its key is present, creates roots only for new keys, and releases
+/// removed roots before moving the survivors into their requested order.
+pub struct KeyedChildren<K> {
+    entries: Vec<(K, ViewElement)>,
+}
+
+impl<K> Default for KeyedChildren<K> {
+    fn default() -> Self {
+        Self { entries: Vec::new() }
+    }
+}
+
+impl<K: Clone + Eq> KeyedChildren<K> {
+    pub fn reconcile(
+        &mut self,
+        parent: &ViewElement,
+        keys: &[K],
+        mut render: impl FnMut(&K) -> Result<ViewElement, JsValue>,
+    ) -> Result<(), JsValue> {
+        for (index, key) in keys.iter().enumerate() {
+            if keys[..index].iter().any(|existing| existing == key) {
+                return Err(JsValue::from_str("Vooya keyed children contain a duplicate key"));
+            }
+        }
+        let mut remaining = std::mem::take(&mut self.entries);
+        let mut next = Vec::with_capacity(keys.len());
+        for key in keys {
+            if let Some(index) = remaining.iter().position(|(existing, _)| existing == key) {
+                next.push(remaining.swap_remove(index));
+            } else {
+                next.push((key.clone(), render(key)?));
+            }
+        }
+
+        for (_, child) in remaining {
+            parent.remove_child(&child)?;
+        }
+
+        for index in (0..next.len()).rev() {
+            let reference = next.get(index + 1).map(|(_, child)| child);
+            parent.insert_before(&next[index].1, reference)?;
+        }
+        self.entries = next;
+        Ok(())
+    }
+
+    pub fn clear(&mut self, parent: &ViewElement) -> Result<(), JsValue> {
+        for (_, child) in std::mem::take(&mut self.entries) {
+            parent.remove_child(&child)?;
+        }
+        Ok(())
+    }
+}
+
 impl ViewElement {
     fn new(element: Element) -> Self {
         Self { element, cleanup: MountCleanup::default() }

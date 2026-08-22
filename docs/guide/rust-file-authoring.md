@@ -75,6 +75,8 @@ Event listeners can use the same owned-root syntax, for example
 The runtime also exposes `insert_before`, `remove_child`, and `replace_child`
 for future branch and keyed-list reconciliation; these APIs preserve the
 child's cleanup ownership while moving or replacing DOM roots.
+`KeyedChildren<K>` builds on those primitives to reuse roots by stable key and
+release roots whose keys disappear. Duplicate keys are rejected.
 This is the first explicit reactive/event binding layer; automatic dependency
 inference, keyed lists, and conditional branch compilation remain under the
 `rsx!` runtime workstream.

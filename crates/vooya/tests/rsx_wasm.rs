@@ -1,6 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 
-use vooya::{View, signal, rsx};
+use vooya::{KeyedChildren, View, signal, rsx};
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -110,6 +110,25 @@ fn owned_children_can_be_reordered_and_replaced() -> Result<(), wasm_bindgen::Js
         root.as_element().text_content().as_deref(),
         Some("firstreplacement")
     );
+    root.remove();
+    Ok(())
+}
+
+#[wasm_bindgen_test]
+fn keyed_children_reuse_identity_and_release_removed_roots() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let root = rsx!(view, <div></div>)?;
+    root.mount(&host)?;
+    let mut children = KeyedChildren::<u32>::default();
+    children.reconcile(&root, &[1, 2], |key| rsx!(view, <span>{key}</span>))?;
+    let first = root.as_element().children().item(0).unwrap();
+    children.reconcile(&root, &[2, 1, 3], |key| rsx!(view, <span>{key}</span>))?;
+    assert_eq!(root.as_element().children().length(), 3);
+    assert!(root.as_element().children().item(1).unwrap().is_same_node(Some(&first)));
+    children.clear(&root)?;
+    assert_eq!(root.as_element().children().length(), 0);
     root.remove();
     Ok(())
 }
