@@ -36,9 +36,14 @@ owned listener/subscription cleanup, re-entrant effect-cycle protection, and
 DOM child move/replace primitives. These are runtime building blocks; the
 public `rsx!` syntax does not yet compile conditional branches or keyed lists.
 
+The current runtime also provides opt-in dependency tracking through
+`tracked_effect`, keyed child reconciliation, and transaction batching. The
+public `rsx!` loop syntax covers keyed lists; conditional branch syntax remains
+outside the macro contract for now.
+
 ## Non-goals
 
-- Dependency tracking inferred from calls to `get`.
+- Implicit dependency tracking in ordinary `effect` callbacks.
 - Async resources or concurrent render.
 - A public Rust macro, template parser, or JSX-like syntax.
 - Fine-grained child reconciliation below a keyed row root.

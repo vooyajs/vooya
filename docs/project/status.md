@@ -83,9 +83,9 @@ prerelease.
   coordinated source checkout; packaging it as a standalone published Rust
   authoring artifact is a separate release task.
 - Reactive dependencies and cleanup are explicit; `batch` coalesces synchronous
-  signal writes and re-entrant effect cycles are suppressed, while automatic
-  dependency collection and declarative branch rendering remain under the RSX
-  workstream.
+  signal writes, re-entrant effect cycles are suppressed, and opt-in
+  `tracked_effect` collects dynamic dependencies. Declarative conditional
+  branch rendering remains under the RSX workstream.
 - Successful Rust HMR performs a full reload and loses component state; the
   Rust-file recovery path is covered by `test:rust-hmr`.
 - The VS Code extension can run an explicit embedded-Rust diagnostics check and

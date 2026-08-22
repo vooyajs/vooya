@@ -70,9 +70,9 @@ reconciliation; all subscriptions and keyed roots are disposed with the owning
 root. Signal writes are synchronous. Event handlers, actions, and prop
 patches are transaction boundaries, so bindings commit without re-running the
 whole component. Leaving a conditional branch disposes its nodes, listeners,
-and subscriptions. Lists remain keyed because change detection does not
-establish item identity. Leaving a conditional branch still requires an
-explicit branch owner.
+and subscriptions. Consumers must provide stable keys for list identity;
+change detection does not infer them. Leaving a conditional branch still
+requires an explicit branch owner.
 
 ```rust
 rsx! {
