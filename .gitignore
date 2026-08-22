@@ -1,6 +1,8 @@
 /target
 /node_modules
 /dist
+/docs/.vitepress/dist
+/docs/.vitepress/cache
 examples/*/dist
 tests/fixtures/*/dist
 examples/rsx-basic/pkg/

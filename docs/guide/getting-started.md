@@ -277,10 +277,10 @@ All generated application state is disposable:
 npm exec -- vooya clean
 ```
 
-See the working [Vue counter](../../examples/vue-counter) and
-[React counter](../../examples/react-counter) for complete applications. For a
+See the working [Vue counter](https://github.com/vooyajs/vooya/tree/main/examples/vue-counter) and
+[React counter](https://github.com/vooyajs/vooya/tree/main/examples/react-counter) for complete applications. For a
 larger Rust-owned rendering surface, run the
-[150,000 point Vue scatter plot](../../examples/scatter-plot) with
+[150,000 point Vue scatter plot](https://github.com/vooyajs/vooya/tree/main/examples/scatter-plot) with
 `npm run dev:scatter`.
 
 ## Vite+
@@ -333,7 +333,7 @@ export default defineConfig({
 
 React projects use `vooyaRsbuild({ framework: "react" })` with their normal
 Rsbuild React plugin. Direct Rspack configuration is documented in the
-[`@vooya/rspack` package README](../../packages/rspack/README.md).
+[`@vooya/rspack` package README](https://github.com/vooyajs/vooya/blob/main/packages/rspack/README.md).
 
 This path currently requires Rspack `>=2.1.10` and the same local Rust/WASM
 tools as Vite. It is experimental; SSR, Module Federation, and earlier Rspack

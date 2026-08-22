@@ -12,7 +12,7 @@ site without changing its structure or URLs unnecessarily.
 
 ## Start here
 
-- [Contributing](../CONTRIBUTING.md): project scope, development setup, testing,
+- [Contributing](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md): project scope, development setup, testing,
   and pull request expectations.
 - [Getting started](guide/getting-started.md): install the alpha toolchain and
   run a first component in Vue or React.
