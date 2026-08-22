@@ -31,8 +31,6 @@ export interface VooyaWebpackOptions {
   framework?: "vue" | "react";
   rust?: RustBuildOptions;
   workspaceRoot?: string;
-  /** @deprecated Use workspaceRoot. */
-  cacheRoot?: string;
 }
 
 export interface VooyaWebpackRule {
@@ -96,17 +94,13 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     framework = "vue",
     rust = {},
     workspaceRoot,
-    cacheRoot,
   }: VooyaWebpackOptions = {}) {
     if (framework !== "vue" && framework !== "react") {
       throw new Error(`Unknown Vooya framework ${framework}.`);
     }
-    if (workspaceRoot !== undefined && cacheRoot !== undefined) {
-      throw new Error("Use either workspaceRoot or the deprecated cacheRoot option, not both.");
-    }
     this.framework = framework;
     this.rust = rust;
-    this.workspaceRoot = workspaceRoot ?? cacheRoot;
+    this.workspaceRoot = workspaceRoot;
     this.instanceId = `vooya-webpack-${nextInstance++}`;
   }
 

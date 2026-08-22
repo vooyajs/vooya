@@ -41,7 +41,7 @@ test("build uses the paths selected by the resolved toolchain", () => {
     buildApplication({
       applicationRoot: root,
       runtimeCrateRoot: "/runtime",
-      cacheRoot: join(root, "cache"),
+      workspaceRoot: join(root, "cache"),
       outputDir: join(root, "dist"),
       toolchain,
       spawn(command, args, options) {
@@ -84,7 +84,7 @@ test("preserves Cargo process startup errors", () => {
         buildApplication({
           applicationRoot: root,
           runtimeCrateRoot: "/runtime",
-          cacheRoot: join(root, "cache"),
+          workspaceRoot: join(root, "cache"),
           outputDir: join(root, "dist"),
           toolchain,
           spawn() {
@@ -121,7 +121,7 @@ test("suppresses JavaScript stack details for Cargo build failures", () => {
         buildApplication({
           applicationRoot: root,
           runtimeCrateRoot: "/runtime",
-          cacheRoot: join(root, "cache"),
+          workspaceRoot: join(root, "cache"),
           outputDir: join(root, "dist"),
           toolchain,
           spawn() {

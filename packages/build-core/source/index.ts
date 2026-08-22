@@ -108,8 +108,6 @@ export interface BuildApplicationOptions {
   rust?: RustBuildOptions;
   runtimeCrateRoot?: string;
   workspaceRoot?: string;
-  /** @deprecated Use workspaceRoot. */
-  cacheRoot?: string;
   workspacePath?: string;
   outputDir?: string;
   buildMode?: "production" | "development";
@@ -206,8 +204,6 @@ export function discoverRustSourceFiles(applicationRoot: string, configuredRoot 
 
 export interface BuildApplicationResult {
   workspaceRoot: string;
-  /** @deprecated Use workspaceRoot. */
-  cacheRoot: string;
   runtimeModule: string;
   javascript: BuildAsset;
   wasm: WasmAsset;
@@ -274,7 +270,6 @@ export function buildApplication({
   rust = {},
   runtimeCrateRoot = resolveRuntimeCrateRoot(),
   workspaceRoot,
-  cacheRoot,
   workspacePath,
   outputDir,
   buildMode = "production",
@@ -285,11 +280,7 @@ export function buildApplication({
   exec = execFileSync,
 }: BuildApplicationOptions): BuildApplicationResult {
   if (!applicationRoot) throw new Error("Vooya build requires applicationRoot.");
-  if (workspaceRoot !== undefined && cacheRoot !== undefined) {
-    throw new Error("Use either workspaceRoot or the deprecated cacheRoot option, not both.");
-  }
-
-  const workspace = resolveVooyaWorkspace(applicationRoot, workspaceRoot ?? cacheRoot);
+  const workspace = resolveVooyaWorkspace(applicationRoot, workspaceRoot);
   ensureVooyaWorkspace(workspace);
   workspacePath ??= workspace.build;
   outputDir ??= workspace.wasm;
@@ -444,7 +435,6 @@ export function buildApplication({
   const schemaContracts = buildRustComponentContracts(schemaIndex);
   return {
     workspaceRoot: workspace.root,
-    cacheRoot: workspace.root,
     runtimeModule,
     javascript: { path: runtimeModule, code: readFileSync(runtimeModule, "utf8") },
     wasm: { path: wasm, bytes: wasmBytes },
