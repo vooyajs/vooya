@@ -128,7 +128,12 @@ schedule a rebuild. Rapid saves are coalesced. A failed Rust build is reported
 through Vite and does not poison the next rebuild.
 
 A successful Rust rebuild currently triggers a full page reload. Component
-state is not preserved.
+state is not preserved. Rust-file rebuild, failed-build recovery, and this
+full-reload behavior are covered by:
+
+```sh
+npm run test:rust-hmr
+```
 
 ## Rspack and Rsbuild
 

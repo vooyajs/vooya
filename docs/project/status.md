@@ -49,6 +49,8 @@ prerelease.
 - Build and exercise Rust-file components and instance-scoped stores through
   Vite 7 + React 19, including StrictMode mount cleanup, store actions,
   snapshot subscriptions, and atomic component prop patches.
+- Verify Rust-file Vite development rebuilds, failed-build recovery, and
+  successful full reloads without preserving component state.
 - Expose the instance-scoped store contract to Vue through
   `useVooyaStore` with snapshot subscription, explicit action dispatch, and
   opt-in unmount disposal.
@@ -79,7 +81,8 @@ prerelease.
   coordinated source checkout; packaging it as a standalone published Rust
   authoring artifact is a separate release task.
 - Reactive dependencies and cleanup are explicit and minimal.
-- Successful Rust HMR performs a full reload and loses component state.
+- Successful Rust HMR performs a full reload and loses component state; the
+  Rust-file recovery path is covered by `test:rust-hmr`.
 - The VS Code extension can run an explicit embedded-Rust diagnostics check and
   checks saved `.voo` documents through a generated local rust-analyzer
   workspace. It intentionally does not provide rust-analyzer completion,
