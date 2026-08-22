@@ -1,8 +1,8 @@
 # `@vooya/webpack`
 
-Experimental Webpack 5 integration for Vooya source components in Vue 3 and
-React 19 applications. Rust-file `.rs` authoring is the new path; legacy `.voo`
-components remain available during the alpha migration. Source consumers still need Cargo, the
+Experimental Webpack 5 integration for the legacy Vooya `.voo` source component
+path in Vue 3 and React 19 applications. The current `.rs` authoring
+integration is Vite-only; this package does not claim `.rs` discovery yet. Source consumers still need Cargo, the
 `wasm32-unknown-unknown` target, and `wasm-bindgen-cli` `0.2.115`.
 
 Install every `@vooya/*` package at the same exact version.

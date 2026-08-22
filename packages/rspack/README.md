@@ -1,8 +1,8 @@
 # `@vooya/rspack`
 
-Experimental Rspack `>=2.1.10` integration for Vooya source components. Rust-file
-`.rs` authoring is the new path; legacy `.voo` components remain available
-during the alpha migration.
+Experimental Rspack `>=2.1.10` integration for the legacy Vooya `.voo` source
+component path. The current `.rs` authoring integration is Vite-only; this
+package does not claim `.rs` discovery yet.
 
 The package supports Vue and React applications through Rsbuild, and exposes a
 lower-level Rspack plugin and loader rule for applications that configure

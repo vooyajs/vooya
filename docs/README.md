@@ -1,10 +1,10 @@
 # Vooya Documentation
 
 Vooya compiles Rust component and store implementations into WebAssembly and
-exposes them through host-framework adapters for use in web applications. New
-Rust-file authoring uses ordinary `.rs` files; the older `.voo` path remains
-available during the alpha migration. Vue and React are the current first-party
-adapters.
+exposes them through host-framework adapters for use in web applications. The
+current authoring path uses ordinary `.rs` files; the older `.voo` path remains
+available only for legacy projects and experimental fixtures. Vue and React are
+the current first-party adapters.
 
 This directory is the source of truth for user-facing documentation. It is kept
 as plain Markdown for now so the content can later move into a documentation

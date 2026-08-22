@@ -22,16 +22,16 @@ prerelease.
 
 ## Working today
 
-- Compile Rust directly from `<rust>` blocks into application-level WASM.
+- Compile Rust-file components and stores into application-level WASM.
 - Generate typed mount, prop update, event, dispose, and ABI bindings.
-- Import one `.voo` file as a Vue 3 or React 19 component.
+- Import one `.rs` file as a Vue 3 or React 19 component.
 - Generate mirrored TypeScript declarations under `.vooya/types` from
   component contracts.
 - Compile optional PostCSS-based scoped styles.
-- Map extracted Rust diagnostics back to `.voo` source lines.
+- Map extracted Rust diagnostics back to `.rs` source lines.
 - Configure registry, Git, and application-relative path dependencies.
 - Recover from Rust build errors and coalesce rapid development saves.
-- Format `.voo` files and package a VS Code syntax extension.
+- Format legacy `.voo` files and package a VS Code syntax extension.
 - Validate Vue Counter, React Counter, TaskList, and 100,000-row DataGrid flows
   in real browsers.
 - Validate loop-created Rust listeners, cloned event dispatch, and repeated
@@ -113,8 +113,8 @@ prerelease.
    source mapping and lifecycle semantics can be specified and tested.
 4. Define state-preserving HMR semantics.
 5. Expand component contracts beyond primitive values.
-6. Establish and continuously test a browser and framework compatibility
-   matrix.
+6. Expand the established browser and framework compatibility matrix with
+   named Vue 3.6/Vapor evidence before changing its support claims.
 
 The benchmark result remains deliberately modest: the first 100,000-row case
 showed approximate parity with its Vue baseline. See the

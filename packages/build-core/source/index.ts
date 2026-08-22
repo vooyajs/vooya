@@ -1,7 +1,7 @@
 // This package is intentionally bundler-neutral: adapters own virtual modules,
 // watching and presentation, while this module owns the Rust/WASM application build.
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, relative, resolve } from "node:path";
 
@@ -240,6 +240,7 @@ export function resolveRuntimeCrateRoot(): string {
  * workspace, or alongside `@vooya/core` in a packed installation. */
 export function resolveVooyaAuthoringCrateRoot(runtimeCrateRoot = resolveRuntimeCrateRoot()): string | undefined {
   const candidates = [
+    resolve(runtimeCrateRoot, "authoring"),
     resolve(runtimeCrateRoot, "..", "authoring"),
     resolve(runtimeCrateRoot, "..", "..", "..", "crates/vooya"),
   ];
@@ -480,11 +481,50 @@ export function buildApplication({
 // Builds the empty runtime artifact shipped by @vooya/core without depending on
 // the Vite package. The root is supplied by the repository build script.
 export function buildCore(root = process.cwd()): BuildApplicationResult {
+  syncPackagedAuthoringCrates(root);
   return buildApplication({
     applicationRoot: root,
     workspaceRoot: resolve(root, "target/vooya-package"),
     outputDir: resolve(root, "packages/core/dist"),
   });
+}
+
+/**
+ * The Rust authoring crate is part of the published @vooya/core source bundle,
+ * not a second npm package. Keep the checked-in crates as the source of truth
+ * and materialize package-relative manifests immediately before packaging.
+ */
+function syncPackagedAuthoringCrates(root: string): void {
+  const runtimeRoot = resolve(root, "packages/core/rust");
+  const authoringRoot = resolve(runtimeRoot, "authoring");
+  const macrosRoot = resolve(runtimeRoot, "vooya-macros");
+  const sourceAuthoring = resolve(root, "crates/vooya");
+  const sourceMacros = resolve(root, "crates/vooya-macros");
+
+  rmSync(authoringRoot, { force: true, recursive: true });
+  rmSync(macrosRoot, { force: true, recursive: true });
+  mkdirSync(authoringRoot, { recursive: true });
+  mkdirSync(macrosRoot, { recursive: true });
+  cpSync(resolve(sourceAuthoring, "Cargo.toml"), resolve(authoringRoot, "Cargo.toml"));
+  cpSync(resolve(sourceAuthoring, "src"), resolve(authoringRoot, "src"), { recursive: true });
+  cpSync(resolve(sourceMacros, "Cargo.toml"), resolve(macrosRoot, "Cargo.toml"));
+  cpSync(resolve(sourceMacros, "src"), resolve(macrosRoot, "src"), { recursive: true });
+
+  const manifestPath = resolve(authoringRoot, "Cargo.toml");
+  const manifest = readFileSync(manifestPath, "utf8")
+    .replace("edition.workspace = true", 'edition = "2024"')
+    .replace("license.workspace = true", 'license = "MIT OR Apache-2.0"')
+    .replace("repository.workspace = true", 'repository = "https://github.com/vooyajs/vooya"')
+    .replace('path = "../../packages/core/rust"', 'path = ".."')
+    .replace('\n[[example]]\nname = "rsx_browser"\ncrate-type = ["cdylib"]\n\n[dev-dependencies]\nwasm-bindgen-test = "=0.3.65"\n', '\n');
+  writeFileSync(manifestPath, manifest);
+
+  const macrosManifestPath = resolve(macrosRoot, "Cargo.toml");
+  const macrosManifest = readFileSync(macrosManifestPath, "utf8")
+    .replace("edition.workspace = true", 'edition = "2024"')
+    .replace("license.workspace = true", 'license = "MIT OR Apache-2.0"')
+    .replace("repository.workspace = true", 'repository = "https://github.com/vooyajs/vooya"');
+  writeFileSync(macrosManifestPath, macrosManifest);
 }
 
 function isWasmBinary(bytes: Uint8Array): boolean {

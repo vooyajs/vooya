@@ -12,9 +12,9 @@
 </p>
 
 Vooya compiles Rust component and store files into WebAssembly and exposes
-them through host-framework adapters for use in web applications. New Rust-file
+them through host-framework adapters for use in web applications. Rust-file
 authoring uses ordinary `.rs` files; the older `.voo` component path remains
-available while the alpha migration is completed. The application shell keeps
+available for legacy projects and experimental fixtures only. The application shell keeps
 routing and surrounding UI; Rust owns one isolated component surface. Vue and
 React are the current first-party adapters.
 
@@ -33,9 +33,10 @@ Vooya generates the framework adapter, TypeScript declarations, WASM lifecycle,
 event forwarding, and diagnostic mappings.
 
 > [!IMPORTANT]
-> Vooya is a public alpha. Rust-file (`.rs`) authoring targets Vite `>=7`, with
+> Vooya is a public alpha. Rust-file (`.rs`) authoring targets Vite `>=7 <9`, with
 > experimental Rspack `>=2.1.10` and Webpack `>=5` paths. The legacy `.voo`
-> source path is retained during the migration. Both paths require a local
+> source path is retained for existing fixtures and projects, not as the default
+> authoring path. Both paths require a local
 > Rust/WASM toolchain.
 > Published alpha APIs may still change.
 
@@ -267,7 +268,7 @@ APIs when necessary.
 ## What works today
 
 - Rust-file (`.rs`) components and stores in Vite `>=7`;
-- legacy source `.voo` components in Vite `>=7` during the alpha migration;
+- legacy source `.voo` components in Vite `>=7` for existing projects;
 - experimental source `.voo` components in Rspack `>=2.1.10` through Rsbuild
   or the first-party Rspack plugin;
 - experimental source `.voo` components in Webpack `>=5`;
