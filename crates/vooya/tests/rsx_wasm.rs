@@ -51,15 +51,18 @@ fn rsx_signal_text_updates_and_cleans_up() -> Result<(), wasm_bindgen::JsValue> 
     let host = document.create_element("div").unwrap();
     let view = View::from_host(&host).unwrap();
     let count = signal(1u32);
-    let tree = rsx!(view, <span>{count.get()}</span>).unwrap();
+    let tree = rsx!(view, <span data_count={count.get()}>{count.get()}</span>).unwrap();
     tree.mount(&host).unwrap();
     assert_eq!(tree.as_element().text_content().as_deref(), Some("1"));
+    assert_eq!(tree.as_element().get_attribute("data_count").as_deref(), Some("1"));
 
     count.set(2);
     assert_eq!(tree.as_element().text_content().as_deref(), Some("2"));
+    assert_eq!(tree.as_element().get_attribute("data_count").as_deref(), Some("2"));
 
     tree.remove();
     count.set(3);
     assert_eq!(tree.as_element().text_content().as_deref(), Some("2"));
+    assert_eq!(tree.as_element().get_attribute("data_count").as_deref(), Some("2"));
     Ok(())
 }

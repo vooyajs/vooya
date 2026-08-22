@@ -44,12 +44,13 @@ happens at the build boundary rather than being silently guessed by the Vite
 plugin.
 
 Inside `rsx!`, an expression of the form `{count.get()}` where `count` is a
-`Signal<T>` creates a text binding. The binding updates synchronously and its
-subscription is released when the owning root is removed:
+`Signal<T>` creates a text or attribute binding. The binding updates
+synchronously and its subscription is released when the owning root is
+removed:
 
 ```rust
 let count = voo::signal(0u32);
-let root = voo::rsx!(view, <span>{count.get()}</span>)?;
+let root = voo::rsx!(view, <span data_count={count.get()}>{count.get()}</span>)?;
 ```
 
 This is the first explicit reactive binding; dependency inference, keyed

@@ -420,8 +420,13 @@ struct RsxInput {
 
 struct RsxNode {
     tag: syn::Ident,
-    attributes: Vec<(syn::Ident, syn::LitStr)>,
+    attributes: Vec<(syn::Ident, RsxAttributeValue)>,
     children: Vec<RsxChild>,
+}
+
+enum RsxAttributeValue {
+    Literal(syn::LitStr),
+    Expression(Expr),
 }
 
 enum RsxChild {
@@ -449,7 +454,16 @@ impl Parse for RsxNode {
         while !input.peek(Token![>]) {
             let name: syn::Ident = input.parse()?;
             input.parse::<Token![=]>()?;
-            attributes.push((name, input.parse()?));
+            let value = if input.peek(syn::LitStr) {
+                RsxAttributeValue::Literal(input.parse()?)
+            } else if input.peek(syn::token::Brace) {
+                let content;
+                braced!(content in input);
+                RsxAttributeValue::Expression(content.parse()?)
+            } else {
+                return Err(input.error("expected a string literal or braced RSX attribute expression"));
+            };
+            attributes.push((name, value));
         }
         input.parse::<Token![>]>()?;
         let mut children = Vec::new();
@@ -497,7 +511,21 @@ fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
     let tag = node.tag.to_string();
     let attributes = node.attributes.iter().map(|(name, value)| {
         let name = name.to_string();
-        quote! { __voo_element = __voo_element.attribute(#name, #value)?; }
+        match value {
+            RsxAttributeValue::Literal(value) => quote! { __voo_element = __voo_element.attribute(#name, #value)?; },
+            RsxAttributeValue::Expression(expression) => {
+                if let Expr::MethodCall(call) = expression {
+                    if call.method == "get" && call.args.is_empty() {
+                        let receiver = &call.receiver;
+                        quote! { __voo_element.bind_attribute(#name, &(#receiver))?; }
+                    } else {
+                        quote! { __voo_element = __voo_element.attribute(#name, &::std::format!("{}", #expression))?; }
+                    }
+                } else {
+                    quote! { __voo_element = __voo_element.attribute(#name, &::std::format!("{}", #expression))?; }
+                }
+            }
+        }
     });
     let children = node.children.iter().map(|child| match child {
         RsxChild::Node(child) => {

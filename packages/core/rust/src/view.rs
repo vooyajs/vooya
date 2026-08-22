@@ -94,6 +94,23 @@ impl ViewElement {
         self.cleanup.defer(move || drop(subscription));
     }
 
+    /// Bind an attribute value to a signal and release the subscription with
+    /// the owning element.
+    pub fn bind_attribute<T>(&self, name: &str, signal: &Signal<T>) -> Result<(), JsValue>
+    where
+        T: Clone + ::core::fmt::Display + 'static,
+    {
+        let signal = signal.clone();
+        self.element.set_attribute(name, &signal.get().to_string())?;
+        let element = self.clone();
+        let name = name.to_owned();
+        let subscription: SignalSubscription<T> = signal.clone().subscribe(effect(move || {
+            let _ = element.element.set_attribute(&name, &signal.get().to_string());
+        }));
+        self.cleanup.defer(move || drop(subscription));
+        Ok(())
+    }
+
     pub fn as_element(&self) -> &Element {
         &self.element
     }
