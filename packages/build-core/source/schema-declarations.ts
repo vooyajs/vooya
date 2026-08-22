@@ -66,6 +66,20 @@ export function rustTypeToTypeScript(type: string): string {
   throw new Error(`Unsupported Rust schema type "${type}".`);
 }
 
+/** Runtime constructor category used by framework adapters for the same ABI. */
+export function rustTypeToRuntimeType(type: string): "number" | "bigint" | "boolean" | "string" | "array" | "object" {
+  const normalized = type.replace(/\s+/g, "");
+  const option = unwrapGeneric(normalized, "Option");
+  if (option) return rustTypeToRuntimeType(option);
+  if (normalized === "bool") return "boolean";
+  if (normalized === "String") return "string";
+  if (/^(?:i8|u8|i16|u16|i32|u32|isize|usize|f32|f64)$/.test(normalized)) return "number";
+  if (/^(?:i64|u64|i128|u128)$/.test(normalized)) return "bigint";
+  if (unwrapGeneric(normalized, "Vec") || (normalized.startsWith("(") && normalized.endsWith(")"))) return "array";
+  if (unwrapGeneric(normalized, "BTreeMap") || unwrapGeneric(normalized, "HashMap") || /^[A-Z][A-Za-z0-9_:]*$/.test(normalized)) return "object";
+  throw new Error(`Unsupported Rust runtime type "${type}".`);
+}
+
 function unwrapGeneric(type: string, name: string): string | undefined {
   const prefix = `${name}<`;
   return type.startsWith(prefix) && type.endsWith(">") ? type.slice(prefix.length, -1) : undefined;

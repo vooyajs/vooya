@@ -66,7 +66,7 @@ export interface VooyaComponentDefinition {
   scopeId?: string;
   props: Array<{
     name: string;
-    type: "number" | "boolean" | "string";
+    type: "number" | "bigint" | "boolean" | "string" | "array" | "object";
     required: boolean;
     defaultValue?: unknown;
   }>;
@@ -91,7 +91,14 @@ export function defineVooyaComponent(
   definition: VooyaComponentDefinition,
   loadBindings: VooyaComponentBindingsLoader,
 ) {
-  const constructors = { number: Number, boolean: Boolean, string: String };
+  const constructors: Record<VooyaComponentDefinition["props"][number]["type"], any> = {
+    number: Number,
+    bigint: BigInt,
+    boolean: Boolean,
+    string: String,
+    array: Array,
+    object: Object,
+  };
   const componentProps = Object.fromEntries(
     definition.props.map((prop) => [
       prop.name,

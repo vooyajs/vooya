@@ -82,6 +82,12 @@ The generated module forwards `getSnapshot`, `subscribe`, each `#[voo::action]`,
 and `dispose`. It does not turn a store into a Vue component or create a
 global singleton.
 
+Runtime prop metadata and generated declarations use one shared ABI mapping:
+64/128-bit integers are `bigint`, `Option<T>` is nullable, vectors and tuples
+are arrays, and string-keyed maps and named records are objects. Unsupported
+Rust public types fail at the build boundary instead of receiving an
+inaccurate framework prop constructor.
+
 The composable mirrors `getSnapshot()` after each `subscribe()` notification;
 it does not deep-proxy the Rust state or invent a second notification queue.
 `disposeOnUnmount` is explicit because a store may be shared by multiple Vue

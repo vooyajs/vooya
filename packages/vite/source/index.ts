@@ -15,6 +15,7 @@ import {
   buildRustComponentContracts,
   indexVooyaSchema,
   writeRustSchemaDeclarations,
+  rustTypeToRuntimeType,
   writeVooDeclarations,
 } from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
@@ -342,7 +343,7 @@ export function generateRustVueModule(contract) {
     name,
     props: props.map((prop) => ({
       name: prop.name,
-      type: rustJavascriptType(prop.type),
+      type: rustTypeToRuntimeType(prop.type),
       required: !/^Option\s*</.test(prop.type.replace(/\s+/g, "")),
     })),
     events: events.map((event) => ({ name: event.name, parameters: event.params.map((parameter) => parameter.name) })),
@@ -431,14 +432,6 @@ export async function create${name}Store() {
 export default create${name}Store;
 export const metadata = ${JSON.stringify({ name, actions: store.actions, snapshot: store.snapshot ?? null })};
 `;
-}
-
-function rustJavascriptType(type) {
-  const normalized = type.replace(/\s+/g, "");
-  if (/^(?:bool)$/.test(normalized)) return "boolean";
-  if (/^(?:String)$/.test(normalized) || /^Option<String>$/.test(normalized)) return "string";
-  if (/^(?:i|u|f)(?:8|16|32|64|128|size)$/.test(normalized)) return "number";
-  throw new Error(`Unsupported Rust-file Vue prop type "${type}" in the runtime adapter.`);
 }
 
 function rustStem(name) {
