@@ -1,4 +1,15 @@
 use vooya as voo;
+use std::collections::BTreeMap;
+
+#[derive(voo::FromJs, voo::ToJs, PartialEq, Clone)]
+struct AbiV1Values {
+    small: u32,
+    precise: u128,
+    optional: Option<String>,
+    pair: (u32, Option<String>),
+    values: Vec<u32>,
+    labels: BTreeMap<String, u64>,
+}
 
 #[derive(voo::FromJs, voo::ToJs)]
 pub struct CartLine {
@@ -64,6 +75,7 @@ pub fn CartPanel(
 
 #[test]
 fn role_macros_compile_for_public_roots() {
+    let _ = core::any::TypeId::of::<AbiV1Values>();
     let mut cart = Cart;
     cart.add(1);
     cart.checked_add(1).unwrap();
