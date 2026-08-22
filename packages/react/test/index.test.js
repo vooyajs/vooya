@@ -71,7 +71,7 @@ test("re-applies a declared default when a prop is later removed", async () => {
   await act(async () => root.unmount());
 });
 
-test("prefers the atomic update entry point when a handle provides it", async () => {
+test("uses the atomic update entry point for changed props", async () => {
   const definition = {
     abiVersion: 1,
     name: "Atomic",
@@ -86,18 +86,18 @@ test("prefers the atomic update entry point when a handle provides it", async ()
     second: 1,
   }, (values) => ({
     dispose() {},
-    update(key, value) {
-      updates.push([key, value]);
+    updateProps(values) {
+      updates.push(values);
     },
     update_first() {
-      throw new Error("legacy update should not be selected");
+      throw new Error("per-property fallback should not be selected");
     },
   }));
 
   await act(async () => {
     root.render(createElement(Component, { first: "b", second: 2 }));
   });
-  assert.deepEqual(updates, [["first", "b"], ["second", 2]]);
+  assert.deepEqual(updates, [{ first: "b", second: 2 }]);
   await act(async () => root.unmount());
 });
 

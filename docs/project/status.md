@@ -81,9 +81,10 @@ prerelease.
 - Rust store schema/declarations, the generated `.rs` store module, and the Vue
   composable are available; Vue and React browser-level store interaction are
   covered by `test:rust-vue` and `test:rust-react`.
-- The public `vooya` Cargo authoring crate is currently resolved from the
-  coordinated source checkout; packaging it as a standalone published Rust
-  authoring artifact is a separate release task.
+- The public `vooya` Cargo authoring crate is copied into the packed
+  `@vooya/core` source bundle during the package build, so clean npm consumers
+  can compile `.rs` files without a checkout of this repository. It is not a
+  separately published Rust crate.
 - Reactive dependencies and cleanup are explicit; `batch` coalesces synchronous
   signal writes, re-entrant effect cycles are suppressed, and opt-in
   `tracked_effect` collects dynamic dependencies. `rsx!` now compiles keyed

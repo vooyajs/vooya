@@ -30,7 +30,6 @@ export interface VooyaComponentDefinition {
 export interface VooyaComponentHandle {
   dispose(): void;
   updateProps?(values: Record<string, unknown>): void;
-  update?(key: string, value: unknown): void;
   [method: string]: unknown;
 }
 
@@ -137,10 +136,8 @@ export function defineVooyaComponent(
             } else {
               for (const prop of definition.props) {
                 if (!Object.hasOwn(changed, prop.name)) continue;
-                const dispatch = handleValue.update;
                 const update = handleValue[`update_${prop.name}`];
-                if (typeof dispatch === "function") dispatch.call(handleValue, prop.name, changed[prop.name]);
-                else if (typeof update === "function") update.call(handleValue, changed[prop.name]);
+                if (typeof update === "function") update.call(handleValue, changed[prop.name]);
               }
             }
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt));

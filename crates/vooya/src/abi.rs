@@ -54,7 +54,11 @@ impl ToJs for &str {
 
 impl FromJs for f64 {
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
-        value.as_f64().ok_or_else(|| abi_error("expected number"))
+        let number = value.as_f64().ok_or_else(|| abi_error("expected number"))?;
+        if !number.is_finite() {
+            return Err(abi_error("expected a finite number"));
+        }
+        Ok(number)
     }
 }
 
@@ -67,7 +71,7 @@ impl ToJs for f64 {
 impl FromJs for f32 {
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         let number = f64::from_js(value)?;
-        if number.is_finite() && (number < f32::MIN as f64 || number > f32::MAX as f64) {
+        if number < f32::MIN as f64 || number > f32::MAX as f64 {
             return Err(abi_error("number is outside f32 range"));
         }
         Ok(number as f32)
