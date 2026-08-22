@@ -5,7 +5,7 @@ use quote::{format_ident, quote};
 use serde_json::{Value, json};
 use syn::{
     Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct,
-    ItemTrait, Lit, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
+    ItemTrait, Lit, LitStr, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
 };
 use syn::spanned::Spanned;
 use syn::{
@@ -86,6 +86,10 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
         Ok(id) => id,
         Err(error) => return error.into_compile_error().into(),
     };
+    let styles = match component_styles(&item.attrs) {
+        Ok(styles) => styles,
+        Err(error) => return error.into_compile_error().into(),
+    };
     let record = json!({
         "version": SCHEMA_VERSION,
         "kind": "component",
@@ -94,6 +98,7 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "group": metadata.group,
         "params": parameters(&item.sig.inputs),
         "return": return_type(&item.sig.output),
+        "styles": styles,
     });
     let schema: proc_macro2::TokenStream = emit_schema(item.clone(), record, "component").into();
     let Some(props_type) = component_parameters(&item) else {
@@ -403,6 +408,50 @@ pub fn action(_attribute: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn snapshot(_attribute: TokenStream, input: TokenStream) -> TokenStream {
     input
+}
+
+/// Declares a stylesheet owned by a Rust-file component. The component macro
+/// consumes the metadata; this attribute itself intentionally leaves the item
+/// unchanged for Rust compilation.
+#[proc_macro_attribute]
+pub fn style(_attribute: TokenStream, input: TokenStream) -> TokenStream {
+    input
+}
+
+struct StyleArgs {
+    path: LitStr,
+    scoped: bool,
+}
+
+impl Parse for StyleArgs {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let path = input.parse::<LitStr>()?;
+        let scoped = if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
+            let marker: syn::Ident = input.parse()?;
+            if marker != "scoped" {
+                return Err(syn::Error::new_spanned(marker, "expected `scoped`"));
+            }
+            true
+        } else {
+            false
+        };
+        if !input.is_empty() {
+            return Err(input.error("unexpected tokens in `voo::style`"));
+        }
+        Ok(Self { path, scoped })
+    }
+}
+
+fn component_styles(attrs: &[Attribute]) -> syn::Result<Vec<Value>> {
+    attrs
+        .iter()
+        .filter(|attribute| attribute.path().is_ident("style"))
+        .map(|attribute| {
+            let args = attribute.parse_args::<StyleArgs>()?;
+            Ok(json!({ "path": args.path.value(), "scoped": args.scoped }))
+        })
+        .collect()
 }
 
 /// Builds the initial DOM-only RSX tree. The first argument is a `View` and

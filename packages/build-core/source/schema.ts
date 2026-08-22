@@ -42,6 +42,12 @@ export interface RustComponentSchema {
   group?: string | null;
   params: RustSchemaParameter[];
   return?: string;
+  styles?: RustStyleDependency[];
+}
+
+export interface RustStyleDependency {
+  path: string;
+  scoped: boolean;
 }
 
 export interface RustStoreSchema {
@@ -245,11 +251,20 @@ function isRecord(value: unknown): value is RustSchemaRecord {
   if (typeof record.version !== "number" || !Number.isInteger(record.version) || typeof record.id !== "string" || typeof record.name !== "string") return false;
   if (record.group !== undefined && record.group !== null && typeof record.group !== "string") return false;
   if (record.kind === "component" && record.return !== undefined && typeof record.return !== "string") return false;
+  if (record.kind === "component" && record.styles !== undefined && !isStyles(record.styles)) return false;
   if (record.kind === "props") return isParameters(record.fields);
   if (record.kind === "events") return isMethods(record.methods);
   if (record.kind === "component") return isParameters(record.params);
   if (record.kind === "store") return isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
   return false;
+}
+
+function isStyles(value: unknown): value is RustStyleDependency[] {
+  return Array.isArray(value) && value.every((item) => {
+    if (!item || typeof item !== "object") return false;
+    const style = item as Record<string, unknown>;
+    return typeof style.path === "string" && typeof style.scoped === "boolean";
+  });
 }
 
 function isParameters(value: unknown): value is RustSchemaParameter[] {

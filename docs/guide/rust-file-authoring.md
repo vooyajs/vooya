@@ -43,6 +43,18 @@ exposes `mount`, an atomic `update_props`, and `dispose` exports; this check
 happens at the build boundary rather than being silently guessed by the Vite
 plugin.
 
+Styles are declared separately and may be repeated on a component:
+
+```rust
+#[voo::component]
+#[voo::style("./Counter.css", scoped)]
+fn Counter(/* ... */) { /* ... */ }
+```
+
+The bundler owns CSS loading, preprocessing, and HMR. `scoped` adds the same
+component scope marker used by the host adapters; CSS is never embedded in
+WASM.
+
 Inside `rsx!`, an expression of the form `{count.get()}` where `count` is a
 `Signal<T>` creates a text or attribute binding. The binding updates
 synchronously and its subscription is released when the owning root is

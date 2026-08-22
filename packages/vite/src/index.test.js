@@ -70,6 +70,44 @@ test("generates a Vue virtual module for a Rust-file component contract", () => 
   assert.match(output, /defineVooyaComponent/);
 });
 
+test("generates scoped Rust-file style imports from schema metadata", () => {
+  const output = generateRustVueModule({
+    component: {
+      version: 1,
+      kind: "component",
+      id: "cart::Cart",
+      name: "Cart",
+      group: "/consumer/src/Cart.rs",
+      params: [],
+      styles: [{ path: "./Cart.css", scoped: true }],
+    },
+    props: undefined,
+    events: undefined,
+  });
+  assert.match(output, /virtual:vooya-rust-style:/);
+  assert.match(output, /scopeId/);
+});
+
+test("loads and scopes Rust-file CSS through the bundler hook", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-rust-style-"));
+  const componentId = resolve(root, "Counter.rs");
+  writeFileSync(resolve(root, "Counter.css"), ".counter { color: red; }");
+  try {
+    const plugin = vooya();
+    const source = `virtual:vooya-rust-style:${encodeURIComponent(JSON.stringify({
+      componentId,
+      name: "Counter",
+      styles: [{ path: "./Counter.css", scoped: true }],
+    }))}`;
+    const resolved = plugin.resolveId(source);
+    const css = plugin.load(resolved);
+    assert.match(css, /data-voo-scope/);
+    assert.match(css, /color: red/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
 test("generates a Vue virtual module for an instance-scoped Rust store", () => {
   const output = generateRustVueStoreModule({
     version: 1,

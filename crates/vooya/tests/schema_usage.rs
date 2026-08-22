@@ -65,6 +65,7 @@ impl Cart {
 
 #[allow(non_snake_case)]
 #[voo::component(id = "schema_usage::CartPanel")]
+#[voo::style("./Cart.css", scoped)]
 pub fn CartPanel(
     view: &voo::View,
     props: CartProps,

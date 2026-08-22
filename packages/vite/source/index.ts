@@ -2,7 +2,7 @@
 // is TypeScript-authored; its Vite hook boundary remains intentionally loose.
 // @ts-nocheck
 import { readFileSync } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
   buildApplication,
   clearToolchainCache,
@@ -24,6 +24,7 @@ import {
   generatedAdapterDefinition,
   generatedComponentBinding,
   parseVooComponent,
+  generatedScopeId,
 } from "@vooya/compiler";
 import { readVooComponents } from "./voo-project.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
@@ -32,6 +33,7 @@ const componentExtension = ".voo";
 const rustExtension = ".rs";
 const runtimeId = "virtual:vooya-runtime";
 const stylePrefix = "virtual:vooya-style:";
+const rustStylePrefix = "virtual:vooya-rust-style:";
 
 export function vooya({
   framework = "vue",
@@ -133,6 +135,7 @@ export function vooya({
     resolveId(source, importer) {
       if (source === runtimeId) return runtimeModule;
       if (source.startsWith(stylePrefix)) return `\0${source}`;
+      if (source.startsWith(rustStylePrefix)) return `\0${source}`;
       if (!importer) return null;
       if (source.endsWith(rustExtension)) return resolve(importer, "..", source);
       if (!source.endsWith(componentExtension)) return null;
@@ -144,10 +147,29 @@ export function vooya({
         const component = parseVooComponent(readFileSync(componentId, "utf8"), componentId);
         return compileVooStyle({ ...component, id: componentId });
       }
+      if (id.startsWith(`\0${rustStylePrefix}`)) {
+        const payload = JSON.parse(decodeURIComponent(id.slice(rustStylePrefix.length + 1)));
+        const componentId = payload.componentId;
+        const componentName = payload.name;
+        const styles = payload.styles ?? [];
+        const content = styles.map((style) => {
+          const stylePath = resolve(dirname(componentId), style.path);
+          return readFileSync(stylePath, "utf8");
+        }).join("\n");
+        const scoped = styles.some((style) => style.scoped);
+        return compileVooStyle({
+          id: componentId,
+          name: componentName,
+          props: [],
+          events: [],
+          rust: { content: "" },
+          style: { content, scoped },
+        });
+      }
       if (id.endsWith(rustExtension)) {
         const contract = findRustContract(rustContracts, id, applicationRoot);
         if (contract) {
-          return generateRustComponentModule(contract, framework);
+          return generateRustComponentModule(contract, framework, id);
         }
         const store = findRustStore(rustStores, id, applicationRoot);
         if (store) {
@@ -323,7 +345,7 @@ function findRustStore(stores, file, applicationRoot) {
   });
 }
 
-export function generateRustComponentModule(contract, framework = "vue") {
+export function generateRustComponentModule(contract, framework = "vue", componentId = contract.component.group) {
   const name = contract.component.name;
   const stem = rustStem(name);
   const mount = `voo_${stem}_mount`;
@@ -331,9 +353,17 @@ export function generateRustComponentModule(contract, framework = "vue") {
   const dispose = `voo_${stem}_dispose`;
   const props = contract.props?.fields ?? [];
   const events = contract.events?.methods ?? [];
+  const styles = contract.component.styles ?? [];
+  const styleImport = styles.length
+    ? `import "${rustStylePrefix}${encodeURIComponent(JSON.stringify({ componentId, name, styles }))}";`
+    : "";
+  const scopeId = styles.some((style) => style.scoped)
+    ? generatedScopeId({ id: componentId, name })
+    : undefined;
   const definition = {
     abiVersion: 1,
     name,
+    ...(scopeId ? { scopeId } : {}),
     props: props.map((prop) => ({
       name: prop.name,
       type: rustTypeToRuntimeType(prop.type),
@@ -344,7 +374,8 @@ export function generateRustComponentModule(contract, framework = "vue") {
   const propAssignments = props.map((prop, index) => `${JSON.stringify(prop.name)}: props[${index}]`).join(", ");
   const updates = props.map((prop) => `update_${rustProperty(prop.name)}(value) { currentProps[${JSON.stringify(prop.name)}] = value; ${update}(handle, currentProps); }`).join(",\n                      ");
   const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
-  return `import init, { ${mount}, ${update}, ${dispose}, voo_abi_version } from "${runtimeId}";
+  return `${styleImport}
+import init, { ${mount}, ${update}, ${dispose}, voo_abi_version } from "${runtimeId}";
 import { defineVooyaComponent } from "${adapter}";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
 
