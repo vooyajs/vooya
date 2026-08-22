@@ -79,7 +79,7 @@ pub fn events(attribute: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(input as ItemFn);
+    let mut item = parse_macro_input!(input as ItemFn);
     let name = item.sig.ident.to_string();
     let function_name = item.sig.ident.clone();
     let metadata = match schema_metadata(attribute, &name, item.span().file()) {
@@ -90,6 +90,18 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
         Ok(styles) => styles,
         Err(error) => return error.into_compile_error().into(),
     };
+    item.attrs.retain(|attribute| {
+        if !attribute.path().is_ident("doc") { return true; }
+        let text = attribute.meta.require_name_value().ok()
+            .and_then(|meta| match &meta.value {
+                Expr::Lit(expression) => match &expression.lit {
+                    Lit::Str(value) => Some(value.value()),
+                    _ => None,
+                },
+                _ => None,
+            });
+        !text.is_some_and(|value| value.starts_with("__voo_style:"))
+    });
     let record = json!({
         "version": SCHEMA_VERSION,
         "kind": "component",
@@ -415,7 +427,10 @@ pub fn snapshot(_attribute: TokenStream, input: TokenStream) -> TokenStream {
 /// unchanged for Rust compilation.
 #[proc_macro_attribute]
 pub fn style(_attribute: TokenStream, input: TokenStream) -> TokenStream {
-    input
+    let args = parse_macro_input!(_attribute as StyleArgs);
+    let marker = format!("__voo_style:{}:{}", args.path.value(), args.scoped);
+    let input: proc_macro2::TokenStream = input.into();
+    quote! { #[doc = #marker] #input }.into()
 }
 
 struct StyleArgs {
@@ -446,10 +461,24 @@ impl Parse for StyleArgs {
 fn component_styles(attrs: &[Attribute]) -> syn::Result<Vec<Value>> {
     attrs
         .iter()
-        .filter(|attribute| attribute.path().is_ident("style"))
-        .map(|attribute| {
-            let args = attribute.parse_args::<StyleArgs>()?;
-            Ok(json!({ "path": args.path.value(), "scoped": args.scoped }))
+        .filter_map(|attribute| {
+            let attribute_name = attribute.path().segments.last().map(|segment| segment.ident.to_string());
+            if attribute_name.as_deref() == Some("style") {
+                return Some(attribute.parse_args::<StyleArgs>()
+                    .map(|args| json!({ "path": args.path.value(), "scoped": args.scoped })));
+            }
+            if !attribute.path().is_ident("doc") { return None; }
+            let text = attribute.meta.require_name_value().ok()
+                .and_then(|meta| match &meta.value {
+                    Expr::Lit(expression) => match &expression.lit {
+                        Lit::Str(value) => Some(value.value()),
+                        _ => None,
+                    },
+                    _ => None,
+                })?;
+            let marker = text.strip_prefix("__voo_style:")?;
+            let (path, scoped) = marker.rsplit_once(':')?;
+            Some(Ok(json!({ "path": path, "scoped": scoped == "true" })))
         })
         .collect()
 }

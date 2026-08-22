@@ -8,10 +8,11 @@ pub struct CounterProps {
 }
 
 #[voo::component]
+#[voo::style("./Counter.css", scoped)]
 pub fn Counter(
     view: &voo::View,
     props: CounterProps,
 ) -> Result<voo::ViewElement, JsValue> {
     let label = format!("Count: {}", props.count);
-    voo::rsx!(view, <button>{label}</button>)
+    voo::rsx!(view, <button class="counter">{label}</button>)
 }

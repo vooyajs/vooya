@@ -30,7 +30,16 @@ async function verifyBrowser() {
     }
     try {
       const body = readFileSync(file);
-      response.setHeader("Content-Type", file.endsWith(".wasm") ? "application/wasm" : file.endsWith(".js") ? "text/javascript" : "text/html");
+      response.setHeader(
+        "Content-Type",
+        file.endsWith(".wasm")
+          ? "application/wasm"
+          : file.endsWith(".js")
+            ? "text/javascript"
+            : file.endsWith(".css")
+              ? "text/css"
+              : "text/html",
+      );
       response.end(body);
     } catch {
       response.writeHead(404).end("not found");
@@ -50,7 +59,11 @@ async function verifyBrowser() {
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Store 0" }).click();
     await page.getByRole("button", { name: "Store 1" }).waitFor();
-    await page.getByRole("button", { name: "Count: 1" }).waitFor();
+    const counter = page.getByRole("button", { name: "Count: 1" });
+    await counter.waitFor();
+    if (await counter.evaluate((element) => getComputedStyle(element).display) !== "flex") {
+      throw new Error("Rust-file scoped CSS was not applied to the component root.");
+    }
     if (errors.length > 0) throw new Error(`Rust-file Vue fixture had browser errors:\n${errors.join("\n")}`);
   } finally {
     await browser.close();

@@ -148,7 +148,7 @@ export function vooya({
         return compileVooStyle({ ...component, id: componentId });
       }
       if (id.startsWith(`\0${rustStylePrefix}`)) {
-        const payload = JSON.parse(decodeURIComponent(id.slice(rustStylePrefix.length + 1)));
+        const payload = JSON.parse(decodeURIComponent(id.slice(rustStylePrefix.length + 1, -4)));
         const componentId = payload.componentId;
         const componentName = payload.name;
         const styles = payload.styles ?? [];
@@ -355,7 +355,7 @@ export function generateRustComponentModule(contract, framework = "vue", compone
   const events = contract.events?.methods ?? [];
   const styles = contract.component.styles ?? [];
   const styleImport = styles.length
-    ? `import "${rustStylePrefix}${encodeURIComponent(JSON.stringify({ componentId, name, styles }))}";`
+    ? `import "${rustStylePrefix}${encodeURIComponent(JSON.stringify({ componentId, name, styles }))}.css";`
     : "";
   const scopeId = styles.some((style) => style.scoped)
     ? generatedScopeId({ id: componentId, name })
