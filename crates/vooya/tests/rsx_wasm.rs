@@ -90,3 +90,26 @@ fn rsx_event_bindings_are_owned_by_the_root() -> Result<(), wasm_bindgen::JsValu
     assert_eq!(count.get(), 1);
     Ok(())
 }
+
+#[wasm_bindgen_test]
+fn owned_children_can_be_reordered_and_replaced() -> Result<(), wasm_bindgen::JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let host = document.create_element("div").unwrap();
+    let view = View::from_host(&host).unwrap();
+    let root = rsx!(view, <div></div>)?;
+    let first = rsx!(view, <span>"first"</span>)?;
+    let second = rsx!(view, <span>"second"</span>)?;
+    root.append(&first)?;
+    root.append(&second)?;
+    root.insert_before(&second, Some(&first))?;
+    assert_eq!(root.as_element().text_content().as_deref(), Some("secondfirst"));
+
+    let replacement = rsx!(view, <span>"replacement"</span>)?;
+    root.replace_child(&second, Some(&replacement))?;
+    assert_eq!(
+        root.as_element().text_content().as_deref(),
+        Some("firstreplacement")
+    );
+    root.remove();
+    Ok(())
+}

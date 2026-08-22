@@ -1,5 +1,5 @@
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
-use web_sys::{CustomEvent, CustomEventInit, Document, Element, Event, EventTarget};
+use web_sys::{CustomEvent, CustomEventInit, Document, Element, Event, EventTarget, Node};
 
 use crate::{Signal, SignalSubscription, effect};
 
@@ -131,6 +131,41 @@ impl ViewElement {
         let child_cleanup = child.cleanup.clone();
         self.cleanup.defer(move || child_cleanup.run());
         self.element.append_child(&child.element).map(|_| ())
+    }
+
+    /// Move an already-owned child before another child without changing its
+    /// cleanup owner. This is the primitive keyed list reconciliation uses for
+    /// stable DOM identity.
+    pub fn insert_before(
+        &self,
+        child: &ViewElement,
+        reference: Option<&ViewElement>,
+    ) -> Result<(), JsValue> {
+        let parent: Node = self.element.clone().unchecked_into();
+        let child: Node = child.element.clone().unchecked_into();
+        let reference = reference.map(|value| value.element.clone().unchecked_into::<Node>());
+        parent.insert_before(&child, reference.as_ref()).map(|_| ())
+    }
+
+    /// Remove one child and release the subscriptions/listeners owned by it.
+    pub fn remove_child(&self, child: &ViewElement) -> Result<(), JsValue> {
+        child.cleanup.run();
+        let parent: Node = self.element.clone().unchecked_into();
+        let child: Node = child.element.clone().unchecked_into();
+        parent.remove_child(&child).map(|_| ())
+    }
+
+    /// Replace one branch root while preserving the parent's cleanup scope.
+    pub fn replace_child(
+        &self,
+        current: &ViewElement,
+        next: Option<&ViewElement>,
+    ) -> Result<(), JsValue> {
+        self.remove_child(current)?;
+        if let Some(next) = next {
+            self.append(next)?;
+        }
+        Ok(())
     }
 
     pub fn mount(&self, host: &Element) -> Result<(), JsValue> {

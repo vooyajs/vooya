@@ -72,6 +72,9 @@ runtime suppresses that re-entrant invocation instead of recursing indefinitely.
 
 Event listeners can use the same owned-root syntax, for example
 `on-click={move |_| count.set(1)}`. The listener is removed with the root.
+The runtime also exposes `insert_before`, `remove_child`, and `replace_child`
+for future branch and keyed-list reconciliation; these APIs preserve the
+child's cleanup ownership while moving or replacing DOM roots.
 This is the first explicit reactive/event binding layer; automatic dependency
 inference, keyed lists, and conditional branch compilation remain under the
 `rsx!` runtime workstream.

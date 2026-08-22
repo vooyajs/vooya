@@ -31,10 +31,15 @@ tasks.update(|items| items.push(task));
 - User input validation is represented as a signal and rendered through an
   accessible `role="alert"` node.
 
+The current Rust-file runtime now also provides synchronous `batch` boundaries,
+owned listener/subscription cleanup, re-entrant effect-cycle protection, and
+DOM child move/replace primitives. These are runtime building blocks; the
+public `rsx!` syntax does not yet compile conditional branches or keyed lists.
+
 ## Non-goals
 
 - Dependency tracking inferred from calls to `get`.
-- Batched scheduling, async resources, cleanup callbacks, or concurrent render.
+- Async resources or concurrent render.
 - A public Rust macro, template parser, or JSX-like syntax.
 - Fine-grained child reconciliation below a keyed row root.
 - Automatic escaping policy beyond the component's use of structured DOM APIs.
