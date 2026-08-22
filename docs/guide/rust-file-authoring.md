@@ -134,13 +134,16 @@ store instance and keeps the Rust ABI behind the generated module:
 ```ts
 import createCartStore from "./Store.rs";
 
-const cartStore = await createCartStore();
+const cartStore = createCartStore();
 const { snapshot, dispatch } = useVooyaStore(cartStore, {
   disposeOnUnmount: true,
 });
 ```
 
-The generated module forwards `getSnapshot`, `subscribe`, each `#[voo::action]`,
+The Vue composable accepts either the resolved store or its Promise. Passing
+the Promise lets a component mount before WASM initialization completes; if it
+unmounts first, the late store is disposed instead of being leaked. The
+generated module forwards `getSnapshot`, `subscribe`, each `#[voo::action]`,
 and `dispose`. It does not turn a store into a Vue component or create a
 global singleton.
 

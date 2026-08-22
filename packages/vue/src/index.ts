@@ -19,34 +19,61 @@ export interface VooyaStore<TSnapshot = unknown> {
 export interface UseVooyaStoreOptions {
   /** Dispose an instance-scoped store when this component unmounts. */
   disposeOnUnmount?: boolean;
+  /** Receive asynchronous store creation failures. */
+  onError?: (cause: unknown) => void;
 }
+
+export type VooyaStoreSource<TSnapshot = unknown> =
+  | VooyaStore<TSnapshot>
+  | PromiseLike<VooyaStore<TSnapshot>>;
 
 /**
  * Consume the framework-neutral Rust store contract from Vue. The store owns
  * state and notification ordering; Vue only mirrors its latest snapshot.
  */
 export function useVooyaStore<TSnapshot>(
-  store: VooyaStore<TSnapshot>,
+  source: VooyaStoreSource<TSnapshot>,
   options: UseVooyaStoreOptions = {},
 ) {
-  const snapshot = shallowRef(store.getSnapshot());
+  const pending = source && typeof source === "object" && "then" in source;
+  const snapshot = shallowRef<TSnapshot | undefined>(
+    pending ? undefined : (source as VooyaStore<TSnapshot>).getSnapshot(),
+  );
+  let store: VooyaStore<TSnapshot> | undefined;
   let unsubscribe: (() => void) | undefined;
+  let active = true;
+  const attach = (resolved: VooyaStore<TSnapshot>) => {
+    if (!active) {
+      resolved.dispose();
+      return;
+    }
+    store = resolved;
+    snapshot.value = resolved.getSnapshot();
+    unsubscribe = resolved.subscribe(() => {
+      snapshot.value = resolved.getSnapshot();
+    });
+  };
   const stop = () => {
+    active = false;
     unsubscribe?.();
     unsubscribe = undefined;
-    if (options.disposeOnUnmount) store.dispose();
+    if (options.disposeOnUnmount) store?.dispose();
+    store = undefined;
   };
 
   onMounted(() => {
-    unsubscribe = store.subscribe(() => {
-      snapshot.value = store.getSnapshot();
-    });
+    if (pending) {
+      Promise.resolve(source).then(attach).catch((cause) => options.onError?.(cause));
+    } else {
+      attach(source as VooyaStore<TSnapshot>);
+    }
   });
   onBeforeUnmount(stop);
 
   return {
     snapshot: readonly(snapshot),
     dispatch(action: string, ...args: unknown[]) {
+      if (!store) throw new Error("Vooya store is not ready.");
       const candidate = store[action];
       if (typeof candidate !== "function") throw new Error(`Unknown Vooya store action "${action}".`);
       return candidate.apply(store, args);

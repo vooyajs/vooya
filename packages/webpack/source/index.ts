@@ -170,6 +170,8 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
       buildMode: compiler.options.mode === "development" ? "development" : "production",
       framework: this.framework,
     });
+    const generationFile = resolve(workspace.cache, "webpack", `${this.instanceId}.generation`);
+    writeIfChanged(generationFile, `${generation}\n`);
     writeVooDeclarations({
       applicationRoot,
       components,
@@ -178,6 +180,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     });
     setBuildState(this.instanceId, {
       runtimeModule: result.runtimeModule,
+      generationFile,
       styleModules: writeGeneratedStyles({
         applicationRoot,
         components,
