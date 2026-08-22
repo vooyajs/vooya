@@ -8,8 +8,9 @@ npm install --save-dev @vooya/vite@alpha
 ```
 
 Configure `vooya({ framework: "react" })` after `@vitejs/plugin-react`, then
-import a `.voo` file as a normal React component. Generated declarations expose
-its props and event callbacks to TypeScript.
+import a Rust-file `.rs` component as a normal React component. Generated
+declarations expose its props and event callbacks to TypeScript. The older
+`.voo` component path remains available during the alpha migration.
 
 Rust-file authoring uses ordinary `.rs` files. A `#[voo::component]` import is
 exposed as a React component, while a `#[voo::store]` import exposes a generated
