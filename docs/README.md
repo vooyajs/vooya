@@ -1,8 +1,10 @@
 # Vooya Documentation
 
-Vooya compiles Rust component implementations from `.voo` files into
-WebAssembly and exposes them through host-framework adapters for use in web
-applications. Vue and React are the current first-party adapters.
+Vooya compiles Rust component and store implementations into WebAssembly and
+exposes them through host-framework adapters for use in web applications. The
+current authoring path uses ordinary `.rs` files; the older `.voo` path remains
+available only for legacy projects and experimental fixtures. Vue and React are
+the current first-party adapters.
 
 This directory is the source of truth for user-facing documentation. It is kept
 as plain Markdown for now so the content can later move into a documentation
@@ -14,8 +16,10 @@ site without changing its structure or URLs unnecessarily.
   and pull request expectations.
 - [Getting started](guide/getting-started.md): install the alpha toolchain and
   run a first component in Vue or React.
-- [Writing `.voo` components](guide/voo-components.md): contracts, Rust
-  lifecycle methods, events, styles, and current type limits.
+- [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
+  schema records, generated bindings, and the Vue/Vite compatibility boundary.
+- [Writing `.voo` components](guide/voo-components.md): the legacy component
+  contract, lifecycle methods, events, styles, and current type limits.
 - [The component boundary](concepts/component-boundary.md): what the host
   framework owns, what WASM owns, and why that boundary exists.
 - [Tooling reference](reference/tooling.md): Vite options, generated files,
@@ -58,7 +62,7 @@ Performance work is recorded separately:
 ## Naming
 
 - **Vooya** is the product and project name.
-- **Voo** is the component file format, using the `.voo` extension.
+- **Voo** is the legacy component file format, using the `.voo` extension.
 - **`@vooya`** is the npm package scope.
 - **`vooya`** is the runtime and public API prefix, such as `vooya()` and
   `data-vooya-host`.

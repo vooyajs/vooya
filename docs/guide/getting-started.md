@@ -1,13 +1,16 @@
 # Getting Started
 
 Vooya currently targets existing Vite `>=7` applications using Vue `>=3.5.2`
-or React `>=19`. Source `.voo` components are compiled on the application
-author's machine, so both the JavaScript and Rust toolchains are required.
+or React `>=19`. Rust-file components and stores use ordinary `.rs` files and
+are compiled on the application author's machine, so both the JavaScript and
+Rust toolchains are required.
 
-This guide covers authoring source `.voo` components. Vooya does not currently
-publish a user-facing precompiled component product. The repository's test-only
-precompiled Vue consumer is build-contract evidence, so the Rust/WASM
-prerequisites below apply to source authoring.
+This guide covers the current `.rs` authoring path. The older `.voo` component
+format remains documented separately for legacy fixtures, but is not the
+recommended starting point. Vooya does not currently publish a user-facing
+precompiled component product. The repository's test-only precompiled Vue
+consumer is build-contract evidence, so the Rust/WASM prerequisites below
+apply to source authoring.
 
 ## Prerequisites
 
@@ -204,50 +207,41 @@ pnpm run build
 
 ## First component
 
-Create `src/Greeting.voo`:
+Create `src/Greeting.rs`:
 
-```voo
-<component name="Greeting">
-props:
-  name: String = "world"
-</component>
-
-<rust>
+```rust
 use wasm_bindgen::JsValue;
+use vooya as voo;
 
-use crate::{View, ViewElement};
-
-pub struct Component {
-    root: ViewElement,
+#[voo::props]
+#[derive(voo::FromJs)]
+pub struct GreetingProps {
+    pub name: String,
 }
 
-impl Component {
-    pub fn update_name(&self, name: String) {
-        self.root.set_text(&format!("Hello, {name}."));
-    }
-
-    pub fn dispose(&mut self) {
-        self.root.remove();
-    }
+#[voo::component]
+#[voo::style("./Greeting.css", scoped)]
+pub fn Greeting(
+    view: &voo::View,
+    props: GreetingProps,
+) -> Result<voo::ViewElement, JsValue> {
+    let label = format!("Hello, {}.", props.name);
+    Ok(voo::rsx!(view, <p class="greeting">{label}</p>)?)
 }
-
-pub fn mount(context: Context) -> Result<Component, JsValue> {
-    let view = View::from_host(&context.host)?;
-    let root = view
-        .element("p")?
-        .class("greeting")
-        .text(&format!("Hello, {}.", context.props.name));
-    root.mount(&context.host)?;
-    Ok(Component { root })
-}
-</rust>
-
-<style scoped>
-.greeting {
-    font-weight: 600;
-}
-</style>
 ```
+
+Create the adjacent `src/Greeting.css`:
+
+```css
+.greeting {
+  font-weight: 600;
+}
+```
+
+The `#[voo::props]` and `#[voo::component]` attributes emit the public schema;
+the Vite plugin generates the host adapter and declaration from that schema.
+The CSS file remains a normal bundler-owned asset. The older `.voo` contract is
+still available for legacy projects, but it is not used by this quickstart.
 
 Import it like a framework component.
 
@@ -255,18 +249,18 @@ Vue:
 
 ```vue
 <script setup lang="ts">
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 </script>
 
 <template>
-  <Greeting />
+  <Greeting name="world" />
 </template>
 ```
 
 React:
 
 ```tsx
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 
 export function App() {
   return <Greeting name="Rust" />;

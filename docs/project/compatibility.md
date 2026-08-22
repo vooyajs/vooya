@@ -8,22 +8,27 @@ SSR and hydration. Each entry is evidence for the named test path only.
 
 | Layer | Minimum version | Status | Evidence and boundary |
 | --- | --- | --- | --- |
-| Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Required by the verified Vite 7/8 path; other bundlers may accept older Node versions, but Vooya does not test a separate lower floor |
-| Vue | `>=3.5.2` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; 3.5.0 and 3.5.1 are outside the supported type boundary; browser fixtures cover 3.5.40 and 3.5.41 |
+| Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Source quickstarts run on Ubuntu + Node 20, macOS + Node 22, Windows + Node 22; the full release gate runs on Ubuntu + Node 22 |
+| Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
-| Vue Vapor | none | Unverified | The current adapter targets standard Vue 3 component lifecycle APIs; Vapor mode has no dedicated build or browser fixture |
+| React 19 Rust-file authoring | Vite 7 | Experimental | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
+| Vue Vapor | Vue 3.6 experimental | Verified, experimental | Vite 8 + Vue 3.6.0-beta.17 mounts a Rust-file component when the app uses Vue's `vaporInteropPlugin`; Vapor remains an upstream Vue opt-in |
 
 ## Verified in local Playwright projects
 
 | Consumer path | Verified behavior | Evidence |
 | --- | --- | --- |
-| Vue 3 source `.voo` | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e` (Vue target) |
-| React 19 source `.voo` | Mount, prop updates, typed events, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e` (React target) |
+| Vue 3 Rust-file component/store | Vite 7 production build, scoped CSS, store action and snapshot-driven component update | `npm run test:rust-vue`; packed source quickstarts run on the OS/Node jobs in `.github/workflows/verify.yml` |
+| React 19 Rust-file component/store | Vite 7 production build, StrictMode mount, store action and snapshot-driven component update | `npm run test:rust-react` |
+| Rust-file Vite development path | Rust source edit, failed rebuild recovery, subsequent successful rebuild, and full reload | `npm run test:rust-hmr` |
+| Rust `rsx!` DOM runtime | Signal text/attribute updates, owned events, conditional `if`/`else`, keyed `for` reorder and DOM identity, disposal | `npm run test:rsx` |
+| Vue 3 legacy `.voo` component | Legacy mount, prop/event/lifecycle and scoped-style regression coverage only | `npm run test:e2e` (Vue target) |
+| React 19 legacy `.voo` component | Legacy mount, prop/event/lifecycle regression coverage only | `npm run test:e2e` (React target) |
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
 | Vue DataGrid | Filter, sort, virtual scroll, local measurement control | `npm run test:e2e` (benchmark target) |
 | Vue Canvas scatter | 150,000-point initial island, point-count update, zoom/reset, no page or console error | `npm run test:e2e:scatter` |
 | Vue precompiled build fixture | Generated WASM in a clean Vite consumer without Rust tooling; mount and prop update | `npm run test:precompiled-vue` |
-| Vue 3 source `.voo` in Firefox | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e:firefox` |
+| Vue 3 legacy `.voo` component in Firefox | Mount, prop updates, typed events, scoped styles, failed-mount cleanup, lifecycle diagnostics, repeated unmount/remount | `npm run test:e2e:firefox` |
 
 ## Verified bundler/toolchain matrix
 
@@ -33,7 +38,8 @@ toolchain; a production smoke does not imply development-server or HMR support.
 
 | Toolchain | Minimum version | Evidence | Boundary |
 | --- | --- | --- | --- |
-| Vite | `>=7` | `npm run test:vite8` | Strict install, production output and browser WASM loading, development mount, Rust dependency rebuilds, full reload, failed-build recovery, and coalesced rapid saves; Vite 8.2.1 is covered by the packed fixture, while Vite 7 remains covered by the repository fixtures and release gate |
+| Vite | `>=7 <9` | `npm run test:vite8` | Vite 8.2.1 is the primary packed compatibility target; Vite 7 remains a required regression path in the repository fixtures and release gate |
+| Vite 8 + Vue Vapor | Vite `8.2.1`; Vue `3.6.0-beta.17` | `npm run test:vite8-vapor` | Rust-file component mounts in a Vapor app with `vaporInteropPlugin`; experimental evidence only |
 | Vite+ | `>=0.2.9` | `npm run test:vite-plus` | Production output and browser WASM loading at 0.2.9 using Vite+'s Vite core alias; the alias currently requires npm legacy peer resolution, and development rebuild and HMR behavior are not claimed |
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Strict packed Vue/React/Rslib/native-Rspack builds, WASM and scoped CSS output, Vue/React Chromium lifecycle checks, mapped Rust diagnostics, failed-build recovery, and `.voo` source rebuild/full reload; configured Rust path dependencies require a dev-server restart after edits; exact fixtures use Rspack 2.1.10 and Rsbuild 2.1.13 |
 | Webpack | `>=5` | `npm run test:webpack` | Packed Vue/React production builds, emitted WASM and scoped CSS, centralized declarations, Chromium mount/update/event/dispose checks, mapped Rust failure recovery, configured Rust path-dependency rebuilds, rapid-save final state, and normal Webpack Dev Server live reload; fixtures cover production output at 5.101.0 and Vue/React browser and watch recovery at 5.109.2 |
@@ -51,8 +57,13 @@ toolchain; a production smoke does not imply development-server or HMR support.
 - Vite+ adds a CLI, runtime/package-manager management, and a Vite core alias;
   it does not remove the need for the normal `vooya()` Vite plugin. Its smoke
   path is intentionally tracked separately from the Vite support promise.
+- The older `.voo` source component path remains available for existing Vite
+  projects and for the explicitly experimental Webpack/Rspack fixtures. It is
+  not the beta default authoring path and is not evidence for Rust-file support.
 - Alpha ABI revisions may be breaking; use one exact coordinated `@vooya`
   package version.
+- Vapor applications must use Vue's Vapor runtime, `createVaporApp`, and
+  `vaporInteropPlugin`; Vooya does not replace that host-framework setup.
 
 ## Updating this matrix
 

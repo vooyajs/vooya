@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use web_sys::{Element, Event, HtmlElement, HtmlInputElement};
 
-use crate::{Effect, effect, signal};
+use crate::{Effect, SignalSubscription, effect, signal};
 
 #[derive(Clone)]
 struct Task {
@@ -37,6 +37,9 @@ pub struct Component {
     root: Element,
     _handlers: Vec<Closure<dyn FnMut(Event)>>,
     _render: Effect,
+    _task_subscription: SignalSubscription<Vec<Task>>,
+    _filter_subscription: SignalSubscription<Filter>,
+    _error_subscription: SignalSubscription<Option<String>>,
 }
 
 impl Component {
@@ -105,9 +108,6 @@ pub fn mount(context: Context) -> Result<Component, JsValue> {
             render_error.get().as_deref(),
         )
     });
-    tasks.subscribe(render.clone());
-    filter.subscribe(render.clone());
-    error.subscribe(render.clone());
     render();
 
     let input: HtmlInputElement = root
@@ -181,10 +181,17 @@ pub fn mount(context: Context) -> Result<Component, JsValue> {
     });
     root.add_event_listener_with_callback("click", click_handler.as_ref().unchecked_ref())?;
 
+    let task_subscription = tasks.subscribe(render.clone());
+    let filter_subscription = filter.subscribe(render.clone());
+    let error_subscription = error.subscribe(render.clone());
+
     Ok(Component {
         root,
         _handlers: vec![add_handler, click_handler],
         _render: render,
+        _task_subscription: task_subscription,
+        _filter_subscription: filter_subscription,
+        _error_subscription: error_subscription,
     })
 }
 

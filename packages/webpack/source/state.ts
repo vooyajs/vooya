@@ -1,5 +1,6 @@
 export interface WebpackBuildState {
   runtimeModule: string;
+  generationFile: string;
   styleModules: Map<string, string>;
   watchedRoots: string[];
 }

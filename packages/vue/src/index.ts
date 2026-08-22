@@ -3,12 +3,87 @@ import {
   h,
   onBeforeUnmount,
   onMounted,
+  readonly,
   ref,
+  shallowRef,
   watch,
 } from "vue";
 
+export interface VooyaStore<TSnapshot = unknown> {
+  getSnapshot(): TSnapshot;
+  subscribe(listener: () => void): () => void;
+  dispose(): void;
+  [action: string]: unknown;
+}
+
+export interface UseVooyaStoreOptions {
+  /** Dispose an instance-scoped store when this component unmounts. */
+  disposeOnUnmount?: boolean;
+  /** Receive asynchronous store creation failures. */
+  onError?: (cause: unknown) => void;
+}
+
+export type VooyaStoreSource<TSnapshot = unknown> =
+  | VooyaStore<TSnapshot>
+  | PromiseLike<VooyaStore<TSnapshot>>;
+
+/**
+ * Consume the framework-neutral Rust store contract from Vue. The store owns
+ * state and notification ordering; Vue only mirrors its latest snapshot.
+ */
+export function useVooyaStore<TSnapshot>(
+  source: VooyaStoreSource<TSnapshot>,
+  options: UseVooyaStoreOptions = {},
+) {
+  const pending = source && typeof source === "object" && "then" in source;
+  const snapshot = shallowRef<TSnapshot | undefined>(
+    pending ? undefined : (source as VooyaStore<TSnapshot>).getSnapshot(),
+  );
+  let store: VooyaStore<TSnapshot> | undefined;
+  let unsubscribe: (() => void) | undefined;
+  let active = true;
+  const attach = (resolved: VooyaStore<TSnapshot>) => {
+    if (!active) {
+      resolved.dispose();
+      return;
+    }
+    store = resolved;
+    snapshot.value = resolved.getSnapshot();
+    unsubscribe = resolved.subscribe(() => {
+      snapshot.value = resolved.getSnapshot();
+    });
+  };
+  const stop = () => {
+    active = false;
+    unsubscribe?.();
+    unsubscribe = undefined;
+    if (options.disposeOnUnmount) store?.dispose();
+    store = undefined;
+  };
+
+  onMounted(() => {
+    if (pending) {
+      Promise.resolve(source).then(attach).catch((cause) => options.onError?.(cause));
+    } else {
+      attach(source as VooyaStore<TSnapshot>);
+    }
+  });
+  onBeforeUnmount(stop);
+
+  return {
+    snapshot: readonly(snapshot),
+    dispatch(action: string, ...args: unknown[]) {
+      if (!store) throw new Error("Vooya store is not ready.");
+      const candidate = store[action];
+      if (typeof candidate !== "function") throw new Error(`Unknown Vooya store action "${action}".`);
+      return candidate.apply(store, args);
+    },
+    unsubscribe: stop,
+  };
+}
+
 export interface VooyaMountError {
-  stage: "load" | "mount";
+  stage: "load" | "mount" | "update" | "dispose";
   cause: unknown;
 }
 
@@ -18,7 +93,7 @@ export interface VooyaComponentDefinition {
   scopeId?: string;
   props: Array<{
     name: string;
-    type: "number" | "boolean" | "string";
+    type: "number" | "bigint" | "boolean" | "string" | "array" | "object";
     required: boolean;
     defaultValue?: unknown;
   }>;
@@ -43,12 +118,19 @@ export function defineVooyaComponent(
   definition: VooyaComponentDefinition,
   loadBindings: VooyaComponentBindingsLoader,
 ) {
-  const constructors = { number: Number, boolean: Boolean, string: String };
+  const constructors = {
+    number: Number,
+    bigint: BigInt,
+    boolean: Boolean,
+    string: String,
+    array: Array,
+    object: Object,
+  };
   const componentProps = Object.fromEntries(
     definition.props.map((prop) => [
       prop.name,
       {
-        type: constructors[prop.type],
+        type: constructors[prop.type] as any,
         required: prop.required,
         ...(Object.hasOwn(prop, "defaultValue") ? { default: prop.defaultValue } : {}),
       },
@@ -120,6 +202,7 @@ export function defineVooyaComponent(
               emitDiagnostic(host.value, definition, "update", elapsedSince(startedAt));
             } catch (cause) {
               emitDiagnostic(host.value, definition, "update", elapsedSince(startedAt), cause);
+              emit("error", { stage: "update", cause });
             }
           },
         );
@@ -137,6 +220,7 @@ export function defineVooyaComponent(
             emitDiagnostic(host.value, definition, "dispose", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(host.value, definition, "dispose", elapsedSince(startedAt), cause);
+            emit("error", { stage: "dispose", cause });
           }
         }
         handle = undefined;

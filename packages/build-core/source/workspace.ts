@@ -5,12 +5,16 @@ import {
   readdirSync,
   rmSync,
   rmdirSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, parse, relative, resolve } from "node:path";
 
 import { generateVooDeclaration } from "@vooya/compiler";
 import type { ParsedComponent } from "@vooya/compiler";
+import { generateRustSchemaDeclaration, generateRustStoreDeclaration } from "./schema-declarations.js";
+import type { RustComponentContract } from "./schema.js";
+import type { RustStoreSchema } from "./schema.js";
 
 export const VOOYA_WORKSPACE_SCHEMA_VERSION = 1;
 
@@ -45,6 +49,14 @@ export interface WriteVooDeclarationsOptions {
 export interface WrittenVooDeclarations {
   typesRoot: string;
   files: string[];
+}
+
+export interface WriteRustSchemaDeclarationsOptions {
+  applicationRoot: string;
+  contracts: RustComponentContract[];
+  stores?: RustStoreSchema[];
+  framework: "vue" | "react";
+  workspaceRoot?: string;
 }
 
 export function resolveVooyaWorkspace(
@@ -164,11 +176,90 @@ export function writeVooDeclarations({
     );
   }
 
-  for (const existing of readGeneratedDeclarations(paths.types)) {
+  for (const existing of readGeneratedDeclarations(paths.types, ".d.voo.ts")) {
     if (!expected.has(existing)) rmSync(existing, { force: true });
   }
   removeEmptyDirectories(paths.types, paths.types);
   return { typesRoot: paths.types, files: [...expected].sort() };
+}
+
+export function writeRustSchemaDeclarations({
+  applicationRoot,
+  contracts,
+  stores,
+  framework,
+  workspaceRoot,
+}: WriteRustSchemaDeclarationsOptions): WrittenVooDeclarations {
+  const application = resolve(applicationRoot);
+  const paths = resolveVooyaWorkspace(application, workspaceRoot);
+  ensureVooyaWorkspace(paths);
+  const expected = new Set<string>();
+  for (const contract of contracts) {
+    const group = contract.component.group;
+    if (!group) throw new Error(`Rust component ${contract.component.name} is missing its source group.`);
+    const sourcePath = resolveRustSchemaGroup(application, group);
+    const sourceRelativePath = relative(application, sourcePath);
+    if (isAbsolute(sourceRelativePath) || sourceRelativePath === ".." || sourceRelativePath.startsWith("../") || sourceRelativePath.startsWith("..\\")) {
+      throw new Error(`Rust component ${contract.component.name} is outside application root ${application}.`);
+    }
+    if (!sourceRelativePath.endsWith(".rs")) throw new Error(`Rust component ${contract.component.name} group must point to an .rs file.`);
+    const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
+    assertPathInside(declarationPath, paths.types);
+    expected.add(declarationPath);
+    writeIfChanged(declarationPath, generateRustSchemaDeclaration({ contract, framework }));
+  }
+  for (const store of stores ?? []) {
+    if (!store.group) throw new Error(`Rust store ${store.name} is missing its source group.`);
+    const sourcePath = resolveRustSchemaGroup(application, store.group);
+    const sourceRelativePath = relative(application, sourcePath);
+    if (isAbsolute(sourceRelativePath) || sourceRelativePath === ".." || sourceRelativePath.startsWith("../") || sourceRelativePath.startsWith("..\\")) {
+      throw new Error(`Rust store ${store.name} is outside application root ${application}.`);
+    }
+    if (!sourceRelativePath.endsWith(".rs")) throw new Error(`Rust store ${store.name} group must point to an .rs file.`);
+    const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
+    assertPathInside(declarationPath, paths.types);
+    expected.add(declarationPath);
+    writeIfChanged(declarationPath, generateRustStoreDeclaration(store, framework));
+  }
+  for (const existing of readGeneratedDeclarations(paths.types, ".d.rs.ts")) {
+    if (!expected.has(existing)) rmSync(existing, { force: true });
+  }
+  removeEmptyDirectories(paths.types, paths.types);
+  return { typesRoot: paths.types, files: [...expected].sort() };
+}
+
+function resolveRustSchemaGroup(application: string, group: string): string {
+  const normalized = group.replaceAll("\\", "/");
+  // Macro spans are recorded after Vooya copies a source into the generated
+  // crate, so generated roots may prefix the authored path with `rust/`.
+  // Keep the original form first, then try the equivalent application path.
+  const suffixes = [
+    normalized,
+    normalized.replace(/^src\/rust\//, ""),
+    normalized.replace(/^rust\//, ""),
+  ];
+  const directCandidates = [
+    isAbsolute(group) ? group : "",
+    resolve(application, group),
+    ...suffixes.map((suffix) => resolve(application, suffix)),
+  ].filter(Boolean);
+  for (const candidate of directCandidates) {
+    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+  }
+  const matches: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true, encoding: "utf8" })) {
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== ".vooya" && entry.name !== "node_modules") visit(path);
+      } else if (entry.isFile() && path.endsWith(".rs") && suffixes.some((suffix) => path.replaceAll("\\", "/").endsWith(suffix))) {
+        matches.push(path);
+      }
+    }
+  };
+  visit(application);
+  if (matches.length === 1) return matches[0];
+  throw new Error(`Could not resolve Rust schema source group "${group}" under ${application}.`);
 }
 
 function readWorkspaceMetadata(
@@ -197,13 +288,13 @@ function removeGeneratedEntries(paths: VooyaWorkspacePaths): void {
   }
 }
 
-function readGeneratedDeclarations(directory: string): string[] {
+function readGeneratedDeclarations(directory: string, suffix: string): string[] {
   if (!existsSync(directory)) return [];
   const files: string[] = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = resolve(directory, entry.name);
-    if (entry.isDirectory()) files.push(...readGeneratedDeclarations(path));
-    else if (entry.isFile() && entry.name.endsWith(".d.voo.ts")) files.push(path);
+    if (entry.isDirectory()) files.push(...readGeneratedDeclarations(path, suffix));
+    else if (entry.isFile() && entry.name.endsWith(suffix)) files.push(path);
   }
   return files;
 }

@@ -64,12 +64,15 @@ not implicit deep proxies. A host update is one atomic patch: decode and
 validate every field, then commit once. Rust asks for a controlled prop change
 by emitting an event.
 
-Static structure is compiled by the macro; the runtime dynamically tracks
-signal reads and updates fine-grained bindings rather than re-running an entire
-component. Signal writes are synchronous. Event handlers, actions, and prop
-patches are transaction boundaries, so bindings deduplicate and commit once.
-Leaving a conditional branch disposes its nodes, listeners, and subscriptions.
-Lists remain keyed because change detection does not establish item identity.
+Static structure is compiled by the macro. The runtime supports explicit
+`Signal::get()` text/attribute bindings, opt-in tracked effects, and keyed list
+reconciliation; all subscriptions and keyed roots are disposed with the owning
+root. Signal writes are synchronous. Event handlers, actions, and prop
+patches are transaction boundaries, so bindings commit without re-running the
+whole component. Leaving a conditional branch disposes its nodes, listeners,
+and subscriptions. Consumers must provide stable keys for list identity;
+change detection does not infer them. Leaving a conditional branch still
+requires an explicit branch owner.
 
 ```rust
 rsx! {
@@ -108,9 +111,11 @@ owned-data fallback; it must not emit inaccurate TypeScript.
 ## Build, schema, and styles
 
 Cargo needs a crate root, but application users do not maintain generated
-`lib.rs`. A configured or authored entry wins; a documented conventional entry
-may be used; otherwise Vooya generates a hidden root under `.vooya/`. Edits
-reuse the module graph; add/remove/move regenerates it.
+`lib.rs`. By default Vooya generates the sole crate root at
+`.vooya/build/src/lib.rs` and owns its module graph. A user-authored root is
+used only when `rust.entry` is explicitly configured; Vooya never changes mode
+merely because `src/lib.rs` happens to exist. Edits reuse the module graph;
+add/remove/move regenerates it.
 
 Macros emit versioned schema records in a WASM custom section. Build tooling
 validates them, uses stable qualified identities rather than source regexes,
@@ -136,9 +141,16 @@ explicit snapshot, cached identity-stable JavaScript output, store-change
 subscription, separate domain notifications, and disposal. Async actions,
 automatic rollback after action errors, and global stores are not v1.
 
+The v1 store factory has no constructor-prop channel: it creates the default
+Rust state. Framework hooks may accept adapter diagnostics/options, while state
+that depends on user input is initialized or changed through explicit actions.
+
 React consumes snapshots with `useSyncExternalStore`; Vue uses a lifecycle-safe
-composable. Neither adapter may invent a different ABI, notification ordering,
-or prop-update model.
+`useVooyaStore` composable. The Vue composable mirrors `getSnapshot()` after
+`subscribe()` notifications and exposes explicit action dispatch; it may
+dispose an instance-scoped store on unmount only when requested. Neither
+adapter may invent a different ABI, notification ordering, or prop-update
+model.
 
 ## Non-goals
 

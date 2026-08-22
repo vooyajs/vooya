@@ -59,15 +59,19 @@ The initial public release will also use exact internal dependency versions.
 
 ## Error model
 
-The host adapters must surface three failures at the component boundary:
+The host adapters must surface these failures at the component boundary:
 
 - WASM fetch or initialization failure.
 - ABI/binding mismatch.
 - Rust mount failure.
+- Rust prop-update failure.
+- Rust disposal failure.
 
 Vue exposes these as an `error` emit; React exposes an `onError` callback. The
 adapter must keep the host element empty after a failed mount and must not leave
-an event listener or handle alive.
+an event listener or handle alive. Update and dispose failures use the same
+channel with their lifecycle phase, while development diagnostics remain
+sanitized and separate from the public error callback.
 
 ## Development instrumentation
 

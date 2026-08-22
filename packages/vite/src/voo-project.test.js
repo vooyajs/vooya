@@ -6,17 +6,15 @@ import test from "node:test";
 
 import { readVooComponents } from "../dist/voo-project.js";
 
-test("does not scan generated build caches for components", () => {
+test("does not scan the generated workspace for components", () => {
   const root = mkdtempSync(resolve(tmpdir(), "vooya-project-"));
   try {
     mkdirSync(resolve(root, "src"));
-    mkdirSync(resolve(root, ".voo-cache"));
     mkdirSync(resolve(root, ".vooya/types"), { recursive: true });
     writeFileSync(
       resolve(root, "src/Counter.voo"),
       '<component name="Counter"></component>\n<rust>\npub struct Component;\n</rust>\n',
     );
-    writeFileSync(resolve(root, ".voo-cache/Broken.voo"), "not a component");
     writeFileSync(resolve(root, ".vooya/types/Generated.voo"), "not a component");
 
     const components = readVooComponents(root);

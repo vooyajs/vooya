@@ -3,5 +3,5 @@
 mod reactive;
 mod view;
 
-pub use reactive::{Effect, Signal, effect, signal};
-pub use view::{EventListener, MountCleanup, View, ViewElement};
+pub use reactive::{Effect, Signal, SignalSubscription, TrackedEffect, batch, effect, signal, tracked_effect};
+pub use view::{ConditionalBranch, EventListener, KeyedChildren, MountCleanup, View, ViewAnchor, ViewElement};

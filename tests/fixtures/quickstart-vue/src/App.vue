@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Greeting from "./Greeting.voo";
+import Greeting from "./Greeting.rs";
 </script>
 
 <template>
-  <Greeting />
+  <Greeting name="world" />
 </template>

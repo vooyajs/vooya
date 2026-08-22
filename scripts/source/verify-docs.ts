@@ -14,6 +14,7 @@ const docsRoot = resolve(root, "docs");
 const files = markdownFiles(docsRoot);
 const failures = [];
 let examples = 0;
+let rustExamples = 0;
 
 for (const file of files) {
   const source = readFileSync(file, "utf8");
@@ -27,12 +28,17 @@ for (const file of files) {
       failures.push(error.message);
     }
   }
+  rustExamples += [...source.matchAll(/```rust\s*\n([\s\S]*?)```/g)]
+    .filter(([, example]) => /#\[voo::component\]/.test(example))
+    .length;
 }
 
-if (examples === 0) failures.push("Documentation must contain at least one parsed .voo example.");
+if (examples === 0 && rustExamples === 0) {
+  failures.push("Documentation must contain a parsed .voo example or a Rust-file component example.");
+}
 if (failures.length > 0) throw new Error(`Documentation verification failed:\n${failures.join("\n")}`);
 
-console.log(`Verified ${files.length} Markdown files, their links, and ${examples} .voo examples.`);
+console.log(`Verified ${files.length} Markdown files, their links, ${examples} .voo examples, and ${rustExamples} Rust-file examples.`);
 
 function markdownFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

@@ -1,7 +1,13 @@
-import { createElement, useEffect, useRef } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 export interface VooyaMountError {
-  stage: "load" | "mount";
+  stage: "load" | "mount" | "update" | "dispose";
   cause: unknown;
 }
 
@@ -11,7 +17,7 @@ export interface VooyaComponentDefinition {
   scopeId?: string;
   props: Array<{
     name: string;
-    type: "number" | "boolean" | "string";
+    type: "number" | "bigint" | "boolean" | "string" | "array" | "object";
     required: boolean;
     defaultValue?: unknown;
   }>;
@@ -23,6 +29,7 @@ export interface VooyaComponentDefinition {
 
 export interface VooyaComponentHandle {
   dispose(): void;
+  updateProps?(values: Record<string, unknown>): void;
   [method: string]: unknown;
 }
 
@@ -85,6 +92,7 @@ export function defineVooyaComponent(
           }
         })
         .catch((cause) => {
+          if (!active) return;
           emitDiagnostic(element, definition, "load", 0, cause);
           props.current.onError?.({ stage: "load", cause });
         });
@@ -103,6 +111,7 @@ export function defineVooyaComponent(
             emitDiagnostic(element, definition, "dispose", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(element, definition, "dispose", elapsedSince(startedAt), cause);
+            props.current.onError?.({ stage: "dispose", cause });
           }
         }
         handle.current = undefined;
@@ -112,17 +121,29 @@ export function defineVooyaComponent(
     useEffect(() => {
       const previous = previousProps.current;
       if (previous) {
+        const handleValue = handle.current;
+        const changed: Record<string, unknown> = {};
         for (const prop of definition.props) {
           const value = resolvePropValue(prop, componentProps);
           if (Object.is(previous[prop.name], value)) continue;
-          const update = handle.current?.[`update_${prop.name}`];
-          if (typeof update !== "function" || !host.current) continue;
+          changed[prop.name] = value;
+        }
+        if (handleValue && host.current && Object.keys(changed).length > 0) {
           const startedAt = performance.now();
           try {
-            update.call(handle.current, value);
+            if (typeof handleValue.updateProps === "function") {
+              handleValue.updateProps(changed);
+            } else {
+              for (const prop of definition.props) {
+                if (!Object.hasOwn(changed, prop.name)) continue;
+                const update = handleValue[`update_${prop.name}`];
+                if (typeof update === "function") update.call(handleValue, changed[prop.name]);
+              }
+            }
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt), cause);
+            props.current.onError?.({ stage: "update", cause });
           }
         }
       }
@@ -138,6 +159,100 @@ export function defineVooyaComponent(
       ...(definition.scopeId ? { "data-voo-scope": definition.scopeId } : {}),
     });
   };
+}
+
+export interface VooyaStore<TSnapshot> {
+  getSnapshot(): TSnapshot;
+  snapshot?(): TSnapshot;
+  subscribe(listener: () => void): (() => void) | void;
+  dispose(): void;
+  [method: string]: unknown;
+}
+
+export interface VooyaStoreOptions {
+  onError?: (cause: unknown) => void;
+  onNotify?: (name: string, payload: unknown) => void;
+}
+
+export type VooyaStoreFactory<TProps, TStore extends VooyaStore<unknown>> = (
+  props: TProps,
+  options?: VooyaStoreOptions,
+) => TStore | Promise<TStore>;
+
+/**
+ * Bridges an instance-scoped Rust store to React's external-store contract.
+ * Store creation is an effect because the WASM module may load asynchronously;
+ * the snapshot remains `undefined` until that instance is ready.
+ */
+export function useVooyaStore<
+  TSnapshot,
+  TProps,
+  TStore extends VooyaStore<TSnapshot>,
+>(
+  factory: (props: TProps, options?: VooyaStoreOptions) => TStore | Promise<TStore>,
+  props: TProps,
+  options: VooyaStoreOptions = {},
+) {
+  const storeRef = useRef<TStore | undefined>(undefined);
+  const listenersRef = useRef(new Set<() => void>());
+  const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
+  const initialPropsRef = useRef(props);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  const subscribe = useCallback((listener: () => void) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+  const getSnapshot = useCallback(() => {
+    const store = storeRef.current;
+    return store?.getSnapshot() ?? store?.snapshot?.();
+  }, []);
+
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  useEffect(() => {
+    let active = true;
+    let createdStore: TStore | undefined;
+    Promise.resolve(factory(initialPropsRef.current, {
+      onError(cause) {
+        optionsRef.current.onError?.(cause);
+      },
+      onNotify(name, payload) {
+        optionsRef.current.onNotify?.(name, payload);
+      },
+    })).then(
+      (store) => {
+        createdStore = store;
+        if (!active) {
+          store.dispose();
+          return;
+        }
+        storeRef.current = store;
+        const unsubscribe = store.subscribe(() => {
+          for (const listener of listenersRef.current) listener();
+        });
+        unsubscribeRef.current = typeof unsubscribe === "function" ? unsubscribe : undefined;
+        for (const listener of listenersRef.current) listener();
+      },
+      (cause) => {
+        if (active) optionsRef.current.onError?.(cause);
+      },
+    );
+
+    return () => {
+      active = false;
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = undefined;
+      const store = storeRef.current ?? createdStore;
+      storeRef.current = undefined;
+      store?.dispose();
+      for (const listener of listenersRef.current) listener();
+    };
+  }, [factory]);
+
+  return { state, store: storeRef.current };
 }
 
 type LifecyclePhase = "load" | "mount" | "update" | "dispose";

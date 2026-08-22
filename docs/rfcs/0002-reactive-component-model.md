@@ -15,7 +15,7 @@ the component's owned DOM subtree.
 ```rust
 let tasks = signal(Vec::<Task>::new());
 let render = effect(move || render(tasks.get()));
-tasks.subscribe(render.clone());
+let _subscription = tasks.subscribe(render.clone());
 
 tasks.update(|items| items.push(task));
 ```
@@ -23,17 +23,25 @@ tasks.update(|items| items.push(task));
 ## Required behavior in this stage
 
 - State changes trigger subscribed effects synchronously.
+- Every subscription returns a disposable handle; dropping it unregisters the
+  effect, including when an earlier effect removes a later one during notify.
 - Components render only inside their Vooya-owned root.
 - Conditional branches are represented by ordinary state-dependent rendering.
 - Lists use stable task IDs as DOM keys and move/reuse keyed row roots.
 - User input validation is represented as a signal and rendered through an
   accessible `role="alert"` node.
 
+The current Rust-file runtime also provides synchronous `batch` boundaries,
+owned listener/subscription cleanup, re-entrant effect-cycle protection, and
+DOM child move/replace primitives. Opt-in dependency tracking is available
+through `tracked_effect`; the public `rsx!` syntax covers keyed `for` loops and
+conditional `if`/`else` branches.
+
 ## Non-goals
 
-- Dependency tracking inferred from calls to `get`.
-- Batched scheduling, async resources, cleanup callbacks, or concurrent render.
-- A public Rust macro, template parser, or JSX-like syntax.
+- Implicit dependency tracking in ordinary `effect` callbacks.
+- Async resources or concurrent render.
+- A broader template language beyond the current `rsx!` forms.
 - Fine-grained child reconciliation below a keyed row root.
 - Automatic escaping policy beyond the component's use of structured DOM APIs.
 

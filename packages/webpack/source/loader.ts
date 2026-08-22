@@ -17,6 +17,10 @@ export default function vooyaWebpackLoader(source) {
       "Vooya Webpack loader ran before its build plugin prepared the Rust/WASM artifact.",
     );
   }
+  // The source module can remain byte-for-byte identical while a Rust
+  // dependency produces a new WASM runtime. Depend on the stable generation
+  // marker so Webpack reruns this loader and points at the latest runtime.
+  this.addDependency(state.generationFile);
   const component = parseVooComponent(source.toString(), this.resourcePath);
   if (component.format !== "source") {
     throw new Error(

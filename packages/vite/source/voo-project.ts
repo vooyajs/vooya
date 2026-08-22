@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { parseVooComponent } from "@vooya/compiler";
 
-const ignoredDirectories = new Set([".git", ".voo-cache", ".vooya", "dist", "node_modules", "target"]);
+const ignoredDirectories = new Set([".git", ".vooya", "dist", "node_modules", "target"]);
 
 export function readVooComponents(root) {
   return readVooFiles(root).map((id) => ({

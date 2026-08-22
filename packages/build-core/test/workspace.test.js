@@ -16,6 +16,7 @@ import {
   cleanVooyaWorkspace,
   ensureVooyaWorkspace,
   resolveVooyaWorkspace,
+  writeRustSchemaDeclarations,
   writeVooDeclarations,
 } from "../dist/workspace.js";
 
@@ -93,6 +94,59 @@ test("rebuilds an incompatible generated workspace and clean preserves unknown f
     cleanVooyaWorkspace(root);
     assert.equal(existsSync(resolve(paths.root, "keep.txt")), true);
     assert.equal(existsSync(paths.metadata), false);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test("writes Rust-file declarations under the central workspace", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-workspace-"));
+  try {
+    const source = resolve(root, "src/components/Cart.rs");
+    mkdirSync(resolve(source, "../"), { recursive: true });
+    writeFileSync(source, "// component");
+    const written = writeRustSchemaDeclarations({
+      applicationRoot: root,
+      framework: "vue",
+      contracts: [{
+        component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", group: "src/components/Cart.rs", params: [] },
+        props: { version: 1, kind: "props", id: "cart::Props", name: "Props", group: "src/components/Cart.rs", fields: [{ name: "total", type: "u128" }] },
+      }],
+    });
+    const declaration = resolve(root, ".vooya/types/src/components/Cart.d.rs.ts");
+    assert.deepEqual(written.files, [declaration]);
+    assert.match(readFileSync(declaration, "utf8"), /total: bigint/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test("writes React store exports into the central declaration", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-workspace-"));
+  try {
+    const source = resolve(root, "src/Store.rs");
+    mkdirSync(resolve(source, "../"), { recursive: true });
+    writeFileSync(source, "// store");
+    const written = writeRustSchemaDeclarations({
+      applicationRoot: root,
+      framework: "react",
+      contracts: [],
+      stores: [{
+        version: 1,
+        kind: "store",
+        id: "cart::Cart",
+        name: "Cart",
+        group: "src/Store.rs",
+        snapshot: "CartSnapshot",
+        actions: [{ name: "add", params: [{ name: "amount", type: "u32" }] }],
+      }],
+    });
+    const declaration = resolve(root, ".vooya/types/src/Store.d.rs.ts");
+    assert.deepEqual(written.files, [declaration]);
+    const code = readFileSync(declaration, "utf8");
+    assert.match(code, /createCartStore/);
+    assert.match(code, /useCart\(options\?: VooyaStoreOptions\)/);
+    assert.doesNotMatch(code, /CartSnapshot = CartSnapshot/);
   } finally {
     rmSync(root, { force: true, recursive: true });
   }

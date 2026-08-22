@@ -4,7 +4,14 @@ import test from "node:test";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { createRustBuildProgress, vooya } from "../dist/index.js";
+import {
+  createRustBuildProgress,
+  generateRustComponentModule,
+  generateRustStoreModule,
+  generateRustVueModule,
+  generateRustVueStoreModule,
+  vooya,
+} from "../dist/index.js";
 
 test("reports stable Rust/WASM build stages with their elapsed duration", () => {
   const messages = [];
@@ -51,97 +58,96 @@ events:
   }
 });
 
-test("delegates Voo component requests to Vite's resolver", async () => {
-  const plugin = vooya();
-  const cases = [
-    {
-      name: "relative import",
-      source: "./Counter.voo",
-      importer: "/project/src/App.vue",
-      resolved: "/project/src/Counter.voo",
-    },
-    {
-      name: "root-relative import",
-      source: "/src/Counter.voo",
-      importer: "/project/src/App.vue",
-      resolved: "/project/src/Counter.voo",
-    },
-    {
-      name: "configured alias",
-      source: "@/Counter.voo",
-      importer: "/project/src/App.vue",
-      resolved: "/project/src/Counter.voo",
-    },
-    {
-      name: "package subpath",
-      source: "@acme/ui/Counter.voo",
-      importer: "/project/src/App.vue",
-      resolved: "/project/node_modules/@acme/ui/Counter.voo",
-    },
-    {
-      name: "queried importer",
-      source: "./Counter.voo",
-      importer: "/project/src/App.vue?vue&type=script&lang.ts",
-      resolved: "/project/src/Counter.voo",
-    },
-  ];
+test("generates a Vue virtual module for a Rust-file component contract", () => {
+  const output = generateRustVueModule({
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", group: "src/Cart.rs", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", group: "src/Cart.rs", fields: [{ name: "count", type: "u32" }] },
+    events: { version: 1, kind: "events", id: "cart::Events", name: "Events", group: "src/Cart.rs", methods: [] },
+  });
+  assert.match(output, /voo_cart_mount/);
+  assert.match(output, /voo_cart_update_props/);
+  assert.match(output, /currentProps/);
+  assert.match(output, /defineVooyaComponent/);
+});
 
-  for (const fixture of cases) {
-    const calls = [];
-    const hookOptions = { ssr: false };
-    const result = await plugin.resolveId.call(
-      {
-        resolve(source, importer, options) {
-          calls.push({ source, importer, options });
-          return Promise.resolve({ id: fixture.resolved });
-        },
-      },
-      fixture.source,
-      fixture.importer,
-      hookOptions,
-    );
+test("generates scoped Rust-file style imports from schema metadata", () => {
+  const output = generateRustVueModule({
+    component: {
+      version: 1,
+      kind: "component",
+      id: "cart::Cart",
+      name: "Cart",
+      group: "/consumer/src/Cart.rs",
+      params: [],
+      styles: [{ path: "./Cart.css", scoped: true }],
+    },
+    props: undefined,
+    events: undefined,
+  });
+  assert.match(output, /virtual:vooya-rust-style:/);
+  assert.match(output, /scopeId/);
+});
 
-    assert.deepEqual(result, { id: fixture.resolved }, fixture.name);
-    assert.deepEqual(calls, [
-      {
-        source: fixture.source,
-        importer: fixture.importer,
-        options: { ...hookOptions, skipSelf: true },
-      },
-    ], fixture.name);
+test("loads and scopes Rust-file CSS through the bundler hook", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-rust-style-"));
+  const componentId = resolve(root, "Counter.rs");
+  writeFileSync(resolve(root, "Counter.css"), ".counter { color: red; }");
+  try {
+    const plugin = vooya();
+    const source = `virtual:vooya-rust-style:${encodeURIComponent(JSON.stringify({
+      componentId,
+      name: "Counter",
+      styles: [{ path: "./Counter.css", scoped: true }],
+    }))}.css`;
+    const resolved = plugin.resolveId(source);
+    const css = plugin.load(resolved);
+    assert.match(css, /data-voo-scope/);
+    assert.match(css, /color: red/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
   }
 });
 
-test("leaves unresolved Voo component requests to Vite's normal diagnostics", async () => {
-  const plugin = vooya();
-  let calls = 0;
-  const result = await plugin.resolveId.call(
-    {
-      resolve() {
-        calls += 1;
-        return null;
-      },
-    },
-    "@/Missing.voo",
-    "/project/src/App.vue",
-  );
-
-  assert.equal(result, null);
-  assert.equal(calls, 1);
+test("generates a Vue virtual module for an instance-scoped Rust store", () => {
+  const output = generateRustVueStoreModule({
+    version: 1,
+    kind: "store",
+    id: "cart::Cart",
+    name: "Cart",
+    group: "src/Cart.rs",
+    snapshot: "CartSnapshot",
+    actions: [{ name: "add", params: [{ name: "quantity", type: "u32" }] }],
+  });
+  assert.match(output, /voo_cart_store_create/);
+  assert.match(output, /voo_cart_store_snapshot/);
+  assert.match(output, /voo_cart_store_add/);
+  assert.match(output, /createCartStore/);
+  assert.match(output, /subscribe\(listener\)/);
 });
 
-test("keeps virtual styles and unrelated requests out of Vite delegation", async () => {
-  const plugin = vooya();
-  const context = {
-    resolve() {
-      throw new Error("unexpected resolver delegation");
-    },
-  };
+test("generates React virtual modules from the same Rust contracts", () => {
+  const component = generateRustComponentModule({
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", group: "src/Cart.rs", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", group: "src/Cart.rs", fields: [{ name: "count", type: "u32" }] },
+    events: { version: 1, kind: "events", id: "cart::Events", name: "Events", group: "src/Cart.rs", methods: [] },
+  }, "react");
+  assert.match(component, /from "@vooya\/react"/);
+  assert.doesNotMatch(component, /currently supports only/);
+  assert.match(component, /updateProps\(values\)/);
 
-  assert.equal(
-    await plugin.resolveId.call(context, "virtual:vooya-style:Counter.voo.css", "/project/src/App.vue"),
-    "\0virtual:vooya-style:Counter.voo.css",
-  );
-  assert.equal(await plugin.resolveId.call(context, "./App.ts", "/project/src/main.ts"), null);
-  assert.equal(await plugin.resolveId.call(context, "./Counter.voo"), null);
+  const store = generateRustStoreModule({
+    version: 1,
+    kind: "store",
+    id: "cart::Cart",
+    name: "Cart",
+    group: "src/Cart.rs",
+    snapshot: "CartSnapshot",
+    actions: [{ name: "add", params: [{ name: "quantity", type: "u32" }] }],
+  }, "react");
+  assert.match(store, /from "@vooya\/react"/);
+  assert.match(store, /useVooyaStore/);
+  assert.match(store, /export function useCart/);
+  assert.match(store, /useVooyaStore\(createCartStore, undefined, options\)/);
+  assert.doesNotMatch(store, /function useCart\(props/);
+  assert.match(store, /createCartStore/);
 });
