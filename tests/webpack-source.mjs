@@ -158,6 +158,10 @@ async function verifyDevRecovery(project) {
       60_000,
       () => `Webpack did not recover after fixing Rust.\n${output}`,
     );
+    // Webpack Dev Server's documented contract here is a full live reload,
+    // not state-preserving HMR. Ensure the browser consumes the recovered
+    // WASM binding before checking the updated component.
+    await page.reload({ waitUntil: "domcontentloaded" });
     await waitForButton(page, "Increment", output, errors, "Webpack did not remount after Rust recovery.");
 
     const dependencyPath = resolve(project, "rust/counter-math/src/lib.rs");

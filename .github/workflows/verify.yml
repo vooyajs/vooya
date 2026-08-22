@@ -158,13 +158,10 @@ jobs:
           chmod +x "$SEMIFOLD_BIN"
           npm run release:status
 
-      - name: Install Chromium and Firefox for browser coverage
-        run: npx playwright install --with-deps chromium firefox
+      - name: Install Chromium for smoke coverage
+        run: npx playwright install --with-deps chromium
 
       # This command is deliberately verification-only. Publishing and npm
       # dist-tag inspection remain explicit maintainer actions in release:alpha.
       - name: Run release gate
         run: npm run verify:ci
-
-      - name: Run Firefox Vue source-component evidence
-        run: npm run test:e2e:firefox

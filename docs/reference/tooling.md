@@ -4,7 +4,7 @@
 
 Vooya packages execute published JavaScript. TypeScript is a repository
 development dependency only: it compiles authoring source during package builds
-and emits the JavaScript that Vite, Node, and the VS Code extension load.
+and emits the JavaScript that Vite, Node, and the supported framework adapters load.
 Installing `@vooya/*` does not require installing TypeScript.
 
 Repository-owned runtime/tooling code is authored in TypeScript. Generated
@@ -203,31 +203,21 @@ npx voo-format --check src
 
 The formatter rejects unknown top-level content rather than discarding it.
 
-## VS Code extension
+## Browser verification
 
-The repository contains the `vooya.voo` extension definition. It associates
-`.voo` files with Voo syntax and embeds the native Rust and CSS TextMate
-grammars.
-
-```sh
-npm run package:editor
-code --install-extension dist/voo-vscode.vsix
-```
-
-The extension provides syntax highlighting, language configuration, and an
-embedded-Rust diagnostics bridge. Run **Vooya: Check Embedded Rust** from the
-Command Palette, or save a `.voo` document, to check its extracted Rust with
-the locally available `rust-analyzer`; diagnostics are mapped back to the
-original `.voo` lines.
-
-This is diagnostics-only. It does not provide rust-analyzer completion,
-navigation, rename, or code actions inside a `.voo` document.
-
-For a clean-checkout editor gate, run:
+The default `npm run test:e2e` command is the short Chromium smoke suite for
+Vue, React, and TaskList. The larger DataGrid, scatter-plot, and trace
+waterfall scenarios are intentionally manual:
 
 ```sh
-npm run test:editor
+npm run test:e2e:extended
+npm run test:e2e:firefox
 ```
+
+Bundler-specific browser checks remain part of the normal release gate because
+they validate Webpack, Rspack, and Vite integration rather than duplicate the
+framework smoke suite.
+
 
 That command installs the extension's lockfile-pinned development dependencies
 before running its bridge and extension-host tests. It requires a local

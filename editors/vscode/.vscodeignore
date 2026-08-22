@@ -1,6 +1,0 @@
-.vscodeignore
-.gitignore
-test
-source
-tsconfig.json
-**/*.vsix

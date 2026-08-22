@@ -279,7 +279,7 @@ APIs when necessary.
 - Rust diagnostics mapped back to `.rs` and legacy `.voo` source lines;
 - crates.io, Git, feature, and watched path dependencies;
 - failed-build recovery and reliable full-page reload after Rust rebuilds;
-- `vooya doctor`, `.voo` formatting, and a VS Code diagnostics extension;
+- `vooya doctor` and `.voo` formatting for transitional projects;
 - browser fixtures for lifecycle cleanup, DataGrid, Canvas scatter, and trace
   waterfall examples;
 - a test-only precompiled Vue consumer proof that runs without Rust tools.

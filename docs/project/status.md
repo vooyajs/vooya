@@ -31,7 +31,6 @@ prerelease.
 - Map extracted Rust diagnostics back to `.rs` source lines.
 - Configure registry, Git, and application-relative path dependencies.
 - Recover from Rust build errors and coalesce rapid development saves.
-- Format legacy `.voo` files and package a VS Code syntax extension.
 - Validate Vue Counter, React Counter, TaskList, and 100,000-row DataGrid flows
   in real browsers.
 - Validate loop-created Rust listeners, cloned event dispatch, and repeated
@@ -95,18 +94,14 @@ prerelease.
   `for` loops and conditional `if`/`else` branches with owned cleanup.
 - Successful Rust HMR performs a full reload and loses component state; the
   Rust-file recovery path is covered by `test:rust-hmr`.
-- The VS Code extension can run an explicit embedded-Rust diagnostics check and
-  checks saved `.voo` documents through a generated local rust-analyzer
-  workspace. It intentionally does not provide rust-analyzer completion,
-  navigation, rename, or code actions inside `.voo` documents.
 - `vooya doctor` is a local diagnostic and deterministic PATH candidate selector,
   not a toolchain installer; it warns when its valid Cargo choice differs from
   the first Cargo on `PATH`.
 - SSR, hydration, slots, and standalone application rendering are out of scope.
 - Alpha ABI revisions can be breaking.
-- The current browser evidence covers the repository's Playwright Chromium
-  project plus one Firefox Vue source-component path; see the
-  [compatibility matrix](compatibility.md).
+- The default CI browser evidence is a small Chromium smoke suite plus the
+  bundler integration fixtures. Extended DataGrid, scatter, trace, and Firefox
+  checks remain available through explicit manual commands.
 
 ## Next milestones
 
@@ -114,13 +109,11 @@ prerelease.
    full declarative trees, keyed updates, and broader effect cleanup.
 2. Design a supported, explicitly named component product on top of the generic
    precompiled Vue producer.
-3. Evaluate editor interactions beyond diagnostics only after their `.voo`
-   source mapping and lifecycle semantics can be specified and tested.
-4. Define state-preserving HMR semantics.
-5. Emit standalone schema records and precise declarations for user-defined
+3. Define state-preserving HMR semantics.
+4. Emit standalone schema records and precise declarations for user-defined
    struct/enum payloads; keep recursive and borrowed values explicitly out of
    the ABI until their ownership model is designed.
-6. Expand the established browser and framework compatibility matrix with
+5. Expand the established browser and framework compatibility matrix with
    named Vue 3.6/Vapor evidence before changing its support claims.
 
 The benchmark result remains deliberately modest: the first 100,000-row case
