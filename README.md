@@ -11,10 +11,12 @@
   <a href="https://deepwiki.com/vooyajs/vooya"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
-Vooya compiles Rust from a `.voo` component into WebAssembly and exposes it
-through host-framework adapters for use in web applications. The application
-shell keeps routing and surrounding UI; Rust owns one isolated component
-surface. Vue and React are the current first-party adapters.
+Vooya compiles Rust component and store files into WebAssembly and exposes
+them through host-framework adapters for use in web applications. New Rust-file
+authoring uses ordinary `.rs` files; the older `.voo` component path remains
+available while the alpha migration is completed. The application shell keeps
+routing and surrounding UI; Rust owns one isolated component surface. Vue and
+React are the current first-party adapters.
 
 ```vue
 <script setup lang="ts">
@@ -31,9 +33,10 @@ Vooya generates the framework adapter, TypeScript declarations, WASM lifecycle,
 event forwarding, and diagnostic mappings.
 
 > [!IMPORTANT]
-> Vooya is a public alpha. Source `.voo` authoring supports Vite `>=7`, with
-> experimental Rspack `>=2.1.10` and Webpack `>=5` paths and a local Rust/WASM
-> toolchain.
+> Vooya is a public alpha. Rust-file (`.rs`) authoring targets Vite `>=7`, with
+> experimental Rspack `>=2.1.10` and Webpack `>=5` paths. The legacy `.voo`
+> source path is retained during the migration. Both paths require a local
+> Rust/WASM toolchain.
 > Published alpha APIs may still change.
 
 ## Why Vooya?
@@ -49,7 +52,7 @@ Vooya is exploring a repeatable component boundary for that work:
 - reuse browser-compatible Rust crates;
 - generate typed props and events;
 - manage mount, updates, failures, and disposal;
-- develop from a single `.voo` component;
+- develop from a single Rust-file component or store;
 - eventually distribute precompiled components whose consumers do not need
   Rust installed.
 
@@ -284,7 +287,8 @@ APIs when necessary.
 
 ## What works today
 
-- source `.voo` components in Vite `>=7`;
+- Rust-file (`.rs`) components and stores in Vite `>=7`;
+- legacy source `.voo` components in Vite `>=7` during the alpha migration;
 - experimental source `.voo` components in Rspack `>=2.1.10` through Rsbuild
   or the first-party Rspack plugin;
 - experimental source `.voo` components in Webpack `>=5`;
