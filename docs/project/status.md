@@ -58,6 +58,8 @@ prerelease.
   factory creation, snapshot reads, subscriptions, actions, and disposal.
 - Reconcile the generated Rust root and copied module tree when `.rs` files are
   added, removed, or renamed.
+- Exercise the DOM-only `rsx!` runtime in Chromium, including signal bindings,
+  owned disposal, conditional branches, and keyed list identity.
 
 ## Current limits
 

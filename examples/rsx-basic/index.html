@@ -12,6 +12,8 @@
       await init();
       const mounted = mount_rsx(document.querySelector("#host"));
       globalThis.disposeRsx = () => mounted.dispose();
+      globalThis.toggleRsx = () => mounted.toggle();
+      globalThis.reorderRsx = () => mounted.reorder();
     </script>
   </body>
 </html>
