@@ -319,7 +319,6 @@ behind these statements.
 
 - [Getting started](docs/guide/getting-started.md)
 - [Rust-file authoring](docs/guide/rust-file-authoring.md)
-- [Writing `.voo` components](docs/guide/voo-components.md)
 - [Component ownership boundary](docs/concepts/component-boundary.md)
 - [Tooling and Rust dependencies](docs/reference/tooling.md)
 - [Project status](docs/project/status.md)

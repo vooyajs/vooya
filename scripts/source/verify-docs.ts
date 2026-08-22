@@ -5,40 +5,27 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// verify:docs builds the compiler package before executing this generated script.
-// @ts-ignore -- dist is generated and intentionally absent from source control.
-import { parseVooComponent } from "../../packages/compiler/dist/index.js";
-
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const docsRoot = resolve(root, "docs");
 const files = markdownFiles(docsRoot);
 const failures = [];
-let examples = 0;
 let rustExamples = 0;
 
 for (const file of files) {
   const source = readFileSync(file, "utf8");
   verifyLinks(file, source);
 
-  for (const [index, match] of [...source.matchAll(/```voo\s*\n([\s\S]*?)```/g)].entries()) {
-    try {
-      parseVooComponent(match[1], `${file}#voo-${index + 1}`);
-      examples += 1;
-    } catch (error) {
-      failures.push(error.message);
-    }
-  }
   rustExamples += [...source.matchAll(/```rust\s*\n([\s\S]*?)```/g)]
     .filter(([, example]) => /#\[voo::component\]/.test(example))
     .length;
 }
 
-if (examples === 0 && rustExamples === 0) {
-  failures.push("Documentation must contain a parsed .voo example or a Rust-file component example.");
+if (rustExamples === 0) {
+  failures.push("Documentation must contain a Rust-file component example.");
 }
 if (failures.length > 0) throw new Error(`Documentation verification failed:\n${failures.join("\n")}`);
 
-console.log(`Verified ${files.length} Markdown files, their links, ${examples} .voo examples, and ${rustExamples} Rust-file examples.`);
+console.log(`Verified ${files.length} Markdown files, their links, and ${rustExamples} Rust-file examples.`);
 
 function markdownFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

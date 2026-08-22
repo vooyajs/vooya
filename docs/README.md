@@ -2,9 +2,8 @@
 
 Vooya compiles Rust component and store implementations into WebAssembly and
 exposes them through host-framework adapters for use in web applications. The
-current authoring path uses ordinary `.rs` files; the older `.voo` path remains
-available only for legacy projects and experimental fixtures. Vue and React are
-the current first-party adapters.
+current authoring path uses ordinary `.rs` files. Vue and React are the current
+first-party adapters.
 
 This directory is the source of truth for user-facing documentation. It is kept
 as plain Markdown for now so the content can later move into a documentation
@@ -18,8 +17,6 @@ site without changing its structure or URLs unnecessarily.
   run a first component in Vue or React.
 - [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
   schema records, generated bindings, and the Vue/Vite compatibility boundary.
-- [Writing `.voo` components](guide/voo-components.md): the legacy component
-  contract, lifecycle methods, events, styles, and current type limits.
 - [The component boundary](concepts/component-boundary.md): what the host
   framework owns, what WASM owns, and why that boundary exists.
 - [Tooling reference](reference/tooling.md): Vite options, generated files,
@@ -49,7 +46,6 @@ next available number.
 - [RFC 0001: component islands](rfcs/0001-component-islands.md)
 - [RFC 0002: reactive component model](rfcs/0002-reactive-component-model.md)
 - [RFC 0003: first public alpha](rfcs/0003-production-readiness.md)
-- [RFC 0004: `.voo` compiler boundary](rfcs/0004-compiler-boundary.md)
 - [RFC 0005: island events and lifecycle diagnostics](rfcs/0005-island-events-lifecycle-diagnostics.md)
 - [RFC 0006: precompiled Vue artifacts](rfcs/0006-precompiled-vue-artifacts.md)
 - [RFC 0007: Rust-file authoring and ABI v1](rfcs/0007-rust-file-authoring-and-abi-v1.md)
