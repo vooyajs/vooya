@@ -158,6 +158,7 @@ async function verifyDevRecovery(project) {
       60_000,
       () => `Webpack did not recover after fixing Rust.\n${output}`,
     );
+    await page.reload({ waitUntil: "domcontentloaded" });
     await waitForButton(page, "Increment", output, errors, "Webpack did not remount after Rust recovery.");
 
     const dependencyPath = resolve(project, "rust/counter-math/src/lib.rs");
@@ -171,6 +172,7 @@ async function verifyDevRecovery(project) {
       60_000,
       () => `Webpack did not rebuild after the path dependency changed.\n${output}`,
     );
+    await page.reload({ waitUntil: "domcontentloaded" });
     await waitForButton(page, "Increment dependency", output, errors, "Webpack did not expose the rebuilt path dependency.");
 
     const successesBeforeRapidSave = successfulBuildCount(output);
@@ -187,6 +189,7 @@ async function verifyDevRecovery(project) {
       60_000,
       () => `Webpack did not rebuild after rapid dependency saves.\n${output}`,
     );
+    await page.reload({ waitUntil: "domcontentloaded" });
     await waitForButton(page, "Increment final", output, errors, "Webpack did not expose the final rapid-save result.");
 
     const unexpected = errors.filter(

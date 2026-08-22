@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "allowArbitraryExtensions": true,
+    "baseUrl": ".",
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": { "@components/*": [".vooya/types/src/*", "src/*"] },
     "rootDirs": [".", ".vooya/types"],
     "strict": true,
     "target": "ES2020"
