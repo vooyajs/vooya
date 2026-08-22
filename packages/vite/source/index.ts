@@ -243,9 +243,7 @@ export function vooya({
       });
       server.httpServer?.once("close", () => buildScheduler?.dispose());
     },
-    // Vite 7 uses `hotUpdate`; keep the legacy hook for Vite 6 consumers.
     hotUpdate: handleVooyaHotUpdate,
-    handleHotUpdate: handleVooyaHotUpdate,
   };
 }
 
