@@ -82,7 +82,9 @@ prerelease.
 - The public `vooya` Cargo authoring crate is currently resolved from the
   coordinated source checkout; packaging it as a standalone published Rust
   authoring artifact is a separate release task.
-- Reactive dependencies and cleanup are explicit and minimal.
+- Reactive dependencies and cleanup are explicit; `batch` coalesces synchronous
+  signal writes, while automatic dependency collection and declarative branch
+  rendering remain under the RSX workstream.
 - Successful Rust HMR performs a full reload and loses component state; the
   Rust-file recovery path is covered by `test:rust-hmr`.
 - The VS Code extension can run an explicit embedded-Rust diagnostics check and
