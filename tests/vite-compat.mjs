@@ -37,6 +37,19 @@ const targets = {
     build: ["node_modules/vite-plus/bin/vp", "build"],
     dev: ["node_modules/vite-plus/bin/vp", "dev"],
   },
+  "vite8-vue36-vapor": {
+    label: "Vite 8 + Vue 3.6 Vapor",
+    version: "8.2.1",
+    vueVersion: "3.6.0-beta.17",
+    fixture: "quickstart-vue",
+    vapor: true,
+    install: [],
+    overrides: {},
+    build: ["node_modules/vite/bin/vite.js", "build"],
+    dev: ["node_modules/vite/bin/vite.js"],
+    selector: ".greeting",
+    expectedText: "Hello, world.",
+  },
 };
 const target = targets[targetName];
 if (!target) throw new Error(`Unknown Vite compatibility target: ${targetName}`);
@@ -62,10 +75,25 @@ try {
     plugin: pack("@vooya/vite"),
     vue: pack("@vooya/vue"),
   };
-  cpSync(resolve(repositoryRoot, "tests/fixtures/portable-vue"), project, { recursive: true });
+  cpSync(resolve(repositoryRoot, `tests/fixtures/${target.fixture ?? "portable-vue"}`), project, { recursive: true });
+  if (target.vapor) {
+    const configPath = resolve(project, "vite.config.js");
+    const config = readFileSync(configPath, "utf8")
+      .replace("vue()", "vue({ features: { vapor: true } })")
+      .replace(
+        "plugins: [vue({ features: { vapor: true } }), vooya()]",
+        'resolve: { alias: { vue: new URL("./node_modules/vue/dist/vue.runtime-with-vapor.esm-browser.js", import.meta.url).pathname } },\n  plugins: [vue({ features: { vapor: true } }), vooya()]',
+      );
+    writeFileSync(configPath, config);
+    const entryPath = resolve(project, "src/main.js");
+    const entry = readFileSync(entryPath, "utf8")
+      .replace("{ createApp }", "{ createVaporApp, vaporInteropPlugin }")
+      .replace("createApp(App).mount", "createVaporApp(App).use(vaporInteropPlugin).mount");
+    writeFileSync(entryPath, entry);
+  }
   configureProject(packages);
   const installArguments = ["install", "--ignore-scripts", "--no-audit", "--no-fund"];
-  if (targetName === "vite-plus") installArguments.push("--legacy-peer-deps");
+  if (targetName === "vite-plus" || target.vapor) installArguments.push("--legacy-peer-deps");
   installArguments.push(...target.install);
   run("npm", installArguments, project);
 
@@ -107,12 +135,12 @@ function configureProject(packages) {
   const manifestPath = resolve(project, "package.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   manifest.dependencies = {
-    vue: "3.5.2",
+    vue: target.vueVersion ?? "3.5.2",
     "@vooya/vue": `file:${packages.vue}`,
   };
   manifest.devDependencies = {
     "@vitejs/plugin-vue": "6.0.8",
-    vite: targetName === "vite8" ? target.version : "npm:@voidzero-dev/vite-plus-core@0.2.9",
+    vite: targetName === "vite-plus" ? "npm:@voidzero-dev/vite-plus-core@0.2.9" : target.version,
     "@vooya/compiler": `file:${packages.compiler}`,
     "@vooya/core": `file:${packages.core}`,
     "@vooya/build-core": `file:${packages.buildCore}`,
@@ -120,7 +148,7 @@ function configureProject(packages) {
     ...(target.install.length ? { "vite-plus": target.version } : {}),
   };
   if (Object.keys(target.overrides).length > 0) manifest.overrides = target.overrides;
-  manifest.scripts = { build: targetName === "vite8" ? "vite build" : "vp build" };
+  manifest.scripts = { build: targetName === "vite-plus" ? "vp build" : "vite build" };
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
@@ -156,7 +184,7 @@ async function exerciseProductionBuild() {
   });
   page.on("pageerror", (error) => browserErrors.push(error.message));
   await page.goto(`http://127.0.0.1:${port}`);
-  await expectText(page, "6");
+  await expectText(page, target.expectedText ?? "6");
   await page.close();
   if (browserErrors.length > 0) {
     throw new Error(`${target.label} production browser errors:\n${browserErrors.join("\n")}`);
@@ -188,7 +216,7 @@ async function exerciseDevelopmentServer() {
     }
   });
   await page.goto(`http://127.0.0.1:${port}`);
-  await expectText(page, "6");
+  await expectText(page, target.expectedText ?? "6");
   if (browserWarnings.length > 0) {
     throw new Error(`${target.label} leaked Node-only modules into the browser:\n${browserWarnings.join("\n")}`);
   }
@@ -263,7 +291,7 @@ function collectOutput(chunk) {
 }
 
 async function expectText(page, expected) {
-  await page.locator(".portable-counter").getByText(expected, { exact: true }).waitFor({ timeout: 30_000 });
+  await page.locator(target.selector ?? ".portable-counter").getByText(expected, { exact: true }).waitFor({ timeout: 30_000 });
 }
 
 async function waitForServer(url) {

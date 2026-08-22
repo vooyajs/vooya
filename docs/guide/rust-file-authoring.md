@@ -217,9 +217,10 @@ it does not deep-proxy the Rust state or invent a second notification queue.
 components. The generated TypeScript declaration describes the same
 `getSnapshot/subscribe/action/dispose` boundary.
 
-The initial Vite integration targets Vue 3.5+, React 19+, and Vite 7/8. Vue 3.6 Vapor is
-an explicit compatibility target, but remains experimental until a dedicated
-Vapor fixture passes the same mount, update, event, and disposal checks.
+The initial Vite integration targets Vue 3.5+, React 19+, and Vite 7/8. Vue 3.6
+Vapor is experimentally verified with the Vue runtime's `vaporInteropPlugin`.
+Vapor setup remains a Vue concern: use `createVaporApp`, the Vapor runtime
+build, and `vaporInteropPlugin` in the host application.
 
 ## Generated files
 
