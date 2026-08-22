@@ -56,7 +56,7 @@ export function useVooyaStore<TSnapshot>(
 }
 
 export interface VooyaMountError {
-  stage: "load" | "mount";
+  stage: "load" | "mount" | "update" | "dispose";
   cause: unknown;
 }
 
@@ -175,6 +175,7 @@ export function defineVooyaComponent(
               emitDiagnostic(host.value, definition, "update", elapsedSince(startedAt));
             } catch (cause) {
               emitDiagnostic(host.value, definition, "update", elapsedSince(startedAt), cause);
+              emit("error", { stage: "update", cause });
             }
           },
         );
@@ -192,6 +193,7 @@ export function defineVooyaComponent(
             emitDiagnostic(host.value, definition, "dispose", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(host.value, definition, "dispose", elapsedSince(startedAt), cause);
+            emit("error", { stage: "dispose", cause });
           }
         }
         handle = undefined;

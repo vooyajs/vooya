@@ -7,7 +7,7 @@ import {
 } from "react";
 
 export interface VooyaMountError {
-  stage: "load" | "mount";
+  stage: "load" | "mount" | "update" | "dispose";
   cause: unknown;
 }
 
@@ -112,6 +112,7 @@ export function defineVooyaComponent(
             emitDiagnostic(element, definition, "dispose", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(element, definition, "dispose", elapsedSince(startedAt), cause);
+            props.current.onError?.({ stage: "dispose", cause });
           }
         }
         handle.current = undefined;
@@ -145,6 +146,7 @@ export function defineVooyaComponent(
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt));
           } catch (cause) {
             emitDiagnostic(host.current, definition, "update", elapsedSince(startedAt), cause);
+            props.current.onError?.({ stage: "update", cause });
           }
         }
       }

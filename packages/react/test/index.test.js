@@ -101,6 +101,42 @@ test("prefers the atomic update entry point when a handle provides it", async ()
   await act(async () => root.unmount());
 });
 
+test("reports update and dispose failures through the lifecycle error channel", async () => {
+  const errors = [];
+  const definition = {
+    abiVersion: 1,
+    name: "LifecycleErrors",
+    props: [{ name: "value", type: "number", required: true }],
+    events: [],
+  };
+  const Component = defineVooyaComponent(definition, async () => ({
+    mount() {
+      return {
+        updateProps() {
+          throw new Error("update failed");
+        },
+        dispose() {
+          throw new Error("dispose failed");
+        },
+      };
+    },
+  }));
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  await act(async () => root.render(createElement(Component, {
+    value: 1,
+    onError(error) { errors.push(error); },
+  })));
+  await act(async () => root.render(createElement(Component, {
+    value: 2,
+    onError(error) { errors.push(error); },
+  })));
+  await act(async () => root.unmount());
+
+  assert.deepEqual(errors.map((error) => error.stage), ["update", "dispose"]);
+});
+
 test("does not mount a binding that resolves after React unmounts", async () => {
   const definition = {
     abiVersion: 1,
