@@ -101,6 +101,6 @@ fn rsx_signal_tree_compiles(
     count: &voo::Signal<u32>,
 ) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
     voo::rsx!(view,
-        <span data_count={count.get()}>{count.get()}</span>
+        <span data-count={count.get()}>{count.get()}</span>
     )
 }

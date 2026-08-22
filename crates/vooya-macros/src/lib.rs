@@ -420,7 +420,7 @@ struct RsxInput {
 
 struct RsxNode {
     tag: syn::Ident,
-    attributes: Vec<(syn::Ident, RsxAttributeValue)>,
+    attributes: Vec<(String, RsxAttributeValue)>,
     children: Vec<RsxChild>,
 }
 
@@ -452,7 +452,14 @@ impl Parse for RsxNode {
         let tag: syn::Ident = input.parse()?;
         let mut attributes = Vec::new();
         while !input.peek(Token![>]) {
-            let name: syn::Ident = input.parse()?;
+            let first: syn::Ident = input.parse()?;
+            let mut name = first.to_string();
+            while input.peek(Token![-]) {
+                input.parse::<Token![-]>()?;
+                let segment: syn::Ident = input.parse()?;
+                name.push('-');
+                name.push_str(&segment.to_string());
+            }
             input.parse::<Token![=]>()?;
             let value = if input.peek(syn::LitStr) {
                 RsxAttributeValue::Literal(input.parse()?)
@@ -510,7 +517,6 @@ fn is_closing_tag(input: ParseStream<'_>) -> syn::Result<bool> {
 fn expand_rsx_node(node: &RsxNode, view: &Expr) -> proc_macro2::TokenStream {
     let tag = node.tag.to_string();
     let attributes = node.attributes.iter().map(|(name, value)| {
-        let name = name.to_string();
         match value {
             RsxAttributeValue::Literal(value) => quote! { __voo_element = __voo_element.attribute(#name, #value)?; },
             RsxAttributeValue::Expression(expression) => {

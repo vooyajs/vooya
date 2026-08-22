@@ -50,7 +50,7 @@ removed:
 
 ```rust
 let count = voo::signal(0u32);
-let root = voo::rsx!(view, <span data_count={count.get()}>{count.get()}</span>)?;
+let root = voo::rsx!(view, <span data-count={count.get()}>{count.get()}</span>)?;
 ```
 
 This is the first explicit reactive binding; dependency inference, keyed
