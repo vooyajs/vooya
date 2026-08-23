@@ -1,6 +1,6 @@
 {
   "name": "@vooya/compiler",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "description": "Pure .voo compiler pipeline for Vooya component islands.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
