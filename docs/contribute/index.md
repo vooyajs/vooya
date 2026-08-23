@@ -6,7 +6,7 @@ show a current direction is wrong.
 
 ## Before opening a change
 
-1. Read the [project status](../project/status) and [compatibility matrix](../project/compatibility).
+1. Read the [project status](../project/status.md) and [compatibility matrix](../project/compatibility.md).
 2. Check existing issues and pull requests.
 3. Keep the change focused: a bug fix, a fixture, a documentation correction,
    or one clearly bounded design proposal.

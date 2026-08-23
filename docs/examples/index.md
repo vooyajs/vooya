@@ -6,11 +6,11 @@ benchmarks unless a benchmark page says so.
 
 ## Available examples
 
-- [Scatter plot](../guide/scatter-plot): a Rust-owned Canvas surface with a
+- [Scatter plot](../guide/scatter-plot.md): a Rust-owned Canvas surface with a
   Vue host and a large point set.
-- [Data-grid benchmark](../benchmarks/data-grid): the workload definition and
+- [Data-grid benchmark](../benchmarks/data-grid.md): the workload definition and
   measurement rules for the grid case.
-- [Trace waterfall](../benchmarks/trace-waterfall): an exploratory candidate
+- [Trace waterfall](../benchmarks/trace-waterfall.md): an exploratory candidate
   for a later workload.
 
 The repository also contains Vue, React, TaskList, DataGrid, and store fixtures.

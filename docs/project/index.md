@@ -6,13 +6,13 @@ passing fixture is not mistaken for a broad support promise.
 
 ## Project pages
 
-- [Status](./status): what the current alpha can do and where it is limited.
-- [Compatibility matrix](./compatibility): framework, bundler, browser, and
+- [Status](./status.md): what the current alpha can do and where it is limited.
+- [Compatibility matrix](./compatibility.md): framework, bundler, browser, and
   toolchain evidence.
-- [Roadmap](../rfcs/0008-layer-boundary-and-roadmap): version-level direction
+- [Roadmap](../rfcs/0008-layer-boundary-and-roadmap.md): version-level direction
   from the integration foundation toward a stable layer contract.
-- [Releases](../maintainers/releases): coordinated package release rules.
-- [Benchmarks](../benchmarks/data-grid): workload-specific measurements and
+- [Releases](../maintainers/releases.md): coordinated package release rules.
+- [Benchmarks](../benchmarks/data-grid.md): workload-specific measurements and
   their limits.
 
 ## How to read support claims

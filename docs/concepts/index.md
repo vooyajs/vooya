@@ -8,10 +8,10 @@ owns a local island with a deliberately small interface.
 
 | Concept | What it answers |
 | --- | --- |
-| [Component boundary](./component-boundary) | Which side owns the host element, DOM subtree, state, and cleanup? |
-| [Layer boundary and roadmap](../rfcs/0008-layer-boundary-and-roadmap) | Why is Vooya an integration layer instead of another UI framework? |
-| [Events and lifecycle](../rfcs/0005-island-events-lifecycle-diagnostics) | How do props, events, errors, and disposal cross the boundary? |
-| [ABI v1](../rfcs/0007-rust-file-authoring-and-abi-v1) | Which values are safe to move between Rust and JavaScript? |
+| [Component boundary](./component-boundary.md) | Which side owns the host element, DOM subtree, state, and cleanup? |
+| [Layer boundary and roadmap](../rfcs/0008-layer-boundary-and-roadmap.md) | Why is Vooya an integration layer instead of another UI framework? |
+| [Events and lifecycle](../rfcs/0005-island-events-lifecycle-diagnostics.md) | How do props, events, errors, and disposal cross the boundary? |
+| [ABI v1](../rfcs/0007-rust-file-authoring-and-abi-v1.md) | Which values are safe to move between Rust and JavaScript? |
 
 ## What Vooya is not
 
@@ -33,5 +33,5 @@ host application
                  └─ ABI v1 props, events, lifecycle
 ```
 
-Start with the [component boundary](./component-boundary) before deciding
+Start with the [component boundary](./component-boundary.md) before deciding
 whether a feature belongs in Rust.

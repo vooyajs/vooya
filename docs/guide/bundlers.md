@@ -9,7 +9,7 @@ the Vite path.
 Install `@vooya/vite` as a development dependency and add `vooya()` after the
 host framework plugin. The supported source-authoring range is Vite `>=7 <9`;
 Vite 8 is the current primary compatibility target. See the
-[getting started guide](./getting-started) for complete Vue and React examples.
+[getting started guide](./getting-started.md) for complete Vue and React examples.
 
 ## Rspack / Rsbuild (experimental)
 
@@ -26,5 +26,5 @@ Webpack `5.101.0` and `5.109.2`, production output, browser lifecycle behavior,
 and development recovery. Webpack 4, SSR, hydration, Module Federation, and
 state-preserving HMR are outside the current boundary.
 
-Check the [compatibility matrix](../project/compatibility) and
-[tooling reference](../reference/tooling) before choosing an experimental path.
+Check the [compatibility matrix](../project/compatibility.md) and
+[tooling reference](../reference/tooling.md) before choosing an experimental path.

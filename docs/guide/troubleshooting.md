@@ -45,5 +45,5 @@ component state is not preserved.
 
 Report the exact package versions, Node/Rust/wasm-bindgen versions, framework,
 bundler, operating system, command, and a minimal clean-consumer reproduction.
-Do not include tokens, private paths, or unrelated logs. The [FAQ](../faq)
+Do not include tokens, private paths, or unrelated logs. The [FAQ](../faq.md)
 covers the most common boundary questions.

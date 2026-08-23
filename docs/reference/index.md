@@ -7,13 +7,13 @@ universal bundler promise.
 
 ## Reference map
 
-- [Tooling](./tooling): Vite, Rspack/Rsbuild, Webpack, `vooya doctor`, generated
+- [Tooling](./tooling.md): Vite, Rspack/Rsbuild, Webpack, `vooya doctor`, generated
   files, and development rebuild behavior.
-- [Rust-file authoring](../guide/rust-file-authoring): role attributes,
+- [Rust-file authoring](../guide/rust-file-authoring.md): role attributes,
   components, stores, `rsx!`, events, and the ABI v1 value boundary.
-- [Compatibility matrix](../project/compatibility): the exact fixtures behind
+- [Compatibility matrix](../project/compatibility.md): the exact fixtures behind
   each framework and bundler claim.
-- [RFC 0007](../rfcs/0007-rust-file-authoring-and-abi-v1): the design record for
+- [RFC 0007](../rfcs/0007-rust-file-authoring-and-abi-v1.md): the design record for
   schema, declarations, stores, and ABI v1.
 
 ## Versioning rule

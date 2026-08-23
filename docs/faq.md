@@ -40,7 +40,7 @@ intend to use.
 ## Is Webpack or Rspack supported?
 
 Both have experimental first-party adapters with named fixtures. Vite remains
-the primary path. Check the [compatibility matrix](./project/compatibility)
+the primary path. Check the [compatibility matrix](./project/compatibility.md)
 before choosing a bundler; do not infer support for unlisted versions,
 Turbopack, Rollup, SSR, or hydration.
 

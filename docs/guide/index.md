@@ -8,12 +8,12 @@ only the bounded capability you explicitly mount.
 
 | Goal | Start here |
 | --- | --- |
-| Run a first component | [Getting started](./getting-started) |
-| Understand the Rust source contract | [Rust-file authoring](./rust-file-authoring) |
-| Choose a bundler | [Bundler guide](./bundlers) |
-| Add a canvas-heavy example | [Scatter plot](./scatter-plot) |
-| Use another bundler | [Tooling reference](../reference/tooling) and the [compatibility matrix](../project/compatibility) |
-| Diagnose a failed local build | [Troubleshooting](./troubleshooting) and the [FAQ](../faq) |
+| Run a first component | [Getting started](./getting-started.md) |
+| Understand the Rust source contract | [Rust-file authoring](./rust-file-authoring.md) |
+| Choose a bundler | [Bundler guide](./bundlers.md) |
+| Add a canvas-heavy example | [Scatter plot](./scatter-plot.md) |
+| Use another bundler | [Tooling reference](../reference/tooling.md) and the [compatibility matrix](../project/compatibility.md) |
+| Diagnose a failed local build | [Troubleshooting](./troubleshooting.md) and the [FAQ](../faq.md) |
 
 ## The short version
 

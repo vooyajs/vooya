@@ -28,5 +28,5 @@ Vooya is not a replacement for Vue, React, or a full Rust application
 framework. It standardizes the build and runtime boundary needed to reuse
 browser-compatible Rust code inside an existing Web application.
 
-Read the [getting started guide](/guide/getting-started), then check the
-[compatibility matrix](/project/compatibility) before choosing a bundler.
+Read the [getting started guide](guide/getting-started.md), then check the
+[compatibility matrix](project/compatibility.md) before choosing a bundler.
