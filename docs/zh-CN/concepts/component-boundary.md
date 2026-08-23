@@ -1,9 +1,10 @@
 # 组件边界
 
-Vue 或 React 继续拥有页面树、路由、周围状态和挂载用的 host element。挂载后：
+传统 Web renderer 继续拥有页面树、路由、周围状态和挂载用的 host element。
+Vue、React 是当前 first-party adapter；这个边界并不限定其他 host。挂载后：
 
 ```text
-宿主应用
+传统 Web 宿主应用
   -> framework-owned host element
      -> Vooya-owned DOM subtree
         -> Rust state、listeners 和 rendering

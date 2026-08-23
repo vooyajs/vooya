@@ -16,9 +16,11 @@ without creating a second documentation repository.
 - [Contributing](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md): project scope, development setup, testing,
   and pull request expectations.
 - [Getting started](guide/getting-started.md): install the alpha toolchain and
-  run a first component in Vue or React.
+  run a first component through the current Vue or React adapter path.
 - [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
-  schema records, generated bindings, and the Vue/Vite compatibility boundary.
+  schema records, generated bindings, and the current first-party Vite path.
+- [API reference](reference/api.md): public package exports, options, and
+  current alpha boundaries.
 - [The component boundary](concepts/component-boundary.md): what the host
   framework owns, what WASM owns, and why that boundary exists.
 - [Tooling reference](reference/tooling.md): Vite options, generated files,

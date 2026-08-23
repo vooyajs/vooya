@@ -1,5 +1,9 @@
 # Reference
 
+- [API reference](./api.md): public package exports and consumption paths.
+- [Tooling reference](./tooling.md): configuration, workspace, CLI, and bundler
+  behavior.
+
 Reference pages describe the interfaces that are useful when a project moves
 beyond the first example. They are intentionally precise about alpha behavior;
 experimental integrations are marked as such instead of being presented as a

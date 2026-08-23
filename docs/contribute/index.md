@@ -21,6 +21,21 @@ show a current direction is wrong.
 - Documentation that explains the user-visible boundary, not internal session
   discussions.
 
+## Start small, stay involved
+
+Vooya welcomes a small, complete reproduction, fixture, or documentation fix as
+the first contribution. People who continue to contribute may, depending on
+sustained work, project needs, and maintainer judgment, receive public
+attribution in release notes and changelog entries, credits in documentation or
+examples, invitations to design discussions, or a path toward reviewer and
+maintainer responsibilities. These are earned project decisions, not advance
+promises.
+
+Open-source volunteering is not an employment relationship. Vooya does not
+promise salary, equity, a title, or a fixed workload. Funding, bounties, or
+commercial cooperation exist only after a separate public statement describes
+them.
+
 ## Design proposals
 
 Use an RFC only for a user-visible contract or architectural decision. Start a

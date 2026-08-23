@@ -57,9 +57,11 @@ Vooya provides a repeatable integration layer for that work:
 - eventually distribute precompiled components whose consumers do not need
   Rust installed.
 
-Vooya is not a replacement for Vue, React, routing, state management, or a
-full Rust renderer. It also does not assume that WASM makes ordinary DOM work
-faster. Performance claims belong to measured, component-level workloads.
+Vooya is not a replacement for the host renderer, routing, or state management
+in the current alpha. SSR, hydration, and a standalone Rust renderer are future
+layers to evaluate, not permanent exclusions. It also does not assume that WASM
+makes ordinary DOM work faster; performance claims belong to measured,
+component-level workloads.
 
 ## Layer boundary
 
@@ -375,8 +377,8 @@ compatibility decision before it becomes a supported claim.
 - publish a versioned ABI and compatibility policy;
 - define the supported browser, framework, bundler, and artifact matrix;
 - make the clean consumer path predictable; and
-- reserve framework replacement, SSR, hydration, and a general Rust renderer
-  for separate products or future RFCs.
+- evaluate framework replacement, SSR, hydration, and a general Rust renderer as
+  future layers through separate RFCs and compatibility evidence.
 
 The project may reorder these stages when real users, evidence, or failed
 experiments show that a different boundary is more useful.

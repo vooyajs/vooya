@@ -30,4 +30,9 @@ Webpack 为 5，未列版本、SSR、hydration、Turbopack 等都不能推断支
 不保证。它解决的是 Rust 能力复用、ownership 和集成边界；请对真实 workload
 与宿主基线测量。
 
+## 能否接入其他 Web 框架？
+
+架构目标是框架无关的 Web↔WASM layer。当前公开 adapter 和验证集中在 Vue/React；
+其他框架需要独立 adapter 和证据，不能推断已支持。
+
 更多英文 FAQ 见[FAQ](../faq.md)。

@@ -5,6 +5,7 @@
 
 - [工具配置](./tooling.md)：`vooya()`、Rust 依赖、toolchain、`.vooya/` 和
   Rspack/Webpack adapter。
+- [API 参考](./api.md)：公开导出、参数和当前 alpha 边界。
 - [兼容性矩阵](../project/compatibility.md)：每一项支持声明对应的命令和版本。
 - [英文 RFC 0007](../../rfcs/0007-rust-file-authoring-and-abi-v1.md)：schema、
   declarations、store 和 ABI v1 的设计记录。

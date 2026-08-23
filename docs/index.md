@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Vooya
   text: WASM integration for existing Web applications
-  tagline: Bring browser-compatible Rust capabilities into Vue, React, and other host applications without replacing the application framework.
+  tagline: Bring browser-compatible Rust capabilities into traditional Web applications without replacing the host renderer.
   actions:
     - theme: brand
       text: Get started
@@ -15,7 +15,7 @@ hero:
 
 features:
   - title: Keep your host application
-    details: Vue or React keeps the page tree, routing, application state, and surrounding DOM.
+    details: The existing Web renderer keeps the page tree, routing, application state, and surrounding DOM.
   - title: Own one bounded capability
     details: Rust owns a component island with typed props, events, lifecycle, and disposal.
   - title: Use the Web ecosystem
@@ -24,14 +24,16 @@ features:
 
 ## Start with the integration layer
 
-An existing Vue or React application may have one capability that belongs in
+An existing traditional Web application may have one capability that belongs in
 Rust, but no team wants to rewrite its page tree, router, business state, or
 design system—or hand-write another WASM wrapper for every project. Vooya
 standardizes the boundary between that host application and one Rust/WASM
 capability island.
 
-Vooya is not a replacement for Vue, React, or a full Rust application framework.
-It is an integration layer for the build and runtime work around that island.
+Vooya is not a replacement for the host renderer or a full Rust application
+framework. It is a framework-agnostic integration layer for the build and
+runtime work around that island. Vue and React are the current first-party
+adapters; other hosts require their own adapter and evidence.
 
 Read [why Vooya](why-vooya.md) for the design context, then the
 [component boundary](concepts/component-boundary.md) and [getting started guide](guide/getting-started.md).
@@ -39,16 +41,24 @@ Read [why Vooya](why-vooya.md) for the design context, then the
 After the first run, check the [toolchain reference](reference/tooling.md) and
 [compatibility matrix](project/compatibility.md) before choosing a bundler.
 
-## Is Vooya a fit?
+## Why choose Vooya?
 
-Use Vooya when a bounded capability benefits from Rust's ecosystem, predictable
-ownership, or computation that is awkward to keep in the host language. Canvas,
-WebGL, editors, parsers, data-heavy widgets, and local stores are reasonable
-starting points.
+Choose Vooya when a traditional Web application needs a Rust/WASM capability and
+the team wants a maintained integration contract instead of another one-off
+wrapper. Vooya standardizes the recurring work around WASM loading, typed ABI,
+framework adapters, lifecycle, events, disposal, diagnostics, declarations, and
+bundler assets. It makes custom WASM wrappers a repeatable toolchain surface that
+can be tested and evolved across projects.
 
-Keep ordinary page layout, routing, forms, and application state in Vue or
-React. Vooya is not a general Rust renderer, an SSR framework, or a promise
-that moving code to WASM makes it faster.
+Canvas, WebGL, editors, parsers, data-heavy widgets, local stores, and other
+bounded capabilities are reasonable starting points. Keep ordinary page layout,
+routing, forms, and application state in the host renderer while the alpha
+focuses on the island boundary.
+
+SSR, hydration, and a standalone Rust renderer are not implemented in the
+current alpha path. They remain possible future layers, not permanent exclusions.
+Vooya also does not imply that moving code to WASM makes it faster; measure a
+real workload against a real host baseline.
 
 ## Current state
 

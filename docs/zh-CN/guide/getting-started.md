@@ -1,8 +1,8 @@
 # 快速开始
 
-当前路径是“Rust component author”：你在已有 Vue 或 React 应用里写普通
-`.rs`，由 Vooya 生成 WASM、框架适配器和声明文件。宿主应用仍然由 JavaScript
-工具链负责。
+当前路径是“Rust component author”：你在传统 Web 应用中写普通 `.rs`，由 Vooya
+生成 WASM、框架适配器和声明文件。Vue 和 React 是当前 first-party 快速开始路径；
+宿主应用仍然由自己的 JavaScript/TypeScript 工具链负责。
 
 ## 前置环境
 
