@@ -1,6 +1,6 @@
 {
   "name": "@vooya/rspack",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "description": "Experimental Rspack and Rsbuild integration for Vooya source components.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
@@ -34,8 +34,8 @@
     "test": "npm run build && node --test test/*.test.js"
   },
   "dependencies": {
-    "@vooya/build-core": "0.1.0-alpha.10",
-    "@vooya/compiler": "0.1.0-alpha.10"
+    "@vooya/build-core": "0.1.0-alpha.11",
+    "@vooya/compiler": "0.1.0-alpha.11"
   },
   "peerDependencies": {
     "@rspack/core": ">=2.1.10"

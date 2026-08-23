@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.0-alpha.11
+
+### Features
+
+- Unify generated instance-scoped store hooks across the Vue and React adapters, document the Rust-file authoring and attribute-marker contracts, and harden late lifecycle callback handling and release verification for clean-machine quickstarts.
+
 ## v0.1.0-alpha.10
 
 ### Fixes

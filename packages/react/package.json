@@ -1,6 +1,6 @@
 {
   "name": "@vooya/react",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "description": "React host adapter for Vooya component islands.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
