@@ -3,6 +3,92 @@
 Rust-file authoring is the alpha path for components and stores. It uses
 ordinary `.rs` files; `.voo.rs` is not part of the contract.
 
+## Vooya attribute markers
+
+Vooya attribute macros do not introduce a second template language. They mark
+ordinary Rust items as a Component or Store and make the compiler emit a
+versioned schema. The bundler uses that schema to generate WASM bindings,
+framework modules, and TypeScript declarations. Unmarked Rust files remain
+ordinary internal modules.
+
+| Marker | Applies to | Purpose | Required companion |
+| --- | --- | --- | --- |
+| `#[voo::component]` | Function | Declare a Rust-owned local DOM Component | `(&voo::View, Props) -> Result<voo::ViewElement, JsValue>` |
+| `#[voo::props]` | Struct | Declare the host-facing props schema | Usually `#[derive(voo::FromJs)]` |
+| `#[voo::events]` | Trait | Declare event names and parameters sent to the host | Emit with `View::emit` inside the Component |
+| `#[voo::store]` | `impl` block | Declare a DOM-free instance-scoped Store | Exactly one `#[voo::snapshot]` method |
+| `#[voo::action]` | Store method | Expose a synchronous state transition | Parameters must use ABI v1 values |
+| `#[voo::snapshot]` | Store method | Define the state shape read by the host | Return type implements `ToJs + PartialEq` |
+| `#[voo::style("./x.css"[, scoped])]` | Component | Declare a bundler-managed stylesheet | Repeatable; `scoped` is optional |
+
+Markers accept schema metadata: `id = "..."` overrides the default schema id and
+`group = "..."` overrides the source group. Most applications can omit both;
+the defaults come from the item name and source path.
+
+### Component marker composition
+
+```rust
+use wasm_bindgen::JsValue;
+use vooya as voo;
+
+#[voo::props]
+#[derive(voo::FromJs)]
+pub struct GreetingProps {
+    pub name: String,
+}
+
+#[voo::events]
+pub trait GreetingEvents {
+    fn selected(value: u32);
+}
+
+#[voo::component]
+#[voo::style("./Greeting.css", scoped)]
+pub fn Greeting(
+    view: &voo::View,
+    props: GreetingProps,
+) -> Result<voo::ViewElement, JsValue> {
+    Ok(voo::rsx!(view, <p>{format!("Hello, {}", props.name)}</p>)?)
+}
+```
+
+`FromJs` and `ToJs` are derive macros rather than attributes: `FromJs` decodes
+host ABI values into Rust types, while `ToJs` encodes Rust values for the host.
+`#[voo::events]` declares the event schema; the actual notification uses
+`view.emit("selected", payload)` and remains a non-bubbling event on the
+Component host.
+
+### Store marker composition
+
+```rust
+#[derive(voo::ToJs, PartialEq, Clone)]
+pub struct CartSnapshot {
+    pub count: u32,
+}
+
+#[derive(Default)]
+pub struct Cart {
+    count: u32,
+}
+
+#[voo::store]
+impl Cart {
+    #[voo::action]
+    pub fn add(&mut self, amount: u32) {
+        self.count += amount;
+    }
+
+    #[voo::snapshot]
+    pub fn snapshot(&self) -> CartSnapshot {
+        CartSnapshot { count: self.count }
+    }
+}
+```
+
+`#[voo::store]` does not create DOM or turn the Store into a global singleton.
+The bundler generates `createCartStore()` and the same public-shape `useCart()`
+for the first-party adapters; see the [Store concept](../concepts/store.md).
+
 ## Roles
 
 An attribute declares a framework-facing role:
