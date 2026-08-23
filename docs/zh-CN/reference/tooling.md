@@ -48,7 +48,10 @@ vooya({
 | --- | --- | --- | --- |
 | Discovered | PATH 中第一个 coherent Cargo | 普通 rustup 安装 | 使用该 Cargo 实际选择的 rustc |
 | Explicit | `toolchain.cargoPath` / `--cargo-path` | 多套 Rust 或 Tauri toolchain | 不完整时失败，不自动换另一套 |
-| Project policy | 项目统一 Cargo policy | monorepo、desktop host | native 与 WASM 可共享 policy，但仍是不同 target crate |
+
+项目可以自行管理 native 与 WASM 的 Cargo policy，但这不是 Vooya 当前保证
+的第三种 toolchain 模式；managed toolchain 和不需要本地 Rust 的 precompiled
+consumer 仍属于未来方向。
 
 ```sh
 npx vooya doctor

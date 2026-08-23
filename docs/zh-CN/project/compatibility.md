@@ -5,7 +5,7 @@
 | 层 | 版本 | 状态 | 边界 |
 | --- | --- | --- | --- |
 | Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | quickstart 覆盖 Ubuntu/Node 20、macOS/Node 22、Windows/Node 22 |
-| Vue | `>=3.5.2 <4` | Supported | 3.5.2–3.5.41 声明检查通过；3.6/Vapor 仍是 experimental evidence |
+| Vue | `>=3.5.2` | Supported | 3.5.2–3.5.41 声明检查通过；3.6/Vapor 仍是 experimental evidence |
 | React | `>=19` | Supported | fixture 覆盖 19.0.0 与 19.2.0 |
 | Vite | `>=7 <9` | 主路径 | Vite 8.2.1 是主要 packed target，Vite 7 保持回归测试 |
 | Rspack / Rsbuild | Rspack `>=2.1.10`；Rsbuild `>=2.1.13` | Experimental | Vue/React/Rslib fixture；尚未证明 Rust-file Vite parity |
