@@ -11,6 +11,13 @@ published as a VitePress site. Markdown remains the canonical content format;
 the site adds navigation, search, version context, and deployable static output
 without creating a second documentation repository.
 
+## Explore the interactive lab
+
+The [Vooya Lab](https://vooya-lab.pages.dev/) turns these authoring and
+compatibility boundaries into runnable browser cases. Its source lives in the
+[vooyajs/vooya-lab](https://github.com/vooyajs/vooya-lab) repository; the lab
+links back here for the contracts and guides behind each case.
+
 ## Start here
 
 - [Contributing](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md): project scope, development setup, testing,
