@@ -35,6 +35,12 @@ framework. It is a framework-agnostic integration layer for the build and
 runtime work around that island. Vue and React are the current first-party
 adapters; other hosts require their own adapter and evidence.
 
+The short version is: **keep JavaScript, move only the expensive part**. The
+application remains the familiar surface, while one focused workload travels
+to a Rust/WASM island. That “voyage to island” idea also guides other Vooya
+organization projects such as Rush-FS, which keeps a Node-style API while moving
+filesystem work to native Rust.
+
 Read [why Vooya](why-vooya.md) for the design context, then the
 [component boundary](concepts/component-boundary.md) and [getting started guide](guide/getting-started.md).
 

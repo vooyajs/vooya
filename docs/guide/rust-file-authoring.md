@@ -116,7 +116,9 @@ Components and stores have different host contracts:
 - Vue and React adapters consume the same Rust/WASM ABI but do not share a
   component lifecycle wrapper with stores.
 
-The Vue adapter exposes the store contract through `useVooyaStore`:
+The Vue adapter exposes the store contract through `useVooyaStore`. This is a
+Vue-specific composable example, not a universal Vooya API (and not a
+Vapor-only API):
 
 ```ts
 const { snapshot, dispatch } = useVooyaStore(cartStore, {

@@ -37,7 +37,7 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | `--workspace-root` | filesystem path | `.vooya/` | Inspect a workspace override | Valid for `doctor` and `clean` |
 | `vooya clean` | CLI command | — | Remove generated Vooya state | It removes the selected generated workspace, not source files |
 
-## `@vooya/vue`
+## `@vooya/vue` adapter
 
 ### `useVooyaStore(source, options?)`
 
@@ -48,14 +48,20 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | `disposeOnUnmount` | `boolean` | `false` | Give this component ownership of disposal | Use `true` for an instance-scoped store; shared stores need an explicit owner |
 | `onError` | `(cause: unknown) => void` | — | Receive async creation failures | It does not retry or hide action errors |
 
+The following is a Vue adapter example; `useVooyaStore` is not a cross-framework
+Vooya API and it is not Vapor-only. React applications use the separate hook
+exported by `@vooya/react` (see below). Vapor applications additionally require
+Vue's own `createVaporApp` and `vaporInteropPlugin` setup.
+
 The return value is `{ snapshot, dispatch, unsubscribe }`. `dispatch(name,
 ...args)` calls a declared store action; async actions are outside ABI v1.
 
 ## `@vooya/react`
 
 Generated `.rs` imports expose a component or a typed hook such as `useCart()`.
-The package also exports the lower-level `defineVooyaComponent` and
-`useVooyaStore` helpers for generated integrations.
+The package also exports lower-level helpers for generated integrations,
+including a React-specific `useVooyaStore` hook whose contract is independent
+of the Vue composable above.
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |

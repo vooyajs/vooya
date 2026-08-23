@@ -12,6 +12,21 @@ WASM loading, framework adapters, value conversion, lifecycle ownership,
 events, declarations, error reporting, and bundler assets. Vooya was created to
 make that boundary repeatable.
 
+## Keep JavaScript. Move only the expensive part.
+
+Vooya's name comes from a voyage to an island: the JavaScript application stays
+the familiar surface, while one focused workload travels to the runtime best
+suited to handle it. This is an incremental integration model, not a request to
+rewrite a product in Rust. The same idea appears across the Vooya organization:
+for example, Rush-FS keeps a Node-style JavaScript boundary while moving
+filesystem work to native Rust. Vooya applies that boundary-first thinking to
+browser WASM islands.
+
+The project is maintained as a set of focused tools and experiments around this
+boundary. The repository contains the compiler, adapters, examples, and
+verification fixtures; it is not a replacement for the host application's
+framework, router, or design system.
+
 ## What Vooya standardizes
 
 Vooya connects a host application to one bounded Rust/WASM island. The host

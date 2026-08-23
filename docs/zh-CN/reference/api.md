@@ -32,7 +32,12 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | `--workspace-root` | 文件路径 | `.vooya/` | 检查 workspace override | doctor 与 clean 均支持 |
 | `vooya clean` | CLI command | — | 清理 generated Vooya state | 不删除源码 |
 
-## `@vooya/vue` 的 `useVooyaStore`
+## `@vooya/vue` adapter：`useVooyaStore`
+
+下面以 Vue adapter 为例。`useVooyaStore` 是 Vue 专用 composable，不是跨框架的
+Vooya 通用 API，也不是 Vapor 专属 API；React 请使用 `@vooya/react` 导出的独立
+hook。使用 Vue Vapor 时，仍需由宿主自行配置 `createVaporApp` 和
+`vaporInteropPlugin`。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
@@ -46,8 +51,9 @@ store action；异步 action 不在 ABI v1。
 
 ## `@vooya/react`
 
-生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook；包本身还导出
-底层 `defineVooyaComponent` 与 `useVooyaStore`，供 generated integration 使用。
+生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook；包本身还导出供
+generated integration 使用的底层 helper。React 的 `useVooyaStore` 是独立的
+React adapter hook，不应与上面的 Vue composable 混用。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |

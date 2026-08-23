@@ -1,23 +1,13 @@
-# Components
+# Component
 
-A Vooya component is a bounded Rust/WASM capability with a DOM surface. It is
-the right unit when Rust needs to create or update a local subtree, while the
-host application should continue to own the page, routing, surrounding state,
-and design system.
+A `Component` is a bounded Rust/WASM capability with a DOM surface. It lets
+Rust own one local subtree while the traditional Web host keeps ownership of
+the page, router, surrounding state, and design system.
 
-## Contract
+## Basic usage
 
-| Part | Direction | Purpose |
-| --- | --- | --- |
-| Props | Host → Rust | Initial values and declared updates |
-| Events | Rust → Host | Narrow notifications delivered on the component host |
-| Lifecycle | Host ↔ Rust | `mount`, prop updates, error reporting, and `dispose` |
-| DOM and resources | Rust-owned below the host | Elements, listeners, and subscriptions released with the island |
-
-The current Rust-file form is an ordinary `.rs` file with `#[voo::component]`,
-an explicit `View`/`ViewElement` signature, and optional `#[voo::props]` and
-`#[voo::events]` records. `rsx!` describes the Rust-owned subtree; it does not
-replace the host application's renderer.
+Author a component in an ordinary `.rs` file with an explicit role. `rsx!`
+describes only the Rust-owned subtree:
 
 ```rust
 #[voo::component]
@@ -29,25 +19,72 @@ pub fn Greeting(
 }
 ```
 
-## Lifecycle and ownership
+Optional `#[voo::props]` and `#[voo::events]` records define the host-facing
+contract. The current first-party consumption paths generate ordinary Vue or
+React components from the Rust module:
 
-The host creates the mount element and forwards declared props. Rust creates
-descendants and owned listeners, then handles updates until the host disposes
-the island. Events use the non-bubbling `vooya-<name>` transport and are
-decoded by the current Vue or React adapter. A component must release every
-resource it creates; the host does not own Rust descendants.
+```tsx
+import Greeting from "./Greeting.rs";
 
-Use a component for local rendering and interaction. Do not use one as a page
-router, a global state container, or a replacement for ordinary host layout.
-For state without a DOM subtree, use a [store](./store.md).
+export function App() {
+  return <Greeting name="Ada" onSelected={(value) => console.log(value)} />;
+}
+```
 
-## Host consumption
+The same generated contract is available through the Vue adapter; only the
+host-framework syntax changes. See the [Rust authoring guide](../guide/rust-file-authoring.md)
+and [API reference](../reference/api.md) for declaration and ABI details.
 
-The current first-party consumption paths import a generated `.rs` component as
-an ordinary Vue or React component. These are the published alpha adapters and
-their compatibility evidence; the component contract itself is intended to be
-portable to other host renderers through explicit adapters.
+## Contract and ownership
 
-See the [component boundary](./component-boundary.md), [Rust-file authoring
-guide](../guide/rust-file-authoring.md), and [API reference](../reference/api.md)
-for the generated declarations and ABI v1 value rules.
+| Part | Direction | Purpose | Current boundary |
+| --- | --- | --- | --- |
+| Props | Host → Rust | Initial values and declared updates | Top-level props are read-only Rust signals; updates arrive as one validated patch |
+| Events | Rust → Host | Narrow notifications from the island | Current Vue/React adapters use non-bubbling `vooya-<name>` events |
+| Lifecycle | Host ↔ Rust | Mount, prop updates, errors, and disposal | The host owns the mount element and invokes `dispose` |
+| DOM and resources | Rust-owned below the host element | Local elements, listeners, and subscriptions | Every resource created by the island must have an owning cleanup scope |
+
+Rust creates descendants and owned listeners after the host supplies a mount
+element. On unmount, the host drops the WASM handle and the component releases
+its descendants, subscriptions, and listeners. The host does not own the Rust
+subtree, and Rust does not own the surrounding application.
+
+## Why a Component?
+
+Not every Rust capability needs to render. A `Store` is the better boundary when
+the host should render the UI and Rust only provides state or computation. A
+`Component` is useful when the local capability has a meaningful rendering
+surface that would otherwise require repeated JS/WASM glue: an editor surface,
+parser result view, Canvas-backed control, or data-dense interaction region.
+
+The component boundary packages the repeated integration work into a contract:
+typed props and events, lifecycle, ABI conversion, resource cleanup, and a
+bundler-generated host module. It is still a bounded island, not a component
+library or a replacement for ordinary host layout.
+
+## Why let Rust participate in rendering?
+
+The motivation is ownership, not a claim that WASM makes every render faster.
+Some local capabilities already have valuable Rust logic, state, or crates. If
+that capability must continuously coordinate a DOM subtree, keeping its local
+rendering and cleanup next to the Rust state can avoid a second hand-written
+wrapper layer. The surrounding Web application can still use its existing
+framework and design system.
+
+Vooya therefore follows the island boundary recorded in [RFC
+0001](../rfcs/0001-component-islands.md) and the host-first model in [RFC
+0008](../rfcs/0008-layer-boundary-and-roadmap.md): the host owns the page and
+mount point; the Rust `Component` owns only its descendants and declared
+resources. `rsx!` is currently a DOM tree syntax, not a universal renderer or
+an application-wide Rust UI framework. Canvas, WebGL, native renderers, SSR,
+and hydration need separate contracts and are not implied by this page.
+
+## When not to choose Component
+
+Do not use a `Component` for page routing, global business state, ordinary
+layout, or a full application renderer. Do not choose it only to advertise
+WASM. Measure the actual workload, and keep the boundary in the host when the
+integration cost is greater than the local Rust capability it enables.
+
+See the [component boundary](./component-boundary.md) for the ownership table
+and the [Store](./store.md) concept for the headless alternative.

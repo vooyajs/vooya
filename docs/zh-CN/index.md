@@ -30,6 +30,11 @@ features:
 标准化。它是面向传统 Web ↔ WASM 的 framework-agnostic 集成层，不是某个
 特定框架的替代品。Vue 和 React 是当前 first-party adapter 与测试证据。
 
+Vooya 的工作方式可以概括为：**保留 JavaScript，只移动昂贵的部分**。JavaScript
+继续拥有应用表面，Rust/WASM 只接管一个边界清晰的能力岛；这也是“驶向岛屿”这个
+名字所表达的含义。我们希望把这条集成路径做成可复用的工具，而不是再造一个
+要求全栈迁移的 Rust UI framework。
+
 先读[为什么是 Vooya](why-vooya.md)和[组件边界](concepts/component-boundary.md)，
 再开始[快速开始](guide/getting-started.md)。
 

@@ -38,9 +38,8 @@ const zhNav = [
     text: "概念",
     items: [
       { text: "概览", link: "/zh-CN/concepts/" },
-      { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
-      { text: "Component", link: "/zh-CN/concepts/component" },
       { text: "Store", link: "/zh-CN/concepts/store" },
+      { text: "Component", link: "/zh-CN/concepts/component" },
       { text: "组件边界", link: "/zh-CN/concepts/component-boundary" },
       {
         text: "设计记录",
@@ -92,9 +91,8 @@ const zhSidebar = {
       text: "概念",
       items: [
         { text: "概览", link: "/zh-CN/concepts/" },
-        { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
-        { text: "组件", link: "/zh-CN/concepts/component" },
         { text: "Store", link: "/zh-CN/concepts/store" },
+        { text: "Component", link: "/zh-CN/concepts/component" },
         { text: "组件边界", link: "/zh-CN/concepts/component-boundary" },
       ],
     },
@@ -123,7 +121,17 @@ const zhSidebar = {
     },
   ],
   "/zh-CN/why-vooya": [
-    { text: "为什么是 Vooya", items: [{ text: "概览", link: "/zh-CN/why-vooya" }] },
+    {
+      text: "指南",
+      items: [
+        { text: "概览", link: "/zh-CN/guide/" },
+        { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
+        { text: "快速开始", link: "/zh-CN/guide/getting-started" },
+        { text: "Rust 编写", link: "/zh-CN/guide/rust-file-authoring" },
+        { text: "Bundler", link: "/zh-CN/guide/bundlers" },
+        { text: "排错", link: "/zh-CN/guide/troubleshooting" },
+      ],
+    },
   ],
   "/zh-CN/contribute/": [
     { text: "参与贡献", items: [{ text: "概览", link: "/zh-CN/contribute/" }] },
@@ -185,9 +193,8 @@ export default defineConfig({
         text: "Concepts",
         items: [
           { text: "Overview", link: "/concepts/" },
-          { text: "Why Vooya?", link: "/why-vooya" },
-          { text: "Components", link: "/concepts/component" },
-          { text: "Stores", link: "/concepts/store" },
+          { text: "Store", link: "/concepts/store" },
+          { text: "Component", link: "/concepts/component" },
           { text: "Component boundary", link: "/concepts/component-boundary" },
           {
             text: "Design records",
@@ -238,9 +245,8 @@ export default defineConfig({
           text: "Concepts",
           items: [
             { text: "Overview", link: "/concepts/" },
-            { text: "Components", link: "/concepts/component" },
-            { text: "Stores", link: "/concepts/store" },
-            { text: "Why Vooya?", link: "/why-vooya" },
+            { text: "Store", link: "/concepts/store" },
+            { text: "Component", link: "/concepts/component" },
             { text: "Component boundary", link: "/concepts/component-boundary" },
           ],
         },
@@ -299,7 +305,17 @@ export default defineConfig({
         },
       ],
       "/why-vooya": [
-        { text: "Why Vooya?", items: [{ text: "Overview", link: "/why-vooya" }] },
+        {
+          text: "Guides",
+          items: [
+            { text: "Overview", link: "/guide/" },
+            { text: "Why Vooya?", link: "/why-vooya" },
+            { text: "Getting started", link: "/guide/getting-started" },
+            { text: "Rust-file authoring", link: "/guide/rust-file-authoring" },
+            { text: "Bundlers", link: "/guide/bundlers" },
+            { text: "Troubleshooting", link: "/guide/troubleshooting" },
+          ],
+        },
       ],
     },
     socialLinks: [{ icon: "github", link: "https://github.com/vooyajs/vooya" }],
