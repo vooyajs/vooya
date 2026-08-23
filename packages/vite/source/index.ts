@@ -423,12 +423,11 @@ export function generateRustStoreModule(store, framework = "vue") {
     return `${JSON.stringify(action.name)}(...args) { return ${exportName}(handle, ...args); }`;
   }).join(",\n      " );
   const imports = ["voo_abi_version", create, snapshot, subscribe, unsubscribe, dispose, ...store.actions.map((action) => `voo_${stem}_store_${action.name}`)];
-  const adapterImport = framework === "react"
-    ? `import { useVooyaStore } from "@vooya/react";\n`
-    : "";
-  const hook = framework === "react"
-    ? `\nexport function use${name}(options = {}) {\n  const { state, store } = useVooyaStore(create${name}Store, undefined, options);\n  return {\n    state,\n    ${store.actions.map((action) => `${rustProperty(action.name)}: (...args) => store?.[${JSON.stringify(action.name)}](...args)`).join(",\n    ")}\n  };\n}\n`
-    : "";
+  const adapter = framework === "react" ? "react" : "vue";
+  const adapterImport = `import { useVooyaStore } from "@vooya/${adapter}";\n`;
+  const hook = `\nexport function use${name}(options = {}) {\n  const consumed = ${adapter === "react"
+    ? `useVooyaStore(create${name}Store, undefined, options)`
+    : `useVooyaStore(create${name}Store(), { ...options, disposeOnUnmount: true })`};\n  return {\n    state: consumed.${adapter === "react" ? "state" : "snapshot"},\n    ${store.actions.map((action) => `${rustProperty(action.name)}: (...args) => ${adapter === "react" ? `consumed.store?.[${JSON.stringify(action.name)}](...args)` : `consumed.dispatch(${JSON.stringify(action.name)}, ...args)`}`).join(",\n    ")}\n  };\n}\n`;
   return `${adapterImport}import init, { ${imports.join(", ")} } from "${runtimeId}";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
 

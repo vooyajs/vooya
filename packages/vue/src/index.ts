@@ -16,12 +16,15 @@ export interface VooyaStore<TSnapshot = unknown> {
   [action: string]: unknown;
 }
 
-export interface UseVooyaStoreOptions {
+export interface VooyaStoreOptions {
   /** Dispose an instance-scoped store when this component unmounts. */
   disposeOnUnmount?: boolean;
   /** Receive asynchronous store creation failures. */
   onError?: (cause: unknown) => void;
 }
+
+/** @deprecated Use VooyaStoreOptions. */
+export type UseVooyaStoreOptions = VooyaStoreOptions;
 
 export type VooyaStoreSource<TSnapshot = unknown> =
   | VooyaStore<TSnapshot>
@@ -33,7 +36,7 @@ export type VooyaStoreSource<TSnapshot = unknown> =
  */
 export function useVooyaStore<TSnapshot>(
   source: VooyaStoreSource<TSnapshot>,
-  options: UseVooyaStoreOptions = {},
+  options: VooyaStoreOptions = {},
 ) {
   const pending = source && typeof source === "object" && "then" in source;
   const snapshot = shallowRef<TSnapshot | undefined>(

@@ -39,18 +39,30 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 
 ## `@vooya/vue` adapter
 
-### `useVooyaStore(source, options?)`
+### Generated `useName(options?)`
+
+Rust-file Store imports generate `useName()` alongside `createNameStore()`. For
+example, `Cart` generates `useCart()` with `{ state, ...typedActions }`. This is
+the primary Store API for Vue application code; `state` is a readonly reactive
+`Ref` and is automatically unwrapped in templates.
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
-| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | Mirror a Rust store snapshot in Vue | Vue `>=3.5.2`; `const { snapshot, dispatch } = useVooyaStore(store)` |
+| Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | `const { state, add } = useCart()` |
+| `options` | `VooyaStoreOptions` | `{}` | Observe creation failures and configure adapter behavior | Generated hook owns and disposes its instance |
+
+### `useVooyaStore(source, options?)` (advanced)
+
+| Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
+| --- | --- | --- | --- | --- |
+| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | Custom integration or shared-instance ownership | Vue `>=3.5.2`; not the primary generated hook |
 | `source` | `VooyaStore \| PromiseLike<VooyaStore>` | required | Pass an instance or generated async store factory | The late instance is disposed if the component unmounts first |
 | `disposeOnUnmount` | `boolean` | `false` | Give this component ownership of disposal | Use `true` for an instance-scoped store; shared stores need an explicit owner |
 | `onError` | `(cause: unknown) => void` | — | Receive async creation failures | It does not retry or hide action errors |
 
-The following is a Vue adapter example; `useVooyaStore` is not a cross-framework
-Vooya API and it is not Vapor-only. React applications use the separate hook
-exported by `@vooya/react` (see below). Vapor applications additionally require
+`useVooyaStore` is an adapter-level API, not the primary cross-framework Store
+entry point and not Vapor-only. React applications use the generated hook below;
+Vapor applications additionally require
 Vue's own `createVaporApp` and `vaporInteropPlugin` setup.
 
 The return value is `{ snapshot, dispatch, unsubscribe }`. `dispatch(name,
@@ -59,15 +71,14 @@ The return value is `{ snapshot, dispatch, unsubscribe }`. `dispatch(name,
 ## `@vooya/react`
 
 Generated `.rs` imports expose a component or a typed hook such as `useCart()`.
-The package also exports lower-level helpers for generated integrations,
-including a React-specific `useVooyaStore` hook whose contract is independent
-of the Vue composable above.
+The generated Vue and React hooks share the same public shape: `state` plus typed
+actions. React's `state` is the current snapshot value.
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
 | Generated component | React component props | — | Import a `#[voo::component]` `.rs` file | React `>=19`; `import Counter from "./Counter.rs"` |
-| Generated hook | `useName(props, options?)` | — | Consume a `#[voo::store]` `.rs` file | Uses `useSyncExternalStore`; one store instance per hook lifetime |
-| `useVooyaStore` | `(factory, props, options?)` | — | Build a custom store adapter | Factory may return a store or Promise; late stores are disposed |
+| Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | Uses `useSyncExternalStore`; one store instance per hook lifetime |
+| `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a store or Promise |
 | `onError` / `onNotify` | callbacks | — | Observe creation failures or notifications | Adapter callbacks only; no global event bus |
 
 ## `@vooya/rspack`

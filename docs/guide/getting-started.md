@@ -26,6 +26,12 @@ C++** workload, including MSVC C++ build tools and a Windows SDK. Cargo needs th
 MSVC linker, `link.exe`, to compile the CLI. Reopen the terminal after installation
 so the linker is available on `PATH`.
 
+These are current source-authoring prerequisites for the alpha. Vooya will continue
+to reduce manual Rust, WASM, and platform-linker setup and move toward a more
+out-of-the-box experience. Future work may use precompiled artifacts, better
+diagnostics, and managed toolchain flows to lower this barrier; the current
+version does not install Rust or Visual Studio for you.
+
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.115 --locked

@@ -38,8 +38,36 @@ pub fn Counter(
 ## `rsx!`、props、store
 
 `rsx!` 提供显式 signal binding、事件、条件分支和 keyed loop；异步 action、
-SSR、slots 和全局 store 不在 ABI v1。store 是独立实例，通过 snapshot、
+SSR、slots 和全局 store 不在 ABI v1。Store 是独立实例，通过 snapshot、
 subscribe、action 和 dispose 接入 Vue/React。
+
+当 `.rs` 文件包含 `#[voo::store]` 时，两个 first-party adapter 都会生成同 shape
+的 `useCart()`（名称跟随 Rust 类型名）以及框架无关的 `createCartStore()`：
+
+```vue
+<script setup lang="ts">
+import { useCart } from "./Cart.rs";
+
+const { state, add } = useCart();
+</script>
+
+<template>
+  <button type="button" @click="add(1)">{{ state?.count ?? 0 }}</button>
+</template>
+```
+
+```tsx
+import { useCart } from "./Cart.rs";
+
+export function CartButton() {
+  const { state, add } = useCart();
+  return <button onClick={() => add(1)}>{state?.count ?? 0}</button>;
+}
+```
+
+Vue 的 `state` 是响应式 Ref（template 中会自动解包），React 的 `state` 是当前快照值；
+公开字段和 action shape 保持一致。需要自己管理共享实例或编写 adapter 时，才使用
+`@vooya/vue` / `@vooya/react` 的底层 `useVooyaStore`。
 
 ABI v1 支持有限数字、`bigint`、布尔、owned string、vector、tuple 和 string-key
 map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-copy

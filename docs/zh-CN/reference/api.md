@@ -32,34 +32,47 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | `--workspace-root` | 文件路径 | `.vooya/` | 检查 workspace override | doctor 与 clean 均支持 |
 | `vooya clean` | CLI command | — | 清理 generated Vooya state | 不删除源码 |
 
-## `@vooya/vue` adapter：`useVooyaStore`
+## `@vooya/vue` adapter
 
-下面以 Vue adapter 为例。`useVooyaStore` 是 Vue 专用 composable，不是跨框架的
-Vooya 通用 API，也不是 Vapor 专属 API；React 请使用 `@vooya/react` 导出的独立
-hook。使用 Vue Vapor 时，仍需由宿主自行配置 `createVaporApp` 和
-`vaporInteropPlugin`。
+### 生成的 `useName(options?)`
+
+Rust-file Store import 会同时生成 `createNameStore()` 和 `useName()`。例如 Rust 类型
+为 `Cart` 时，生成 `createCartStore()`、默认导出和 `useCart()`。生成的 hook 是普通
+Vue 应用消费 Store 的主入口，返回 `{ state, ...typedActions }`；`state` 是响应式 Ref，
+在 template 中会自动解包。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
-| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | 在 Vue 中镜像 Rust store snapshot | Vue `>=3.5.2`；`useVooyaStore(store)` |
+| Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `const { state, add } = useCart()` |
+| `options` | `VooyaStoreOptions` | `{}` | 观察创建失败并配置适配器行为 | generated hook 自动拥有并释放实例 |
+
+### `useVooyaStore(source, options?)`（高级 API）
+
+`useVooyaStore` 是 Vue 专用 composable，不是普通用户的主入口，也不是跨框架的
+Vooya 通用 API或 Vapor 专属 API；React 请使用生成的 `useName()` hook。使用 Vue
+Vapor 时，仍需由宿主自行配置 `createVaporApp` 和 `vaporInteropPlugin`。
+
+| 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
+| --- | --- | --- | --- | --- |
+| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | 自定义集成或共享实例的生命周期管理 | Vue `>=3.5.2`；不是普通用户的主入口 |
 | `source` | `VooyaStore \| PromiseLike<VooyaStore>` | 必填 | 传入 instance 或 generated async store | 组件先 unmount 时会 dispose late instance |
 | `disposeOnUnmount` | `boolean` | `false` | 让当前组件拥有 disposal | instance-scoped store 通常设为 `true` |
 | `onError` | `(cause: unknown) => void` | — | 接收异步创建失败 | 不负责 retry 或隐藏 action error |
 
-返回 `{ snapshot, dispatch, unsubscribe }`。`dispatch(name, ...args)` 调用声明的
-store action；异步 action 不在 ABI v1。
+`useVooyaStore` 是适配器层 API，不是普通用户的跨框架 Store 入口，也不是 Vapor 专属
+API。它适合共享实例、自定义集成和 adapter 作者。返回 `{ snapshot, dispatch,
+unsubscribe }`；`dispatch(name, ...args)` 调用声明的 store action。
 
 ## `@vooya/react`
 
-生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook；包本身还导出供
-generated integration 使用的底层 helper。React 的 `useVooyaStore` 是独立的
-React adapter hook，不应与上面的 Vue composable 混用。
+生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook。Vue 和 React 的生成
+hook 共享同一个公开 shape：`state` 加类型化 action；React 的 `state` 是当前快照值。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
 | Generated component | React component props | — | 导入 `#[voo::component]` `.rs` | React `>=19`；`import Counter from "./Counter.rs"` |
-| Generated hook | `useName(props, options?)` | — | 消费 `#[voo::store]` `.rs` | `useSyncExternalStore`；每个 hook 生命周期一个 instance |
-| `useVooyaStore` | `(factory, props, options?)` | — | 自定义 store adapter | factory 可同步或 Promise；late store 会 dispose |
+| Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `useSyncExternalStore`；每个 hook 生命周期一个 instance |
+| `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例集成 | 高级 API；factory 可同步或 Promise |
 | `onError` / `onNotify` | callbacks | — | 观察创建失败/通知 | adapter callback，不是全局 event bus |
 
 ## `@vooya/rspack`

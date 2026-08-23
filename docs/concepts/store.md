@@ -21,22 +21,39 @@ impl Cart {
 }
 ```
 
-The generated host module exposes an independent store instance. The following
-example uses the Vue adapter's `useVooyaStore`; React consumes the same
-snapshot/subscription contract through its own generated hook:
+The generated module exposes an independent store instance and a framework
+convenience hook with the same public shape in Vue and React. For a `Cart` store,
+the generated exports are `createCartStore()` and `useCart()`:
 
-```ts
-const { snapshot, dispatch } = useVooyaStore(createCartStore(), {
-  disposeOnUnmount: true,
-});
+```vue
+<script setup lang="ts">
+import { useCart } from "./Cart.rs";
 
-dispatch("add", 1);
+const { state, add } = useCart();
+</script>
+
+<template>
+  <button type="button" @click="add(1)">Store {{ state?.count ?? 0 }}</button>
+</template>
 ```
 
 ```tsx
-const { state, add } = useCart();
-add(1);
+import { useCart } from "./Cart.rs";
+
+export function CartButton() {
+  const { state, add } = useCart();
+  return <button onClick={() => add(1)}>Store {state?.count ?? 0}</button>;
+}
 ```
+
+The hook name follows the Rust Store type, not the file name: `ShoppingCart` generates
+`useShoppingCart`. Vue exposes `state` as a reactive `Ref` (automatically unwrapped in
+templates), while React exposes the current snapshot value. The public fields and action
+shape are otherwise the same.
+
+The lower-level `useVooyaStore` exports remain available from the framework adapters for
+custom integrations, shared instances, and adapter authors. They are not the primary API
+for ordinary application code.
 
 The current ABI creates state from Rust's `Default` implementation. Constructor
 props and async actions are outside ABI v1. Snapshot fields, action arguments,
@@ -55,9 +72,9 @@ guide](../guide/rust-file-authoring.md) for the complete role syntax.
 
 Stores are instance-scoped by default. A component or host service may own one
 store, or several consumers may share one when a separate owner controls its
-lifetime. Vue's `disposeOnUnmount` is therefore explicit; React's generated hook
-disposes the instance it created when its owning hook unmounts. A store is not a
-global singleton by implication.
+lifetime. Generated `useName()` hooks own and dispose the instance they create;
+the lower-level Vue `disposeOnUnmount` option remains explicit for custom
+integrations. A store is not a global singleton by implication.
 
 ## Why signals?
 

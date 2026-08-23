@@ -116,56 +116,52 @@ Components and stores have different host contracts:
 - Vue and React adapters consume the same Rust/WASM ABI but do not share a
   component lifecycle wrapper with stores.
 
-The Vue adapter exposes the store contract through `useVooyaStore`. This is a
-Vue-specific composable example, not a universal Vooya API (and not a
-Vapor-only API):
+When a `.rs` file contains a `#[voo::store]`, both first-party adapters expose
+the same generated hook shape. A `Cart` Store generates `useCart()` in Vue and
+React, alongside the framework-neutral factory:
 
-```ts
-const { snapshot, dispatch } = useVooyaStore(cartStore, {
-  disposeOnUnmount: true,
-});
+```vue
+<script setup lang="ts">
+import { useCart } from "./Store.rs";
 
-dispatch("add", 1);
-console.log(snapshot.value);
+const { state, add } = useCart();
+</script>
+
+<template>
+  <button type="button" @click="add(1)">{{ state?.count ?? 0 }}</button>
+</template>
 ```
 
-When a `.rs` file contains a `#[voo::store]`, importing that file from the
-Vite/Vue graph exposes an async factory. The factory creates an independent
-store instance and keeps the Rust ABI behind the generated module:
+```tsx
+import { useCart } from "./Store.rs";
+
+export function CartButton() {
+  const { state, add } = useCart();
+  return <button onClick={() => add(1)}>{state?.count ?? 0}</button>;
+}
+```
+
+The generated module also exports an async factory. Its name follows the Rust
+Store type, not the file name: `Cart` generates `createCartStore`, while
+`ShoppingCart` generates `createShoppingCartStore`:
 
 ```ts
 import createCartStore from "./Store.rs";
 
-const cartStore = createCartStore();
-const { snapshot, dispatch } = useVooyaStore(cartStore, {
-  disposeOnUnmount: true,
-});
+const cartStore = await createCartStore();
+cartStore.add(1);
+console.log(cartStore.getSnapshot());
+cartStore.dispose();
 ```
 
-The Vue composable accepts either the resolved store or its Promise. Passing
-the Promise lets a component mount before WASM initialization completes; if it
-unmounts first, the late store is disposed instead of being leaked. The
-generated module forwards `getSnapshot`, `subscribe`, each `#[voo::action]`,
-and `dispose`. It does not turn a store into a Vue component or create a
-global singleton.
-
-React imports the same `.rs` store through a generated hook. The hook creates
-one instance for its mounted lifetime and subscribes through
-`useSyncExternalStore`:
-
-```tsx
-import Counter from "./Counter.rs";
-import { useCart } from "./Store.rs";
-
-function App() {
-  const { state, add } = useCart();
-  return <Counter count={state?.count ?? 0} onClick={() => add(1)} />;
-}
-```
+The generated hook creates one instance for its component lifetime and disposes
+it on unmount. The lower-level `useVooyaStore` export from `@vooya/vue` or
+`@vooya/react` remains available for custom integrations, shared instances, and
+adapter authors; it is not the ordinary application entry point.
 
 In ABI v1, a store is created from Rust's `Default` implementation and does not
 accept constructor props. The optional argument to `useCart` is the adapter
-options object (`onError` and `onNotify`); state that must change after
+options object (for example `onError`); state that must change after
 construction belongs in an explicit `#[voo::action]` method.
 
 Actions are synchronous. A unit-returning action is exposed as a void host
@@ -173,19 +169,20 @@ operation; an action returning `Result<(), JsValue>` propagates its error to
 the generated binding. Failed actions do not roll back mutations made before
 the error, and async actions are outside ABI v1.
 
-The generated `.d.rs.ts` declaration mirrors both sides of the module. For a
-React store it includes the factory, default export, snapshot/store types, and
-the generated hook. In the current ABI-v1 alpha, a snapshot that refers to a
+The generated `.d.rs.ts` declaration mirrors both sides of the module. It
+includes the factory, default export, snapshot/store types, and the generated
+hook for the selected framework. In the current ABI-v1 alpha, a snapshot that refers to a
 user-defined `ToJs` struct is declared as an object-shaped fallback until
 standalone schema records for those structs are added:
 
 ```ts
-import type { VooyaStoreOptions } from "@vooya/react";
+import type { Ref } from "vue";
+import type { VooyaStoreOptions } from "@vooya/vue";
 
-export declare function createCartStore(): Promise<Cart>;
+export declare function createCartStore(): Promise<CartStore>;
 export default createCartStore;
 export declare function useCart(options?: VooyaStoreOptions): {
-  state: CartSnapshot | undefined;
+  state: Readonly<Ref<CartSnapshot | undefined>>;
   add(...args: [number]): void;
 };
 ```
