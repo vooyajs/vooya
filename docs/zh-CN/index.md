@@ -22,10 +22,15 @@ features:
     details: Vooya 连接 Rust/WASM、框架适配器和 bundler，而不是替换它们。
 ---
 
-## Vooya 是什么
+## 为什么会有 Vooya
 
-Vooya 是 WASM 集成层，不是 Vue、React 或 Rust UI framework。宿主应用继续
-负责页面与业务；Vooya 负责把一个局部 Rust 能力编译、装载并接入这个应用。
+已有 Vue/React 应用往往只想把一个局部能力交给 Rust，却不想重写页面、路由、
+状态和设计系统，也不想每个项目重新手写 WASM wrapper、生命周期、事件、类型
+和 bundler glue。Vooya 把“宿主应用 + 一个 Rust/WASM 能力岛”的重复集成工作
+标准化。它是 WASM 集成层，不是 Vue、React 或 Rust UI framework。
+
+先读[为什么是 Vooya](why-vooya.md)和[组件边界](concepts/component-boundary.md)，
+再开始[快速开始](guide/getting-started.md)。
 
 ## 适用与不适用
 

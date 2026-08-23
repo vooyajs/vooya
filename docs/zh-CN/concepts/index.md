@@ -5,6 +5,7 @@ Vooya 的核心是一个清晰的 WASM 集成层边界：宿主应用继续管�
 
 | 主题 | 说明 |
 | --- | --- |
+| [为什么是 Vooya](../why-vooya.md) | 它要标准化什么重复的集成工作？ |
 | [组件边界](./component-boundary.md) | host、DOM、状态和资源分别由谁拥有？ |
 | [生命周期与事件（英文设计记录）](../../rfcs/0005-island-events-lifecycle-diagnostics.md) | props、events、错误和 disposal 如何跨边界？ |
 | [ABI v1（英文设计记录）](../../rfcs/0007-rust-file-authoring-and-abi-v1.md) | 哪些值可以安全地跨 Rust/JavaScript？ |

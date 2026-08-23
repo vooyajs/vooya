@@ -8,6 +8,7 @@ owns a local island with a deliberately small interface.
 
 | Concept | What it answers |
 | --- | --- |
+| [Why Vooya?](../why-vooya.md) | What repeated integration problem does the layer address? |
 | [Component boundary](./component-boundary.md) | Which side owns the host element, DOM subtree, state, and cleanup? |
 | [Layer boundary and roadmap](../rfcs/0008-layer-boundary-and-roadmap.md) | Why is Vooya an integration layer instead of another UI framework? |
 | [Events and lifecycle](../rfcs/0005-island-events-lifecycle-diagnostics.md) | How do props, events, errors, and disposal cross the boundary? |

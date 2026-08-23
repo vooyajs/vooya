@@ -24,11 +24,19 @@ features:
 
 ## Start with the integration layer
 
-Vooya is not a replacement for Vue, React, or a full Rust application
-framework. It standardizes the build and runtime boundary needed to reuse
-browser-compatible Rust code inside an existing Web application.
+An existing Vue or React application may have one capability that belongs in
+Rust, but no team wants to rewrite its page tree, router, business state, or
+design system—or hand-write another WASM wrapper for every project. Vooya
+standardizes the boundary between that host application and one Rust/WASM
+capability island.
 
-Read the [getting started guide](guide/getting-started.md), then check the
+Vooya is not a replacement for Vue, React, or a full Rust application framework.
+It is an integration layer for the build and runtime work around that island.
+
+Read [why Vooya](why-vooya.md) for the design context, then the
+[component boundary](concepts/component-boundary.md) and [getting started guide](guide/getting-started.md).
+
+After the first run, check the [toolchain reference](reference/tooling.md) and
 [compatibility matrix](project/compatibility.md) before choosing a bundler.
 
 ## Is Vooya a fit?

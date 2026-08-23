@@ -7,6 +7,7 @@ const zhNav = [
     text: "指南",
     items: [
       { text: "概览", link: "/zh-CN/guide/" },
+      { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
       { text: "快速开始", link: "/zh-CN/guide/getting-started" },
       { text: "Rust 编写", link: "/zh-CN/guide/rust-file-authoring" },
       { text: "Bundler", link: "/zh-CN/guide/bundlers" },
@@ -18,6 +19,7 @@ const zhNav = [
     text: "概念",
     items: [
       { text: "概览", link: "/zh-CN/concepts/" },
+      { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
       { text: "组件边界", link: "/zh-CN/concepts/component-boundary" },
       {
         text: "设计记录",
@@ -54,6 +56,7 @@ const zhSidebar = {
       text: "指南",
       items: [
         { text: "概览", link: "/zh-CN/guide/" },
+        { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
         { text: "快速开始", link: "/zh-CN/guide/getting-started" },
         { text: "Rust 编写", link: "/zh-CN/guide/rust-file-authoring" },
         { text: "Bundler", link: "/zh-CN/guide/bundlers" },
@@ -66,6 +69,7 @@ const zhSidebar = {
       text: "概念",
       items: [
         { text: "概览", link: "/zh-CN/concepts/" },
+        { text: "为什么是 Vooya", link: "/zh-CN/why-vooya" },
         { text: "组件边界", link: "/zh-CN/concepts/component-boundary" },
       ],
     },
@@ -85,11 +89,14 @@ const zhSidebar = {
       ],
     },
   ],
+  "/zh-CN/why-vooya": [
+    { text: "为什么是 Vooya", items: [{ text: "概览", link: "/zh-CN/why-vooya" }] },
+  ],
 };
 
 export default defineConfig({
   title: "Vooya",
-  description: "A WASM integration layer for existing Web applications.",
+  description: "Vooya is a WASM integration layer for adding bounded Rust capabilities to existing Vue and React Web applications.",
   base,
   cleanUrls: true,
   lastUpdated: true,
@@ -100,6 +107,7 @@ export default defineConfig({
       label: "简体中文",
       lang: "zh-CN",
       link: "/zh-CN/",
+      description: "面向现有 Vue、React Web 应用的 WASM 集成层，用清晰的 Rust 组件岛边界复用浏览器 Rust 能力。",
       themeConfig: { nav: zhNav, sidebar: zhSidebar },
     },
   },
@@ -110,6 +118,7 @@ export default defineConfig({
         text: "Guide",
         items: [
           { text: "Overview", link: "/guide/" },
+          { text: "Why Vooya?", link: "/why-vooya" },
           { text: "Getting started", link: "/guide/getting-started" },
           { text: "Rust authoring", link: "/guide/rust-file-authoring" },
           { text: "Bundlers", link: "/guide/bundlers" },
@@ -121,6 +130,7 @@ export default defineConfig({
         text: "Concepts",
         items: [
           { text: "Overview", link: "/concepts/" },
+          { text: "Why Vooya?", link: "/why-vooya" },
           { text: "Component boundary", link: "/concepts/component-boundary" },
           {
             text: "Design records",
@@ -156,6 +166,7 @@ export default defineConfig({
           text: "Guides",
           items: [
             { text: "Overview", link: "/guide/" },
+            { text: "Why Vooya?", link: "/why-vooya" },
             { text: "Getting started", link: "/guide/getting-started" },
             { text: "Rust-file authoring", link: "/guide/rust-file-authoring" },
             { text: "Bundlers", link: "/guide/bundlers" },
@@ -169,6 +180,7 @@ export default defineConfig({
           text: "Concepts",
           items: [
             { text: "Overview", link: "/concepts/" },
+            { text: "Why Vooya?", link: "/why-vooya" },
             { text: "Component boundary", link: "/concepts/component-boundary" },
           ],
         },
@@ -224,6 +236,9 @@ export default defineConfig({
             { text: "Component islands", link: "/rfcs/0001-component-islands" },
           ],
         },
+      ],
+      "/why-vooya": [
+        { text: "Why Vooya?", items: [{ text: "Overview", link: "/why-vooya" }] },
       ],
     },
     socialLinks: [{ icon: "github", link: "https://github.com/vooyajs/vooya" }],
