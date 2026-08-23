@@ -25,7 +25,6 @@ export interface VooyaStoreOptions {
 
 /** @deprecated Use VooyaStoreOptions. */
 export type UseVooyaStoreOptions = VooyaStoreOptions;
-
 export type VooyaStoreSource<TSnapshot = unknown> =
   | VooyaStore<TSnapshot>
   | PromiseLike<VooyaStore<TSnapshot>>;
@@ -66,7 +65,9 @@ export function useVooyaStore<TSnapshot>(
 
   onMounted(() => {
     if (pending) {
-      Promise.resolve(source).then(attach).catch((cause) => options.onError?.(cause));
+      Promise.resolve(source).then(attach).catch((cause) => {
+        if (active) options.onError?.(cause);
+      });
     } else {
       attach(source as VooyaStore<TSnapshot>);
     }
@@ -189,7 +190,7 @@ export function defineVooyaComponent(
           }
         } catch (cause) {
           if (host.value) emitDiagnostic(host.value, definition, "load", elapsedSince(startedAt), cause);
-          emit("error", { stage: "load", cause });
+          if (mounted) emit("error", { stage: "load", cause });
         }
       });
 

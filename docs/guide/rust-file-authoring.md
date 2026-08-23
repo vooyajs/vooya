@@ -89,6 +89,14 @@ impl Cart {
 The bundler generates `createCartStore()` and the same public-shape `useCart()`
 for the first-party adapters; see the [Store concept](../concepts/store.md).
 
+The earlier `.voo` format combined a manifest, Rust, and CSS in one custom file.
+We moved away from it because it hid Rust from normal tooling, required a
+separate parser and formatter, and made the source contract diverge from the Rust
+compiler. Keeping ordinary `.rs` files makes rust-analyzer, Cargo diagnostics,
+schema derives, and generated bindings follow one source of truth. The old
+format remains only as transitional implementation history and is not a
+new-project authoring choice.
+
 ## Roles
 
 An attribute declares a framework-facing role:

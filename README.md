@@ -1,7 +1,7 @@
 <h1 align="center">Vooya</h1>
 
 <p align="center">
-  <strong>WASM integration for existing web applications.</strong>
+  <strong>Write Rust-powered components for web applications.</strong>
 </p>
 
 <p align="center">
@@ -11,14 +11,12 @@
   <a href="https://deepwiki.com/vooyajs/vooya"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
-Vooya is a WASM integration layer, not a web application framework. It connects
-ordinary Rust code and browser-compatible Rust crates to an existing Web
-application through a small, typed component boundary. Rust-file authoring uses
-ordinary `.rs` files; the old `.voo` format was an exploratory intermediate and
-is no longer a supported authoring path. The application shell keeps routing,
-page structure, and business state; Rust owns only the bounded capability that
-the application explicitly mounts. Vue and React are the current first-party
-host adapters.
+Vooya compiles Rust component and store files into WebAssembly and exposes
+them through host-framework adapters for use in web applications. Rust-file
+authoring uses ordinary `.rs` files; the older `.voo` component path remains
+available for legacy projects and experimental fixtures only. The application shell keeps
+routing and surrounding UI; Rust owns one isolated component surface. Vue and
+React are the current first-party adapters.
 
 ```vue
 <script setup lang="ts">
@@ -31,14 +29,16 @@ import RustChart from "./RustChart.rs";
 ```
 
 The component contract, Rust implementation, and scoped styles live together.
-Vooya generates the host binding, TypeScript declarations, WASM lifecycle, event
-forwarding, and diagnostic mappings. The host framework remains responsible for
-rendering the surrounding application.
+Vooya generates the framework adapter, TypeScript declarations, WASM lifecycle,
+event forwarding, and diagnostic mappings.
 
 > [!IMPORTANT]
 > Vooya is a public alpha. Rust-file (`.rs`) authoring targets Vite `>=7 <9`, with
-> experimental Rspack `>=2.1.10` and Webpack `>=5` paths. Source authoring
-> requires a local Rust/WASM toolchain. Published alpha APIs may still change.
+> experimental Rspack `>=2.1.10` and Webpack `>=5` paths. The legacy `.voo`
+> source path is retained for existing fixtures and projects, not as the default
+> authoring path. Both paths require a local
+> Rust/WASM toolchain.
+> Published alpha APIs may still change.
 
 ## Why Vooya?
 
@@ -47,9 +47,9 @@ editors, media, and data processing. Bringing one of those libraries into an
 existing web application usually means maintaining WASM initialization,
 framework wrappers, types, events, cleanup, diagnostics, and packaging by hand.
 
-Vooya provides a repeatable integration layer for that work:
+Vooya is exploring a repeatable component boundary for that work:
 
-- keep existing web applications, framework choices, and application state;
+- keep existing web applications and framework choices;
 - reuse browser-compatible Rust crates;
 - generate typed props and events;
 - manage mount, updates, failures, and disposal;
@@ -57,32 +57,9 @@ Vooya provides a repeatable integration layer for that work:
 - eventually distribute precompiled components whose consumers do not need
   Rust installed.
 
-Vooya is not a replacement for the host renderer, routing, or state management
-in the current alpha. SSR, hydration, and a standalone Rust renderer are future
-layers to evaluate, not permanent exclusions. It also does not assume that WASM
-makes ordinary DOM work faster; performance claims belong to measured,
-component-level workloads.
-
-## Layer boundary
-
-Vooya owns the Rust/WASM integration boundary:
-
-- Rust-file discovery, schema extraction, ABI validation, and WASM builds;
-- typed props, events, stores, lifecycle, disposal, and diagnostics;
-- framework adapters that mount one bounded island into a host element; and
-- bundler integration that turns the Rust source into browser-consumable assets.
-
-The host application owns the rest:
-
-- routing, page layout, application state, and surrounding DOM;
-- the choice of Vue, React, or another host renderer;
-- desktop shells such as Electron or Tauri, including IPC and native
-  permissions; and
-- native operating-system capabilities that are not browser-compatible.
-
-Electron and Tauri are therefore host environments, not Vooya runtime targets
-or required adapters. Their renderer/WebView compatibility can be tested as a
-separate host matrix after the browser path is stable.
+Vooya is not a replacement for the application framework, and it does not
+assume that WASM makes ordinary DOM work faster. Performance claims belong to
+measured, component-level workloads.
 
 ## Quick start with Vue
 
@@ -291,17 +268,18 @@ APIs when necessary.
 ## What works today
 
 - Rust-file (`.rs`) components and stores in Vite `>=7`;
-- experimental Rust-file components in Rspack `>=2.1.10` through Rsbuild,
-  Rslib, or the first-party Rspack plugin;
-- experimental Rust-file components in Webpack `>=5`;
+- legacy source `.voo` components in Vite `>=7` for existing projects;
+- experimental source `.voo` components in Rspack `>=2.1.10` through Rsbuild
+  or the first-party Rspack plugin;
+- experimental source `.voo` components in Webpack `>=5`;
 - Vue `>=3.5.2` and React `>=19` adapters;
 - typed ABI v1 props, events, and store actions;
 - generated mount, prop-update, error, dispose, and ABI bindings;
 - TypeScript declarations and scoped CSS;
-- Rust diagnostics mapped back to `.rs` source lines;
+- Rust diagnostics mapped back to `.rs` and legacy `.voo` source lines;
 - crates.io, Git, feature, and watched path dependencies;
 - failed-build recovery and reliable full-page reload after Rust rebuilds;
-- `vooya doctor` and generated TypeScript declarations under `.vooya/types`;
+- `vooya doctor` and `.voo` formatting for transitional projects;
 - browser fixtures for lifecycle cleanup, DataGrid, Canvas scatter, and trace
   waterfall examples;
 - a test-only precompiled Vue consumer proof that runs without Rust tools.
@@ -329,9 +307,6 @@ Current boundaries:
   fixtures, and Vite+ remains a Vite-core alias rather than a second adapter;
 - Webpack 5 support is experimental; Webpack 4, Turbopack, Rollup, SSR, and
   hydration are not supported;
-- Electron and Tauri are host environments, not current compatibility claims;
-  their renderer/WebView paths will be evaluated after the browser layer is
-  stable;
 - successful Rust HMR currently performs a full reload and loses local state;
 - component contracts are intentionally limited and will evolve during alpha;
 - the precompiled artifact path is not yet a published component product.
@@ -339,49 +314,6 @@ Current boundaries:
 See the [project status](docs/project/status.md) and
 [compatibility matrix](docs/project/compatibility.md) for the precise evidence
 behind these statements.
-
-## Version direction
-
-These are staged product themes, not promises that every item will ship in the
-listed release. Each stage needs a public RFC, a reproducible fixture, and a
-compatibility decision before it becomes a supported claim.
-
-### 0.1: Establish the integration layer
-
-- make `.rs` + `rsx!` the single authoring path;
-- freeze the first component, store, lifecycle, error, and ABI boundaries;
-- support Vite as the primary path and keep Rspack/Webpack experimental;
-- provide clean-machine diagnostics, generated declarations, and honest
-  browser evidence; and
-- remove the exploratory `.voo` path from the product.
-
-### 0.2: Harden authoring and distribution
-
-- make Rust toolchain selection and project-local configuration explicit;
-- improve complex schema and declaration diagnostics without silently widening
-  the ABI;
-- define a real precompiled artifact producer/consumer contract; and
-- improve starter projects, documentation, and failure recovery around the
-  supported browser layer.
-
-### 0.3: Validate additional Web API hosts
-
-- verify an Electron renderer path as a host smoke target;
-- investigate Tauri WebView behavior across named platforms;
-- keep desktop native APIs, IPC, and permissions outside the Vooya runtime; and
-- only add host-specific packages if a real build or resource protocol requires
-  them.
-
-### 1.0: Stabilize the layer contract
-
-- publish a versioned ABI and compatibility policy;
-- define the supported browser, framework, bundler, and artifact matrix;
-- make the clean consumer path predictable; and
-- evaluate framework replacement, SSR, hydration, and a general Rust renderer as
-  future layers through separate RFCs and compatibility evidence.
-
-The project may reorder these stages when real users, evidence, or failed
-experiments show that a different boundary is more useful.
 
 ## Documentation
 
@@ -391,7 +323,6 @@ experiments show that a different boundary is more useful.
 - [Tooling and Rust dependencies](docs/reference/tooling.md)
 - [Project status](docs/project/status.md)
 - [Compatibility matrix](docs/project/compatibility.md)
-- [Layer boundary and version roadmap](docs/rfcs/0008-layer-boundary-and-roadmap.md)
 - [Design RFCs](docs/README.md#design-records)
 
 ## Examples
@@ -415,12 +346,12 @@ CLI shown in the quick start above.
 
 | Package | Purpose |
 | --- | --- |
-| [`@vooya/compiler`](packages/compiler) | Shared compiler, schema, ABI, and component code-generation primitives |
+| [`@vooya/compiler`](packages/compiler) | Pure `.voo` parser, IR, code generation, formatting, and scoped styles |
 | [`@vooya/core`](packages/core) | Rust component runtime source and ownership primitives |
 | [`@vooya/build-core`](packages/build-core) | Bundler-neutral Cargo, wasm-bindgen, asset, declaration, watch, and diagnostic pipeline |
 | [`@vooya/vite`](packages/vite) | Vite integration, Rust/WASM build orchestration, diagnostics, and CLI |
-| [`@vooya/rspack`](packages/rspack) | Experimental Rspack `>=2.1.10` and Rsbuild Rust-file integration |
-| [`@vooya/webpack`](packages/webpack) | Experimental Webpack `>=5` Rust-file integration |
+| [`@vooya/rspack`](packages/rspack) | Experimental Rspack `>=2.1.10` and Rsbuild source `.voo` integration |
+| [`@vooya/webpack`](packages/webpack) | Experimental Webpack `>=5` source `.voo` integration |
 | [`@vooya/vue`](packages/vue) | Vue lifecycle and event adapter |
 | [`@vooya/react`](packages/react) | React lifecycle and event adapter |
 

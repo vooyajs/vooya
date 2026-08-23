@@ -33,6 +33,8 @@ without creating a second documentation repository.
   browser evidence, plus explicit unsupported boundaries.
 - [Benchmarks](benchmarks/data-grid.md): workload-specific measurements and
   the limits of their conclusions.
+- [Beta boundary](project/beta-boundary.md): the current product scope,
+  authoring decision, and remaining contract gate.
 - [Scatter-plot demo](guide/scatter-plot.md): a repeatable browser check for a
   Rust-owned Canvas rendering surface.
 
@@ -71,5 +73,7 @@ Performance work is recorded separately:
   `data-vooya-host`.
 - Rust role attributes and the `vooya` prefix describe the current authoring
   and runtime boundary.
+- **Voo** is the retired legacy component file format, using the `.voo`
+  extension. File-format tooling may still use the `voo` prefix.
 
 The GitHub repository follows the same convention at `vooyajs/vooya`.
