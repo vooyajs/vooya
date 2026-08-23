@@ -1,8 +1,17 @@
 # Guides
 
-These guides take you from a clean Web application to a small Rust/WASM island.
+These guides take you from the integration-layer mental model to a clean Web
+application with a small Rust/WASM island.
 They assume that Vue or React remains the host application and that Vooya owns
 only the bounded capability you explicitly mount.
+
+## Mental model first
+
+The host framework owns the page tree, router, business state, and the host
+element. Vooya mounts one Rust-owned island below that element and keeps the
+boundary explicit through props, events, lifecycle, and disposal. Start with
+the [component boundary](../concepts/component-boundary.md) if you are unsure
+whether a feature belongs in Rust.
 
 ## Choose a path
 

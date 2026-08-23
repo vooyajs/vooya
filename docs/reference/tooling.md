@@ -52,6 +52,20 @@ Vooya owns `vooya-core`, `wasm-bindgen`, `js-sys`, and `web-sys` in the
 generated crate. Add browser APIs through `rust.webSysFeatures` rather than
 overriding `web-sys`.
 
+### `vooya()` options
+
+| Parameter | Type / values | Default | Purpose | Limit / evidence |
+| --- | --- | --- | --- | --- |
+| `framework` | `"vue" \| "react"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 fixtures are covered; it does not change the Rust ABI |
+| `rust.dependencies` | `Record<string, string \| Dependency>` | `{}` | Adds Cargo registry, Git, or path dependencies | The generated crate owns core browser dependencies; path edits may require a server restart in experimental adapters |
+| `rust.webSysFeatures` | `string[]` | `[]` | Enables the required `web-sys` browser APIs | Add features here instead of overriding generated `web-sys` |
+| `toolchain.cargoPath` | `string` | PATH discovery | Chooses the Cargo executable used for the build | The selected Cargo's `rustc`, target, and CLI must be coherent; no silent fallback |
+| `workspace.root` | `string` | `.vooya/` | Moves generated build, WASM, types, cache, and metadata | `rootDirs` and cleanup commands must point to the override |
+
+`Dependency` accepts `version`, `path`, `git`, `branch`, `tag`, `rev`,
+`package`, `features`, and `defaultFeatures`. Relative paths resolve from the
+application root.
+
 ## Doctor
 
 `vooya doctor` resolves and diagnoses the same coherent Rust/WASM toolchain used
@@ -72,6 +86,14 @@ The report prints all selected executable paths. A non-rustup sysroot is a
 warning rather than an error. If a later Cargo candidate is selected because
 the first one is incomplete, doctor also warns that this may differ from the
 user's PATH preference.
+
+### Toolchain modes
+
+| Mode | Cargo selection | Best for | What Vooya guarantees |
+| --- | --- | --- | --- |
+| Discovered | First coherent Cargo on `PATH` | A normal rustup installation | The build uses the `rustc` selected by that Cargo |
+| Explicit | `toolchain.cargoPath` / `--cargo-path` | Multiple Rust installations or Tauri toolchains | An incomplete explicit toolchain fails instead of switching silently |
+| Project policy | A project-selected Cargo path | Monorepos and desktop hosts | Native and WASM builds can share policy, but remain separate target crates |
 
 ## Generated application workspace
 

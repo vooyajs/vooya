@@ -26,6 +26,25 @@ The adapter subscribes before mounting and removes its listener before disposal.
 Unmounting calls `dispose` and drops the WASM handle. The component must remove
 its owned root and release resources it created.
 
+| Boundary operation | Host side | Rust/WASM side | Ownership rule |
+| --- | --- | --- | --- |
+| Mount | Creates/provides the host element | Creates the island root and state | The host owns the element; Rust owns descendants |
+| Update | Sends declared prop values | Applies an atomic update | Values cross the owned ABI v1 boundary |
+| Event | Receives the adapter callback | Emits a non-bubbling `vooya-*` event | Events stay on the component host |
+| Dispose | Unmounts the framework component | Removes DOM and releases resources | Every Rust listener/resource must have an owner |
+
+The practical lifecycle is therefore `mount → update* → dispose`; an error can
+occur during any stage and is reported through the framework adapter.
+
+## ABI at a glance
+
+| Value family | JavaScript representation | Current boundary |
+| --- | --- | --- |
+| Finite numbers, booleans, strings | `number`, `boolean`, `string` | Supported when owned and schema-valid |
+| Big integers | `bigint` | Supported; do not coerce through `number` |
+| Vectors, tuples, string-key maps | Arrays, fixed tuples, `Record<string, T>` | Supported when every nested value is supported |
+| Recursive structs, borrowed values, arbitrary generics | — | Rejected or outside ABI v1 |
+
 ## Why an island boundary
 
 Moving every DOM operation across JavaScript/WASM would add boundary overhead

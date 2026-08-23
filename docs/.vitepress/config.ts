@@ -2,6 +2,91 @@ import { defineConfig } from "vitepress";
 
 const base = process.env.VITEPRESS_BASE ?? "/";
 
+const zhNav = [
+  {
+    text: "指南",
+    items: [
+      { text: "概览", link: "/zh-CN/guide/" },
+      { text: "快速开始", link: "/zh-CN/guide/getting-started" },
+      { text: "Rust 编写", link: "/zh-CN/guide/rust-file-authoring" },
+      { text: "Bundler", link: "/zh-CN/guide/bundlers" },
+      { text: "排错", link: "/zh-CN/guide/troubleshooting" },
+      { text: "示例", link: "/zh-CN/examples/" },
+    ],
+  },
+  {
+    text: "概念",
+    items: [
+      { text: "概览", link: "/zh-CN/concepts/" },
+      { text: "组件边界", link: "/zh-CN/concepts/component-boundary" },
+      {
+        text: "设计记录",
+        items: [
+          { text: "生命周期与事件（英文）", link: "/rfcs/0005-island-events-lifecycle-diagnostics" },
+          { text: "ABI v1（英文）", link: "/rfcs/0007-rust-file-authoring-and-abi-v1" },
+        ],
+      },
+    ],
+  },
+  {
+    text: "参考",
+    items: [
+      { text: "工具配置", link: "/zh-CN/reference/tooling" },
+      { text: "兼容性", link: "/zh-CN/project/compatibility" },
+      { text: "FAQ", link: "/zh-CN/faq" },
+    ],
+  },
+  {
+    text: "项目",
+    items: [
+      { text: "状态", link: "/zh-CN/project/status" },
+      { text: "路线图与 RFC（英文）", link: "/rfcs/0008-layer-boundary-and-roadmap" },
+      { text: "基准测试（英文）", link: "/benchmarks/data-grid" },
+      { text: "参与贡献（英文）", link: "/contribute/" },
+    ],
+  },
+  { text: "GitHub", link: "https://github.com/vooyajs/vooya" },
+];
+
+const zhSidebar = {
+  "/zh-CN/guide/": [
+    {
+      text: "指南",
+      items: [
+        { text: "概览", link: "/zh-CN/guide/" },
+        { text: "快速开始", link: "/zh-CN/guide/getting-started" },
+        { text: "Rust 编写", link: "/zh-CN/guide/rust-file-authoring" },
+        { text: "Bundler", link: "/zh-CN/guide/bundlers" },
+        { text: "排错", link: "/zh-CN/guide/troubleshooting" },
+      ],
+    },
+  ],
+  "/zh-CN/concepts/": [
+    {
+      text: "概念",
+      items: [
+        { text: "概览", link: "/zh-CN/concepts/" },
+        { text: "组件边界", link: "/zh-CN/concepts/component-boundary" },
+      ],
+    },
+  ],
+  "/zh-CN/examples/": [
+    { text: "示例", items: [{ text: "概览", link: "/zh-CN/examples/" }] },
+  ],
+  "/zh-CN/reference/": [
+    { text: "参考", items: [{ text: "工具配置", link: "/zh-CN/reference/tooling" }] },
+  ],
+  "/zh-CN/project/": [
+    {
+      text: "项目",
+      items: [
+        { text: "状态", link: "/zh-CN/project/status" },
+        { text: "兼容性", link: "/zh-CN/project/compatibility" },
+      ],
+    },
+  ],
+};
+
 export default defineConfig({
   title: "Vooya",
   description: "A WASM integration layer for existing Web applications.",
@@ -9,17 +94,60 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   srcExclude: ["README.md", "guide/voo-components.md"],
+  locales: {
+    root: { label: "English", lang: "en" },
+    "zh-CN": {
+      label: "简体中文",
+      lang: "zh-CN",
+      link: "/zh-CN/",
+      themeConfig: { nav: zhNav, sidebar: zhSidebar },
+    },
+  },
   themeConfig: {
     siteTitle: "Vooya",
     nav: [
-      { text: "Guide", link: "/guide/" },
-      { text: "Concepts", link: "/concepts/" },
-      { text: "Reference", link: "/reference/" },
-      { text: "Examples", link: "/examples/" },
-      { text: "Project", link: "/project/" },
-      { text: "Contribute", link: "/contribute/" },
-      { text: "FAQ", link: "/faq" },
-      { text: "RFCs", link: "/rfcs/0008-layer-boundary-and-roadmap" },
+      {
+        text: "Guide",
+        items: [
+          { text: "Overview", link: "/guide/" },
+          { text: "Getting started", link: "/guide/getting-started" },
+          { text: "Rust authoring", link: "/guide/rust-file-authoring" },
+          { text: "Bundlers", link: "/guide/bundlers" },
+          { text: "Troubleshooting", link: "/guide/troubleshooting" },
+          { text: "Examples", link: "/examples/" },
+        ],
+      },
+      {
+        text: "Concepts",
+        items: [
+          { text: "Overview", link: "/concepts/" },
+          { text: "Component boundary", link: "/concepts/component-boundary" },
+          {
+            text: "Design records",
+            items: [
+              { text: "Lifecycle and events", link: "/rfcs/0005-island-events-lifecycle-diagnostics" },
+              { text: "ABI v1", link: "/rfcs/0007-rust-file-authoring-and-abi-v1" },
+            ],
+          },
+        ],
+      },
+      {
+        text: "Reference",
+        items: [
+          { text: "Tooling", link: "/reference/tooling" },
+          { text: "Compatibility", link: "/project/compatibility" },
+          { text: "FAQ", link: "/faq" },
+        ],
+      },
+      {
+        text: "Project",
+        items: [
+          { text: "Status", link: "/project/status" },
+          { text: "Roadmap and RFCs", link: "/rfcs/0008-layer-boundary-and-roadmap" },
+          { text: "Benchmarks", link: "/benchmarks/data-grid" },
+          { text: "Contributing", link: "/contribute/" },
+        ],
+      },
       { text: "GitHub", link: "https://github.com/vooyajs/vooya" },
     ],
     sidebar: {
