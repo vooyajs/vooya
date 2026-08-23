@@ -2,16 +2,23 @@ import { defineConfig } from "vitepress";
 
 const base = process.env.VITEPRESS_BASE ?? "/";
 const siteUrl = (process.env.VITEPRESS_SITE_URL ?? "").replace(/\/$/, "");
-const communityAvatar = "https://avatars.githubusercontent.com/u/288516413?v=4";
+// Keep the brand asset in one place so a future logo replacement updates all surfaces.
+const communityLogo = {
+  sourceUrl: "https://avatars.githubusercontent.com/u/288516413?s=200&v=4",
+  assetPath: `${base}vooya-logo.png`,
+  alt: "Vooya",
+};
+const communityLogoUrl = siteUrl ? `${siteUrl}${communityLogo.assetPath}` : communityLogo.assetPath;
 const siteHead = [
   ["meta", { name: "description", content: "Vooya is a framework-agnostic WASM integration layer for connecting bounded Rust capabilities to traditional Web applications." }],
   ["meta", { property: "og:title", content: "Vooya | WASM integration layer" }],
   ["meta", { property: "og:description", content: "Connect bounded Rust/WASM capabilities to traditional Web applications without replacing the host stack." }],
   ["meta", { property: "og:type", content: "website" }],
   ["meta", { property: "og:site_name", content: "Vooya" }],
-  ["meta", { property: "og:image", content: communityAvatar }],
+  ["meta", { property: "og:image", content: communityLogoUrl }],
+  ["meta", { property: "og:image:alt", content: communityLogo.alt }],
   ["meta", { name: "twitter:card", content: "summary" }],
-  ["link", { rel: "icon", href: communityAvatar }],
+  ["link", { rel: "icon", href: communityLogo.assetPath }],
 ] as const;
 
 const zhNav = [
@@ -159,6 +166,7 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    logo: { src: communityLogo.assetPath, alt: communityLogo.alt },
     siteTitle: "Vooya",
     nav: [
       {
