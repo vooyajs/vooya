@@ -5,7 +5,7 @@
 **Inconclusive parity.** The Vooya island and Vue baseline were effectively tied
 for this local, filter-sort-and-render workload. The measured median differed by
 about one percent, which is not enough to claim a winner. The result validates
-that the generated `.voo` component boundary remains competitive on this case;
+that the generated Rust/WASM island boundary remains usable on this case;
 it does not establish a performance advantage or product-market proof.
 
 ## Workload

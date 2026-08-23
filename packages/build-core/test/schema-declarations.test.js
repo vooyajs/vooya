@@ -72,9 +72,12 @@ test("generates framework-specific Rust store exports", () => {
   };
 
   const vue = generateRustStoreDeclaration(store, "vue");
-  assert.match(vue, /export declare function createCartStore\(\): Promise<Cart>;/);
+  assert.match(vue, /VooyaStoreOptions/);
+  assert.match(vue, /import type \{ Ref \} from "vue"/);
+  assert.match(vue, /export declare function createCartStore\(\): Promise<CartStore>;/);
   assert.match(vue, /export default createCartStore;/);
-  assert.doesNotMatch(vue, /useCart/);
+  assert.match(vue, /export declare function useCart\(options\?: VooyaStoreOptions\)/);
+  assert.match(vue, /state: Readonly<Ref<CartSnapshot \| undefined>>/);
 
   const react = generateRustStoreDeclaration(store, "react");
   assert.match(react, /export type CartSnapshot = Record<string, unknown>;/);

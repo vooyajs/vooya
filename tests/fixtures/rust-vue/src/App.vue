@@ -1,11 +1,10 @@
 <script setup>
 import Abi from "./Abi.rs";
 import Counter from "./Counter.rs";
-import { useVooyaStore } from "@vooya/vue";
+import { useCart } from "./Store.rs";
 import { ref } from "vue";
 
-const props = defineProps({ store: { type: Object, required: true } });
-const { snapshot, dispatch } = useVooyaStore(props.store);
+const { state, add } = useCart();
 const selected = ref(null);
 const abiPayload = ref("none");
 const abiProps = {
@@ -17,7 +16,7 @@ const abiProps = {
 };
 
 function addItem() {
-  dispatch("add", 1);
+  add(1);
 }
 
 function handleSelected(value) {
@@ -32,7 +31,7 @@ function handleAbiPayload(value) {
 <template>
   <Abi v-bind="abiProps" @payload="handleAbiPayload" />
   <span class="abi-output">ABI payload {{ abiPayload }}</span>
-  <Counter :count="snapshot.count" @selected="handleSelected" />
+  <Counter :count="state?.count ?? 0" @selected="handleSelected" />
   <span class="selected">Selected {{ selected }}</span>
-  <button class="store-add" @click="addItem">Store {{ snapshot.count }}</button>
+  <button class="store-add" @click="addItem">Store {{ state?.count ?? 0 }}</button>
 </template>

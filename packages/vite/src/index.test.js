@@ -123,6 +123,11 @@ test("generates a Vue virtual module for an instance-scoped Rust store", () => {
   assert.match(output, /voo_cart_store_add/);
   assert.match(output, /createCartStore/);
   assert.match(output, /subscribe\(listener\)/);
+  assert.match(output, /from "@vooya\/vue"/);
+  assert.match(output, /export function useCart\(options = \{\}\)/);
+  assert.match(output, /useVooyaStore\(createCartStore\(\), \{ \.\.\.options, disposeOnUnmount: true \}\)/);
+  assert.match(output, /state: consumed\.snapshot/);
+  assert.match(output, /add: \(\.\.\.args\) => consumed\.dispatch\("add", \.\.\.args\)/);
 });
 
 test("generates React virtual modules from the same Rust contracts", () => {

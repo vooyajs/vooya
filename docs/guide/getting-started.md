@@ -5,10 +5,10 @@ or React `>=19`. Rust-file components and stores use ordinary `.rs` files and
 are compiled on the application author's machine, so both the JavaScript and
 Rust toolchains are required.
 
-This guide covers the current `.rs` authoring path. Vooya does not currently publish a user-facing
-precompiled component product. The repository's test-only precompiled Vue
-consumer is build-contract evidence, so the Rust/WASM prerequisites below
-apply to source authoring.
+This guide covers the supported source-authoring path. Vooya does not currently
+publish a user-facing precompiled component product. The repository's test-only
+precompiled Vue consumer is build-contract evidence, so the Rust/WASM
+prerequisites below apply to source authoring.
 
 ## Prerequisites
 
@@ -25,6 +25,12 @@ Tools before installing `wasm-bindgen-cli`. Select the **Desktop development wit
 C++** workload, including MSVC C++ build tools and a Windows SDK. Cargo needs the
 MSVC linker, `link.exe`, to compile the CLI. Reopen the terminal after installation
 so the linker is available on `PATH`.
+
+These are current source-authoring prerequisites for the alpha. Vooya will continue
+to reduce manual Rust, WASM, and platform-linker setup and move toward a more
+out-of-the-box experience. Future work may use precompiled artifacts, better
+diagnostics, and managed toolchain flows to lower this barrier; the current
+version does not install Rust or Visual Studio for you.
 
 ```sh
 rustup target add wasm32-unknown-unknown
@@ -274,10 +280,10 @@ All generated application state is disposable:
 npm exec -- vooya clean
 ```
 
-See the working [Vue counter](../../examples/vue-counter) and
-[React counter](../../examples/react-counter) for complete applications. For a
+See the working [Vue counter](https://github.com/vooyajs/vooya/tree/main/examples/vue-counter) and
+[React counter](https://github.com/vooyajs/vooya/tree/main/examples/react-counter) for complete applications. For a
 larger Rust-owned rendering surface, run the
-[150,000 point Vue scatter plot](../../examples/scatter-plot) with
+[150,000 point Vue scatter plot](https://github.com/vooyajs/vooya/tree/main/examples/scatter-plot) with
 `npm run dev:scatter`.
 
 ## Vite+
@@ -330,7 +336,7 @@ export default defineConfig({
 
 React projects use `vooyaRsbuild({ framework: "react" })` with their normal
 Rsbuild React plugin. Direct Rspack configuration is documented in the
-[`@vooya/rspack` package README](../../packages/rspack/README.md).
+[`@vooya/rspack` package README](https://github.com/vooyajs/vooya/blob/main/packages/rspack/README.md).
 
 This path currently requires Rspack `>=2.1.10` and the same local Rust/WASM
 tools as Vite. It is experimental; SSR, Module Federation, and earlier Rspack

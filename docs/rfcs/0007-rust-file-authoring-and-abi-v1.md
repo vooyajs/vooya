@@ -145,12 +145,14 @@ The v1 store factory has no constructor-prop channel: it creates the default
 Rust state. Framework hooks may accept adapter diagnostics/options, while state
 that depends on user input is initialized or changed through explicit actions.
 
-React consumes snapshots with `useSyncExternalStore`; Vue uses a lifecycle-safe
-`useVooyaStore` composable. The Vue composable mirrors `getSnapshot()` after
-`subscribe()` notifications and exposes explicit action dispatch; it may
-dispose an instance-scoped store on unmount only when requested. Neither
-adapter may invent a different ABI, notification ordering, or prop-update
-model.
+Generated Store modules expose the same public convenience shape in both
+first-party adapters: `useName(options?)` returns `state` and typed actions.
+React implements this through `useSyncExternalStore`; Vue mirrors the snapshot
+through a lifecycle-safe reactive Ref. The generated hook owns and disposes the
+instance it creates. Each adapter also retains a lower-level `useVooyaStore`
+helper for custom integrations; that helper is adapter-specific, not a
+cross-framework Vooya API, and it is not limited to Vapor mode. Neither adapter
+may invent a different ABI, notification ordering, or prop-update model.
 
 ## Non-goals
 

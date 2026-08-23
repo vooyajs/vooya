@@ -50,9 +50,9 @@ prerelease.
   snapshot subscriptions, and atomic component prop patches.
 - Verify Rust-file Vite development rebuilds, failed-build recovery, and
   successful full reloads without preserving component state.
-- Expose the instance-scoped store contract to Vue through
-  `useVooyaStore` with snapshot subscription, explicit action dispatch, and
-  opt-in unmount disposal.
+- Expose the instance-scoped store contract to Vue and React through generated
+  `useName()` hooks with the same `state` plus typed-action shape; retain
+  `useVooyaStore` as an advanced adapter-level helper.
 - Generate a Vite virtual module for `.rs` stores, including independent
   factory creation, snapshot reads, subscriptions, actions, and disposal.
 - Reconcile the generated Rust root and copied module tree when `.rs` files are
