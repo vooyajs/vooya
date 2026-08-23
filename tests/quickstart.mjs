@@ -70,7 +70,7 @@ function verifyGettingStarted() {
       "plugins: [react(), vooya({ framework: \"react\" })]",
       'import Greeting from "./Greeting.rs";',
       "return <Greeting name=\"Rust\" />;",
-      "[React counter](../../examples/react-counter)",
+      "[React counter](https://github.com/vooyajs/vooya/tree/main/examples/react-counter)",
     ],
   };
   for (const expected of [...shared, ...pnpm, ...frameworkSpecific.vue, ...frameworkSpecific.react]) {

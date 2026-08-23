@@ -13,7 +13,9 @@ const files = execFileSync(
   .split("\0")
   .filter(Boolean)
   .filter((file) => file !== "scripts/source/verify-branding.ts");
-const legacyPattern = new RegExp(["VO", "YA", "|Vo", "ya", "|vo", "ya"].join(""), "g");
+// Match the retired standalone spelling without flagging normal words such as
+// "voyage" that happen to contain the same character sequence.
+const legacyPattern = /\b(?:VOYA|Voya|voya)\b/g;
 const failures = [];
 
 for (const file of files) {
