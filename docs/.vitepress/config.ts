@@ -12,10 +12,13 @@ export default defineConfig({
   themeConfig: {
     siteTitle: "Vooya",
     nav: [
-      { text: "Guide", link: "/guide/getting-started" },
-      { text: "Concepts", link: "/concepts/component-boundary" },
-      { text: "Reference", link: "/reference/tooling" },
-      { text: "Project", link: "/project/status" },
+      { text: "Guide", link: "/guide/" },
+      { text: "Concepts", link: "/concepts/" },
+      { text: "Reference", link: "/reference/" },
+      { text: "Examples", link: "/examples/" },
+      { text: "Project", link: "/project/" },
+      { text: "Contribute", link: "/contribute/" },
+      { text: "FAQ", link: "/faq" },
       { text: "RFCs", link: "/rfcs/0008-layer-boundary-and-roadmap" },
       { text: "GitHub", link: "https://github.com/vooyajs/vooya" },
     ],
@@ -24,9 +27,12 @@ export default defineConfig({
         {
           text: "Guides",
           items: [
+            { text: "Overview", link: "/guide/" },
             { text: "Getting started", link: "/guide/getting-started" },
             { text: "Rust-file authoring", link: "/guide/rust-file-authoring" },
+            { text: "Bundlers", link: "/guide/bundlers" },
             { text: "Scatter plot", link: "/guide/scatter-plot" },
+            { text: "Troubleshooting", link: "/guide/troubleshooting" },
           ],
         },
       ],
@@ -34,14 +40,22 @@ export default defineConfig({
         {
           text: "Concepts",
           items: [
+            { text: "Overview", link: "/concepts/" },
             { text: "Component boundary", link: "/concepts/component-boundary" },
           ],
+        },
+      ],
+      "/examples/": [
+        {
+          text: "Examples",
+          items: [{ text: "Overview", link: "/examples/" }],
         },
       ],
       "/reference/": [
         {
           text: "Reference",
           items: [
+            { text: "Overview", link: "/reference/" },
             { text: "Tooling", link: "/reference/tooling" },
           ],
         },
@@ -50,9 +64,16 @@ export default defineConfig({
         {
           text: "Project",
           items: [
+            { text: "Overview", link: "/project/" },
             { text: "Status", link: "/project/status" },
             { text: "Compatibility", link: "/project/compatibility" },
           ],
+        },
+      ],
+      "/contribute/": [
+        {
+          text: "Contributing",
+          items: [{ text: "Overview", link: "/contribute/" }],
         },
       ],
       "/benchmarks/": [

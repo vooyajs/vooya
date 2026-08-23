@@ -2,7 +2,9 @@
 
 ## Status
 
-Implemented for the source `.voo` Vite path.
+Implemented for the Rust-file source-authoring path used by the Vite adapter.
+The earlier `.voo` implementation was an exploratory intermediate and is not
+the current authoring contract.
 
 ## Component events
 
@@ -58,5 +60,5 @@ does not depend on a listener or a DevTools package.
 
 ## Compatibility
 
-This RFC does not change `.voo` syntax, generated WASM export names, ABI version,
-or the Vue and React adapter public APIs.
+This RFC does not change the Rust-file syntax, generated WASM export names, ABI
+version, or the Vue and React adapter public APIs.
