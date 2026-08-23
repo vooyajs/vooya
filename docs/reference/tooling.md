@@ -81,7 +81,7 @@ Vite, Rspack, and Webpack use one application-local `.vooya/` workspace:
 .vooya/
 ├── build/        # generated Cargo workspaces and extracted Rust
 ├── wasm/         # wasm-bindgen JavaScript and WASM output
-├── types/        # source-relative *.d.rs.ts declarations (legacy .voo may also emit *.d.voo.ts)
+├── types/        # source-relative *.d.rs.ts declarations
 ├── cache/        # bundler-facing generated modules and fingerprints
 └── metadata.json # workspace schema, ABI, and toolchain fingerprint
 ```
@@ -103,12 +103,10 @@ TypeScript projects using an override must point `rootDirs` at that workspace's
 TypeScript resolves Rust-file declarations from the mirrored generated tree with
 `allowArbitraryExtensions: true` and `rootDirs: [".", ".vooya/types"]`. Vooya
 does not rewrite tsconfig files automatically. Rust compiler diagnostics from
-extracted files are remapped to the source line in the original `.rs` file or
-legacy `.voo` file.
+extracted files are remapped to the source line in the original `.rs` file.
 Rust-file declarations use the same central tree and replace `.rs` with
 `.d.rs.ts`; they are generated from the versioned `__voo_schema` section after
-the WASM build. Legacy `.voo` declarations retain the `.d.voo.ts` suffix so
-they cannot be confused with declarations generated from ordinary Rust files.
+the WASM build.
 
 The Rust-file Vue and React fixtures are verified end to end with:
 
@@ -124,7 +122,7 @@ mounts under `StrictMode`.
 
 ## Vite development rebuilds
 
-Changes to `.voo`, the bundled Rust runtime, or configured path dependencies
+Changes to `.rs`, the bundled Rust runtime, or configured path dependencies
 schedule a rebuild. Rapid saves are coalesced. A failed Rust build is reported
 through Vite and does not poison the next rebuild.
 
@@ -155,9 +153,10 @@ The minimum supported Rspack version is 2.1.10. Exact evidence comes from that
 version and the named Rsbuild/Rslib fixtures. Direct Rspack users must configure
 their normal framework and CSS rules in addition to `vooyaRspack().rule()`.
 
-Rspack rebuilds edited `.voo` files and recovers after mapped Rust compilation
-errors. Configured Rust path dependencies participate in builds, but editing a
-path dependency currently requires restarting the Rspack development server.
+Rspack rebuilds edited Rust source fixtures and recovers after mapped Rust
+compilation errors. Configured Rust path dependencies participate in builds, but
+editing a path dependency currently requires restarting the Rspack development
+server.
 
 ## Webpack 5
 
@@ -191,18 +190,6 @@ failure recovery, configured path-dependency rebuilds, rapid saves, and normal
 Webpack Dev Server live reload. Webpack 4, Module Federation, SSR, hydration,
 and state-preserving HMR are not support claims.
 
-## Formatting
-
-`voo-format` canonicalizes the component contract while preserving Rust and CSS
-block contents.
-
-```sh
-npx voo-format src
-npx voo-format --check src
-```
-
-The formatter rejects unknown top-level content rather than discarding it.
-
 ## Browser verification
 
 The default `npm run test:e2e` command is the short Chromium smoke suite for
@@ -218,10 +205,6 @@ Bundler-specific browser checks remain part of the normal release gate because
 they validate Webpack, Rspack, and Vite integration rather than duplicate the
 framework smoke suite.
 
-
-That command installs the extension's lockfile-pinned development dependencies
-before running its bridge and extension-host tests. It requires a local
-`rust-analyzer` and downloads the VS Code test host on its first run.
 
 ## Repository verification
 

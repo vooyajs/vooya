@@ -5,12 +5,10 @@ or React `>=19`. Rust-file components and stores use ordinary `.rs` files and
 are compiled on the application author's machine, so both the JavaScript and
 Rust toolchains are required.
 
-This guide covers the current `.rs` authoring path. The older `.voo` component
-format remains documented separately for legacy fixtures, but is not the
-recommended starting point. Vooya does not currently publish a user-facing
-precompiled component product. The repository's test-only precompiled Vue
-consumer is build-contract evidence, so the Rust/WASM prerequisites below
-apply to source authoring.
+This guide covers the supported source-authoring path. Vooya does not currently
+publish a user-facing precompiled component product. The repository's test-only
+precompiled Vue consumer is build-contract evidence, so the Rust/WASM
+prerequisites below apply to source authoring.
 
 ## Prerequisites
 
@@ -240,8 +238,7 @@ Create the adjacent `src/Greeting.css`:
 
 The `#[voo::props]` and `#[voo::component]` attributes emit the public schema;
 the Vite plugin generates the host adapter and declaration from that schema.
-The CSS file remains a normal bundler-owned asset. The older `.voo` contract is
-still available for legacy projects, but it is not used by this quickstart.
+The CSS file remains a normal bundler-owned asset.
 
 Import it like a framework component.
 

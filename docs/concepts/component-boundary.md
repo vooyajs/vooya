@@ -1,8 +1,8 @@
 # The Component Boundary
 
-Vooya is a component compiler, not a replacement application framework. Vue or
-React continues to own the application tree, routing, surrounding state, and
-the element used to mount a Vooya component.
+Vooya is a WASM integration layer, not a replacement application framework.
+Vue or React continues to own the application tree, routing, surrounding state,
+and the element used to mount a Vooya component.
 
 After mount, the ownership boundary is:
 

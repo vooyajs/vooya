@@ -6,9 +6,10 @@ WebAssembly and exposes them through host-framework adapters. The old `.voo`
 format was an exploratory intermediate and is no longer a supported authoring
 path. Vue and React are the current first-party adapters.
 
-This directory is the source of truth for user-facing documentation. It is kept
-as plain Markdown for now so the content can later move into a documentation
-site without changing its structure or URLs unnecessarily.
+This directory is the source of truth for user-facing documentation and is
+published as a VitePress site. Markdown remains the canonical content format;
+the site adds navigation, search, version context, and deployable static output
+without creating a second documentation repository.
 
 ## Start here
 
@@ -28,6 +29,8 @@ site without changing its structure or URLs unnecessarily.
   and the next milestones.
 - [Compatibility matrix](project/compatibility.md): automated framework and
   browser evidence, plus explicit unsupported boundaries.
+- [Benchmarks](benchmarks/data-grid.md): workload-specific measurements and
+  the limits of their conclusions.
 - [Scatter-plot demo](guide/scatter-plot.md): a repeatable browser check for a
   Rust-owned Canvas rendering surface.
 

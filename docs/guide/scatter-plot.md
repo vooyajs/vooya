@@ -2,7 +2,7 @@
 
 `examples/scatter-plot` is the flagship integration example for a Rust-owned
 Canvas surface inside a Vue application. Vue owns the page and the point-count
-input. The `.voo` component owns deterministic point generation, Canvas drawing,
+input. The Rust component owns deterministic point generation, Canvas drawing,
 and its zoom controls within its island.
 
 Run it from a repository checkout:

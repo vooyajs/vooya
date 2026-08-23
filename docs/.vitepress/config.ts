@@ -8,12 +8,14 @@ export default defineConfig({
   base,
   cleanUrls: true,
   lastUpdated: true,
+  srcExclude: ["README.md", "guide/voo-components.md"],
   themeConfig: {
     siteTitle: "Vooya",
     nav: [
       { text: "Guide", link: "/guide/getting-started" },
       { text: "Concepts", link: "/concepts/component-boundary" },
       { text: "Reference", link: "/reference/tooling" },
+      { text: "Project", link: "/project/status" },
       { text: "RFCs", link: "/rfcs/0008-layer-boundary-and-roadmap" },
       { text: "GitHub", link: "https://github.com/vooyajs/vooya" },
     ],
@@ -50,6 +52,16 @@ export default defineConfig({
           items: [
             { text: "Status", link: "/project/status" },
             { text: "Compatibility", link: "/project/compatibility" },
+          ],
+        },
+      ],
+      "/benchmarks/": [
+        {
+          text: "Benchmarks",
+          items: [
+            { text: "Benchmark plan", link: "/benchmarks/data-grid" },
+            { text: "Data-grid result", link: "/benchmarks/2026-07-data-grid" },
+            { text: "Trace waterfall", link: "/benchmarks/trace-waterfall" },
           ],
         },
       ],
