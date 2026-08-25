@@ -8,7 +8,7 @@ import { buildApplication, discoverRustSourceFiles, findNearestCargoManifest, ge
 
 test("exposes a bundler-neutral runtime and dependency watch roots", () => {
   assert.equal(existsSync(`${resolveRuntimeCrateRoot()}/Cargo.toml`), true);
-  assert.deepEqual(resolveRustDependencyRoots({ dependencies: { shared: { path: "rust/shared" } } }, "/consumer"), ["/consumer/rust/shared"]);
+  assert.deepEqual(resolveRustDependencyRoots({ dependencies: { shared: { path: "rust/shared" } } }, "/consumer"), [resolve("/consumer", "rust/shared")]);
 });
 
 test("build manifest keeps compiler-managed dependencies pinned", () => {
@@ -155,7 +155,7 @@ shared = { workspace = true, features = ["browser"] }
 });
 
 test("maps Cargo diagnostics using compiler source location metadata", () => {
-  const generated = "/project/cache/src/components/0-Counter.rs";
+  const generated = resolve("/project/cache/src/components/0-Counter.rs");
   const diagnostic = remapRustDiagnostic({ level: "error", message: "missing", rendered: `error\n --> ${generated}:4:9\n  |\n4 | missing\n`, spans: [{ file_name: generated, line_start: 4, column_start: 9 }] }, new Map([[generated, { id: "/project/src/Counter.rs", startLine: 10, generatedLineOffset: 1 }]]));
   assert.match(diagnostic, /\/project\/src\/Counter\.rs:12:9/);
   assert.match(diagnostic, /12 \| missing/);
