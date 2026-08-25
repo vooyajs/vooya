@@ -13,9 +13,40 @@ rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.115 --locked
 ```
 
+authoring 宏使用 `proc-macro2` 的 span location 来报告 Rust 源文件。启用
+`span-locations` 后，该 API 在 stable Rust 1.88 及更高版本可用。Vooya 推荐
+使用当前 stable Rust；如果较旧或被锁定的 toolchain 报告 `Span::file()` 不存在，
+请先用 `cargo tree -i proc-macro2` 检查实际依赖版本，必要时更新 lockfile，并用
+执行构建的同一个 Cargo 运行 `vooya doctor`。
+
 如果机器上有多个 Rust 安装，用 `vooya doctor --cargo-path <path>` 和
 `toolchain.cargoPath` 指定同一个 Cargo。Vooya 以该 Cargo 实际选择的 rustc
 为准，不会静默拼接另一套 toolchain。
+
+## 受限网络与中国地区镜像
+
+如果 `rustup` 或 Cargo 无法访问官方地址，可以使用所在地区可访问的镜像。
+中国大陆用户可以先临时为当前终端设置清华 TUNA 的 Rust 分发镜像：
+
+```sh
+export RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+export RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup
+```
+
+对于 crates.io，可以在 `$CARGO_HOME/config.toml`（通常是
+`~/.cargo/config.toml`）中配置 sparse 镜像：
+
+```toml
+[source.crates-io]
+replace-with = "tuna"
+
+[source.tuna]
+registry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
+```
+
+这些配置会影响整套 Cargo，而不只影响 Vooya。使用前请查看镜像站的最新说明
+并确认组织的网络策略；需要复现官方 registry 问题时，应暂时移除 override。
+无论是否使用镜像，Vooya 仍然使用当前环境中 Cargo 实际选择的 rustc。
 
 ## Windows linker 错误
 

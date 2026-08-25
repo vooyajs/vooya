@@ -15,10 +15,44 @@ rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.115 --locked
 ```
 
+The authoring macro uses `proc-macro2` span locations to report the Rust source
+file. That API is available on stable Rust 1.88 and newer when the
+`span-locations` feature is enabled. Vooya's supported path is a current stable
+Rust toolchain; if an older or pinned toolchain reports that `Span::file()` is
+missing, check `cargo tree -i proc-macro2`, refresh the lockfile if appropriate,
+and run `vooya doctor` with the same Cargo that performs the build.
+
 If multiple Rust installations are present, pass the intended Cargo with
 `vooya doctor --cargo-path <path>` and the matching `toolchain.cargoPath` option.
 Vooya follows the `rustc` selected by Cargo; it does not silently combine an
 unrelated `rustc` with that Cargo.
+
+## Restricted networks and regional mirrors
+
+If `rustup` or Cargo cannot reach their official endpoints, use a mirror that
+is available in your region. For users in mainland China, TUNA provides a
+commonly used Rust distribution mirror:
+
+```sh
+export RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+export RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup
+```
+
+For crates.io downloads, configure Cargo in `$CARGO_HOME/config.toml` (usually
+`~/.cargo/config.toml`):
+
+```toml
+[source.crates-io]
+replace-with = "tuna"
+
+[source.tuna]
+registry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
+```
+
+These settings affect the whole Cargo installation, not just Vooya. Check the
+mirror's current documentation and your organization's policy before applying
+them, and remove the override when you need to reproduce an upstream registry
+issue. Vooya still uses the Cargo and rustc selected by your environment.
 
 ## Windows linker errors
 
