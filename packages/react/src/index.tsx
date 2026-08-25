@@ -39,15 +39,21 @@ export interface VooyaComponentBindings {
 
 export type VooyaComponentBindingsLoader = () => Promise<VooyaComponentBindings>;
 
+export interface VooyaComponentBridge {
+  contract: VooyaComponentDefinition;
+  loadBindings: VooyaComponentBindingsLoader;
+}
+
 type RuntimeProps = Record<string, unknown> & {
   className?: string;
   onError?: (error: VooyaMountError) => void;
 };
 
 export function defineVooyaComponent(
-  definition: VooyaComponentDefinition,
-  loadBindings: VooyaComponentBindingsLoader,
+  bridge: VooyaComponentBridge | VooyaComponentDefinition,
+  legacyLoader?: VooyaComponentBindingsLoader,
 ) {
+  const { contract: definition, loadBindings } = normalizeComponentBridge(bridge, legacyLoader);
   return function VooyaComponent(componentProps: RuntimeProps) {
     const host = useRef<HTMLDivElement>(null);
     const handle = useRef<VooyaComponentHandle | undefined>(undefined);
@@ -178,6 +184,31 @@ export type VooyaStoreFactory<TProps, TStore extends VooyaStore<unknown>> = (
   props: TProps,
   options?: VooyaStoreOptions,
 ) => TStore | Promise<TStore>;
+
+export interface VooyaStoreBridge<TStore extends VooyaStore<unknown>> {
+  name: string;
+  create: VooyaStoreFactory<undefined, TStore>;
+  actions: readonly string[];
+}
+
+/** Turn the framework-neutral generated store bridge into a React hook. */
+export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
+  bridge: VooyaStoreBridge<TStore>,
+) {
+  return function useGeneratedVooyaStore(options: VooyaStoreOptions = {}) {
+    const consumed = useVooyaStore(bridge.create, undefined, options);
+    return {
+      state: consumed.state,
+      ...Object.fromEntries(bridge.actions.map((action) => [
+        action,
+        (...args: unknown[]) => {
+          const candidate = consumed.store?.[action];
+          if (typeof candidate === "function") return candidate.apply(consumed.store, args);
+        },
+      ])),
+    };
+  };
+}
 
 /**
  * Bridges an instance-scoped Rust store to React's external-store contract.
@@ -312,4 +343,13 @@ function reactEventName(name: string) {
     .map((part) => `${part[0].toUpperCase()}${part.slice(1)}`)
     .join("");
   return `on${pascal}`;
+}
+
+function normalizeComponentBridge(
+  bridge: VooyaComponentBridge | VooyaComponentDefinition,
+  legacyLoader?: VooyaComponentBindingsLoader,
+): VooyaComponentBridge {
+  if ("contract" in bridge) return bridge;
+  if (!legacyLoader) throw new Error("Vooya component bridge is missing loadBindings.");
+  return { contract: bridge, loadBindings: legacyLoader };
 }

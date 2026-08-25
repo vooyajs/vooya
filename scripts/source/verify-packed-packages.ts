@@ -14,6 +14,8 @@ const expectedPackages = [
   "@vooya/vite",
   "@vooya/vue",
   "@vooya/react",
+  "@vooya/solid",
+  "@vooya/svelte",
   "@vooya/rspack",
   "@vooya/webpack",
 ];
@@ -78,7 +80,7 @@ try {
         assert(files.has(file), name, `archive is missing public plugin types ${file}`);
       }
     }
-    if (name === "@vooya/vue" || name === "@vooya/react") {
+    if (name === "@vooya/vue" || name === "@vooya/react" || name === "@vooya/solid" || name === "@vooya/svelte") {
       assert(files.has("dist/index.js"), name, "archive is missing adapter JavaScript");
       assert(files.has("dist/index.d.ts"), name, "archive is missing adapter types");
     }
@@ -124,6 +126,8 @@ function verifyTypeConsumer(packedPackages) {
         typescript: "~5.5.4",
         "@types/node": "22.12.0",
         vite: "^7.0.0",
+        "solid-js": "^1.9.9",
+        svelte: "^5.56.10",
       },
     }, null, 2)}\n`,
   );
@@ -157,9 +161,14 @@ import { formatVooComponent } from "@vooya/vite/format";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
 import { vooyaRsbuild, vooyaRspack } from "@vooya/rspack";
 import { vooyaWebpack } from "@vooya/webpack";
+import { defineVooyaStore as defineSolidVooyaStore } from "@vooya/solid";
+import { defineVooyaStore as defineSvelteVooyaStore } from "@vooya/svelte";
 
 void parseVooComponent;
 void vooya;
+void vooya({ framework: "svelte" });
+// @ts-expect-error unknown framework adapters must fail at the public type boundary.
+void vooya({ framework: "angular" });
 const component: SourceComponent = {
   format: "source", id: "/consumer/Counter.voo", name: "Counter", props: [], events: [],
   rust: { content: "", startLine: 1 },
@@ -187,6 +196,8 @@ void initializeWasm;
 void vooyaRsbuild;
 void vooyaRspack;
 void vooyaWebpack;
+void defineSolidVooyaStore;
+void defineSvelteVooyaStore;
 `,
   );
 

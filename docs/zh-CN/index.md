@@ -28,7 +28,8 @@ features:
 状态和设计系统，也不想每个项目重新手写 WASM wrapper、生命周期、事件、类型
 和 bundler glue。Vooya 把“宿主应用 + 一个 Rust/WASM 能力岛”的重复集成工作
 标准化。它是面向传统 Web ↔ WASM 的 framework-agnostic 集成层，不是某个
-特定框架的替代品。Vue 和 React 是当前 first-party adapter 与测试证据。
+特定框架的替代品。Vue、React 是当前 supported first-party adapter；Solid、Svelte
+是 experimental adapter，目前证据集中在 Vite 7 Rust-file 路径。
 
 Vooya 的工作方式可以概括为：**保留 JavaScript，只移动昂贵的部分**。JavaScript
 继续拥有应用表面，Rust/WASM 只接管一个边界清晰的能力岛；这也是“驶向岛屿”这个

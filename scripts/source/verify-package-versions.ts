@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const scriptRoot = fileURLToPath(new URL("../..", import.meta.url));
 const rootOption = process.argv.indexOf("--root");
 const root = rootOption === -1 ? scriptRoot : resolve(process.argv[rootOption + 1] ?? "");
-const directories = ["compiler", "core", "build-core", "vite", "vue", "react", "rspack", "webpack"];
+const directories = ["compiler", "core", "build-core", "vite", "vue", "react", "solid", "svelte", "rspack", "webpack"];
 const packageEntries = directories.map((directory) => ({
   directory,
   path: resolve(root, `packages/${directory}/package.json`),

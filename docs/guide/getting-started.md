@@ -1,9 +1,11 @@
 # Getting Started
 
-Vooya currently targets existing Vite `>=7` applications using Vue `>=3.5.2`
-or React `>=19`. Rust-file components and stores use ordinary `.rs` files and
-are compiled on the application author's machine, so both the JavaScript and
-Rust toolchains are required.
+Vooya currently targets existing Vite `>=7` applications using Vue `>=3.5.2 <4`
+or React `>=19`. Solid `>=1.9 <2` is an experimental first-party adapter with
+current evidence on the Vite 7 Rust-file path. Svelte `>=5 <6` is experimental
+with the same Vite 7 evidence boundary. Rust-file components and stores use
+ordinary `.rs` files and are compiled on the application author's machine, so
+both the JavaScript and Rust toolchains are required.
 
 This guide covers the supported source-authoring path. Vooya does not currently
 publish a user-facing precompiled component product. The repository's test-only
@@ -143,6 +145,83 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react(), vooya({ framework: "react" })],
 });
+```
+
+Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)
+before starting Vite.
+
+## Solid
+
+Install the Solid adapter and Vite plugin in an existing Solid application:
+
+```sh
+npm install @vooya/solid@alpha
+npm install --save-dev @vooya/vite@alpha
+```
+
+Select the Solid adapter after `vite-plugin-solid`:
+
+```js
+import { vooya } from "@vooya/vite";
+import { defineConfig } from "vite";
+import solid from "vite-plugin-solid";
+
+export default defineConfig({
+  plugins: [solid(), vooya({ framework: "solid" })],
+});
+```
+
+Generated Store state follows Solid conventions and is read as an accessor:
+
+```tsx
+import Counter from "./Counter.rs";
+import { useCart } from "./Store.rs";
+
+export function App() {
+  const { state, add } = useCart();
+  return <Counter count={state()?.count ?? 0} onSelected={console.log} />;
+}
+```
+
+Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)
+before starting Vite.
+
+## Svelte
+
+Install the Svelte 5 adapter and Vite plugin in an existing Svelte application:
+
+```sh
+npm install @vooya/svelte@alpha
+npm install --save-dev @vooya/vite@alpha
+```
+
+Configure `@sveltejs/vite-plugin-svelte` before Vooya:
+
+```js
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { vooya } from "@vooya/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [svelte(), vooya({ framework: "svelte" })],
+});
+```
+
+Import ordinary Rust files from a `.svelte` component. Callback events use
+`onEventName` props, and generated Store state is a Svelte `Readable` consumed
+with `$state` in the template:
+
+```svelte
+<script>
+  import Counter from "./Counter.rs";
+  import { useCart } from "./Store.rs";
+
+  const { state, add } = useCart();
+  let selected;
+</script>
+
+<Counter count={$state?.count ?? 0} onSelected={(value) => selected = value} />
+<button onclick={() => add(1)}>Store {$state?.count ?? 0}</button>
 ```
 
 Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)

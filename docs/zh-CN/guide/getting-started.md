@@ -1,11 +1,13 @@
 # 快速开始
 
 Vooya 的使用顺序很简单：在 Rust 中编写一个局部 Component，配置宿主应用的 bundler，
-然后在 Vue 或 React 中像使用普通组件一样导入它。页面、路由和周围的业务状态仍由宿主
-应用负责，Rust 只拥有这个局部能力边界。
+然后通过对应 adapter 像使用普通宿主组件一样导入它。页面、路由和周围的业务状态仍由
+宿主应用负责，Rust 只拥有这个局部能力边界。
 
-当前主路径是 Vite `>=7 <9`，Vue `>=3.5.2` 或 React `>=19`。Rust-file component
-会在应用作者的机器上编译，因此需要同时准备 Node.js 和 Rust 工具链。
+当前主路径是 Vite `>=7 <9`，supported adapter 是 Vue `>=3.5.2 <4` 和 React `>=19`。
+Solid `>=1.9 <2` 是 experimental adapter，目前证据来自 Vite 7 Rust-file fixture。
+Svelte `>=5 <6` 同样是 experimental adapter，证据边界也是 Vite 7 Rust-file fixture。
+Rust-file component 会在应用作者的机器上编译，因此需要同时准备 Node.js 和 Rust 工具链。
 
 ## 1. 准备环境
 
@@ -65,7 +67,7 @@ Rust Component 不负责页面布局、路由或整个应用的渲染；它只�
 
 ## 3. 配置宿主应用的 bundler
 
-下面两种配置都基于已有的 Vite 项目。选择你正在使用的宿主框架，并保持 Vooya
+以下配置都基于已有的 Vite 项目。选择你正在使用的宿主框架，并保持 Vooya
 相关包使用相同的 alpha 版本。
 
 ### Vue 3
@@ -107,6 +109,48 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react(), vooya({ framework: "react" })],
+});
+```
+
+### Solid 1.9
+
+安装依赖：
+
+```sh
+npm install @vooya/solid@alpha
+npm install --save-dev @vooya/vite@alpha
+```
+
+在 `vite.config.ts` 中把 Vooya 放在 `vite-plugin-solid` 之后：
+
+```ts
+import { vooya } from "@vooya/vite";
+import { defineConfig } from "vite";
+import solid from "vite-plugin-solid";
+
+export default defineConfig({
+  plugins: [solid(), vooya({ framework: "solid" })],
+});
+```
+
+### Svelte 5
+
+安装 adapter 与 Vite plugin：
+
+```sh
+npm install @vooya/svelte@alpha
+npm install --save-dev @vooya/vite@alpha
+```
+
+在 `vite.config.ts` 中把 Vooya 放在 `@sveltejs/vite-plugin-svelte` 之后：
+
+```ts
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { vooya } from "@vooya/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [svelte(), vooya({ framework: "svelte" })],
 });
 ```
 
@@ -169,7 +213,45 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 ```
 
-对宿主应用来说，`Greeting.rs` 的使用方式和普通 Vue/React Component 一样；不需要在
+### Solid 应用
+
+在 `src/App.tsx` 中导入 Rust Component 和 Store。生成名称与 Vue/React 一致，
+但 `state` 遵循 Solid 习惯，是 accessor：
+
+```tsx
+import Greeting from "./Greeting.rs";
+import { useCart } from "./Cart.rs";
+
+export default function App() {
+  const { state, add } = useCart();
+  return (
+    <main>
+      <Greeting name="Vooya" />
+      <button onClick={() => add(1)}>Store {state()?.count ?? 0}</button>
+    </main>
+  );
+}
+```
+
+### Svelte 应用
+
+在 `.svelte` 文件中导入 Rust Component 和 Store。callback event 使用
+`onEventName` prop；`state` 是 Svelte `Readable`，模板中使用 `$state`：
+
+```svelte
+<script>
+  import Counter from "./Counter.rs";
+  import { useCart } from "./Store.rs";
+
+  const { state, add } = useCart();
+  let selected;
+</script>
+
+<Counter count={$state?.count ?? 0} onSelected={(value) => selected = value} />
+<button onclick={() => add(1)}>Store {$state?.count ?? 0}</button>
+```
+
+对宿主应用来说，`Greeting.rs` 的使用方式和普通宿主 Component 一样；不需要在
 页面中手动调用 WASM 初始化函数，也不需要自己编写 mount、事件监听或销毁逻辑。
 
 ## 5. 启动、构建与类型配置

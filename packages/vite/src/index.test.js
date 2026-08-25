@@ -7,6 +7,10 @@ import { resolve } from "node:path";
 import {
   createRustBuildProgress,
   generateRustComponentModule,
+  generateRustSolidModule,
+  generateRustSolidStoreModule,
+  generateRustSvelteModule,
+  generateRustSvelteStoreModule,
   generateRustStoreModule,
   generateRustVueModule,
   generateRustVueStoreModule,
@@ -124,10 +128,11 @@ test("generates a Vue virtual module for an instance-scoped Rust store", () => {
   assert.match(output, /createCartStore/);
   assert.match(output, /subscribe\(listener\)/);
   assert.match(output, /from "@vooya\/vue"/);
-  assert.match(output, /export function useCart\(options = \{\}\)/);
-  assert.match(output, /useVooyaStore\(createCartStore\(\), \{ \.\.\.options, disposeOnUnmount: true \}\)/);
-  assert.match(output, /state: consumed\.snapshot/);
-  assert.match(output, /add: \(\.\.\.args\) => consumed\.dispatch\("add", \.\.\.args\)/);
+  assert.match(output, /import \{ defineVooyaStore \} from "@vooya\/vue"/);
+  assert.match(output, /const storeBridge = \{/);
+  assert.match(output, /create: createCartStore/);
+  assert.match(output, /actions: \["add"\]/);
+  assert.match(output, /export const useCart = defineVooyaStore\(storeBridge\)/);
 });
 
 test("generates React virtual modules from the same Rust contracts", () => {
@@ -150,9 +155,59 @@ test("generates React virtual modules from the same Rust contracts", () => {
     actions: [{ name: "add", params: [{ name: "quantity", type: "u32" }] }],
   }, "react");
   assert.match(store, /from "@vooya\/react"/);
-  assert.match(store, /useVooyaStore/);
-  assert.match(store, /export function useCart/);
-  assert.match(store, /useVooyaStore\(createCartStore, undefined, options\)/);
-  assert.doesNotMatch(store, /function useCart\(props/);
+  assert.match(store, /defineVooyaStore/);
+  assert.match(store, /export const useCart = defineVooyaStore\(storeBridge\)/);
   assert.match(store, /createCartStore/);
+});
+
+test("generates Solid virtual modules with owner-bound accessor stores", () => {
+  const component = generateRustSolidModule({
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", group: "src/Cart.rs", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", group: "src/Cart.rs", fields: [{ name: "count", type: "u32" }] },
+    events: { version: 1, kind: "events", id: "cart::Events", name: "Events", group: "src/Cart.rs", methods: [] },
+  });
+  assert.match(component, /from "@vooya\/solid"/);
+  assert.match(component, /updateProps\(values\)/);
+  assert.match(component, /defineVooyaComponent\(\{\s*contract:/);
+
+  const store = generateRustSolidStoreModule({
+    version: 1,
+    kind: "store",
+    id: "cart::Cart",
+    name: "Cart",
+    group: "src/Cart.rs",
+    snapshot: "CartSnapshot",
+    actions: [{ name: "add", params: [{ name: "quantity", type: "u32" }] }],
+  });
+  assert.match(store, /from "@vooya\/solid"/);
+  assert.match(store, /export const useCart = defineVooyaStore\(storeBridge\)/);
+  assert.match(store, /create: createCartStore/);
+  assert.match(store, /actions: \["add"\]/);
+});
+
+test("generates Svelte virtual modules with readable stores", () => {
+  const component = generateRustSvelteModule({
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", group: "src/Cart.rs", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", group: "src/Cart.rs", fields: [{ name: "count", type: "u32" }] },
+    events: { version: 1, kind: "events", id: "cart::Events", name: "Events", group: "src/Cart.rs", methods: [] },
+  });
+  assert.match(component, /from "@vooya\/svelte"/);
+  assert.match(component, /updateProps\(values\)/);
+  assert.match(component, /defineVooyaComponent\(\{\s*contract:/);
+
+  const store = generateRustSvelteStoreModule({
+    version: 1,
+    kind: "store",
+    id: "cart::Cart",
+    name: "Cart",
+    group: "src/Cart.rs",
+    snapshot: "CartSnapshot",
+    actions: [{ name: "add", params: [{ name: "quantity", type: "u32" }] }],
+  });
+  assert.match(store, /from "@vooya\/svelte"/);
+  assert.match(store, /export const useCart = defineVooyaStore\(storeBridge\)/);
+});
+
+test("rejects unknown framework adapters instead of silently using Vue", () => {
+  assert.throws(() => vooya({ framework: "angular" }), /Unknown Vooya framework angular/);
 });

@@ -193,7 +193,7 @@ async function loadBindings() {
   return bindings;
 }
 
-export default defineVooyaComponent(definition, loadBindings);
+export default defineVooyaComponent({ contract: definition, loadBindings });
 `;
 }
 

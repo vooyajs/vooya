@@ -29,8 +29,9 @@ lifecycle、disposal、diagnostics 和 bundler output。因此它是 **WASM 集�
 不是另一个 UI framework。
 
 当前 alpha 采用 host-first 模式：现有 Web 应用的 renderer 拥有 host element
-和应用，Rust 只拥有它下面的局部 DOM 与资源。Vue 和 React 是当前 first-party
-adapter 与测试证据，不是架构上限。
+和应用，Rust 只拥有它下面的局部 DOM 与资源。Vue、React、Solid 和 Svelte 是当前
+first-party adapter，不是架构上限；其中 Vue、React 为 supported，Solid、Svelte
+目前是 Vite 7 Rust-file 路径上的 experimental evidence。
 
 ## 选择 Vooya 能得到什么
 
@@ -79,9 +80,12 @@ SSR、hydration 和 standalone Rust renderer 尚未进入当前 alpha 路径，�
 
 ## 常见问题
 
-### 如何在 Vue/React 项目中使用 Rust/WASM？
+### 如何在 Vue、React、Solid 或 Svelte 项目中使用 Rust/WASM？
 
-Vue 和 React 是当前公开的 first-party adapter。保留现有 Web 宿主应用，按[快速开始](guide/getting-started.md)配置 adapter，再接入 Rust 组件岛即可。
+Vue、React、Solid 和 Svelte 是当前源码中的 first-party adapter。保留现有 Web 宿主
+应用，按[快速开始](guide/getting-started.md)配置 adapter，再接入 Rust 组件岛即可。
+Solid、Svelte 仍是 Vite 7 Rust-file 路径上的 experimental 证据，不能扩展成其他
+bundler、SvelteKit 或 SSR 兼容承诺。
 
 ### wasm-bindgen 和 Vooya 有什么区别？
 
@@ -95,8 +99,8 @@ Vue 和 React 是当前公开的 first-party adapter。保留现有 Web 宿主�
 
 可以，这是架构目标：Vooya 是传统 Web host 与 WASM 能力岛之间的
 framework-agnostic integration layer。当前公开并有独立证据的 first-party
-adapter 集中在 Vue 和 React；其他框架需要单独的 adapter、契约和兼容性验证，
-不能从架构目标推断为已经支持。
+adapter 已覆盖 Vue、React、Solid 和 Svelte；其他框架需要单独的 adapter、契约和兼容性验证，
+不能从架构目标推断为已经支持。Solid、Svelte 仍按 experimental adapter 对待。
 
 ## 下一步
 

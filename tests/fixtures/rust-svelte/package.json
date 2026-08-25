@@ -1,0 +1,13 @@
+{
+  "name": "vooya-rust-svelte-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "vite build" },
+  "dependencies": {
+    "svelte": "^5.56.10"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "vite": "^7.0.0"
+  }
+}

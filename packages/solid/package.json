@@ -1,0 +1,33 @@
+{
+  "name": "@vooya/solid",
+  "version": "0.1.0-alpha.11",
+  "description": "Solid host adapter for Vooya component islands.",
+  "type": "module",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vooyajs/vooya.git",
+    "directory": "packages/solid"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --external solid-js --tsconfig tsconfig.json --clean",
+    "test": "npm run build && node --test test/*.test.js"
+  },
+  "peerDependencies": {
+    "solid-js": ">=1.9 <2"
+  }
+}

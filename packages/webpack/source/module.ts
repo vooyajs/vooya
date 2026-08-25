@@ -52,6 +52,9 @@ export const metadata = ${JSON.stringify({
     props: component.props,
     events: component.events,
   })};
-export default defineVooyaComponent(${JSON.stringify(definition)}, loadBindings);
+export default defineVooyaComponent({
+  contract: ${JSON.stringify(definition)},
+  loadBindings,
+});
 `;
 }

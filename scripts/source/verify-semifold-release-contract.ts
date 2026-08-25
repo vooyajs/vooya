@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const scriptRoot = fileURLToPath(new URL("../..", import.meta.url));
 const rootOption = process.argv.indexOf("--root");
 const root = rootOption === -1 ? scriptRoot : resolve(process.argv[rootOption + 1] ?? "");
-const packages = ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-rspack", "vooya-webpack"];
+const packages = ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-solid", "vooya-svelte", "vooya-rspack", "vooya-webpack"];
 const changesDirectory = resolve(root, ".changes");
 const changesets = readdirSync(changesDirectory)
   .filter((entry) => entry.endsWith(".md"))

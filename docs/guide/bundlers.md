@@ -9,7 +9,8 @@ the Vite path.
 Install `@vooya/vite` as a development dependency and add `vooya()` after the
 host framework plugin. The supported source-authoring range is Vite `>=7 <9`;
 Vite 8 is the current primary compatibility target. See the
-[getting started guide](./getting-started.md) for complete Vue and React examples.
+[getting started guide](./getting-started.md) for Vue, React, and experimental
+Solid/Svelte examples. Solid and Svelte evidence is currently limited to Vite 7.
 
 ## Rspack / Rsbuild (experimental)
 

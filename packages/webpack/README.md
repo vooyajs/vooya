@@ -30,6 +30,10 @@ CSS configuration.
 
 Rust dependencies use the shared build-core contract:
 
+The nearest `Cargo.toml` supplies defaults, and explicit `rust` options below
+override same-named manifest dependencies. Regular packages and workspace
+dependencies use the same shared build-core resolution rules.
+
 ```js
 vooyaWebpack({
   rust: {

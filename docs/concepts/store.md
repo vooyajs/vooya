@@ -22,8 +22,9 @@ impl Cart {
 ```
 
 The generated module exposes an independent store instance and a framework
-convenience hook with the same public shape in Vue and React. For a `Cart` store,
-the generated exports are `createCartStore()` and `useCart()`:
+convenience primitive. Vue, React, Solid, and Svelte receive the same generated
+names and fields. For a `Cart` store, the exports are `createCartStore()` and
+`useCart()`:
 
 ```vue
 <script setup lang="ts">
@@ -46,10 +47,41 @@ export function CartButton() {
 }
 ```
 
-The hook name follows the Rust Store type, not the file name: `ShoppingCart` generates
-`useShoppingCart`. Vue exposes `state` as a reactive `Ref` (automatically unwrapped in
-templates), while React exposes the current snapshot value. The public fields and action
-shape are otherwise the same.
+Solid keeps the same generated name but exposes state as an accessor:
+
+```tsx
+import { useCart } from "./Cart.rs";
+
+export function CartButton() {
+  const { state, add } = useCart();
+  return <button onClick={() => add(1)}>Store {state()?.count ?? 0}</button>;
+}
+```
+
+Svelte exposes state as a `Readable`, with template auto-subscription through
+`$state`:
+
+```svelte
+<script>
+  import { useCart } from "./Cart.rs";
+  const { state, add } = useCart();
+</script>
+
+<button onclick={() => add(1)}>Store {$state?.count ?? 0}</button>
+```
+
+The generated entry name follows the Rust Store type, not the file name:
+`ShoppingCart` generates `useShoppingCart`. Vue exposes `state` as a reactive
+`Ref` (automatically unwrapped in templates), React exposes the current snapshot
+value, Solid exposes an `Accessor`, and Svelte exposes a `Readable`.
+`undefined` means that the asynchronous WASM Store is not ready yet. The
+generated names, actions, ownership, and error contract are otherwise aligned.
+
+Internally, generation stops at one framework-neutral Store bridge containing
+the factory and declared actions. Each adapter wraps that bridge with its native
+reactivity and lifecycle primitives. This keeps framework branching out of the
+Rust/WASM generator without forcing Vue, React, Solid, and Svelte into an
+unnatural shared reactive container.
 
 The lower-level `useVooyaStore` exports remain available from the framework adapters for
 custom integrations, shared instances, and adapter authors. They are not the primary API
@@ -72,7 +104,7 @@ guide](../guide/rust-file-authoring.md) for the complete role syntax.
 
 Stores are instance-scoped by default. A component or host service may own one
 store, or several consumers may share one when a separate owner controls its
-lifetime. Generated `useName()` hooks own and dispose the instance they create;
+lifetime. Generated `useName()` entries own and dispose the instance they create;
 the lower-level Vue `disposeOnUnmount` option remains explicit for custom
 integrations. A store is not a global singleton by implication.
 
@@ -96,8 +128,8 @@ and [RFC 0002](../rfcs/0002-reactive-component-model.md): static structure can
 be known by a compiler, but arbitrary Rust helpers and runtime branches need
 runtime dependency tracking. The current runtime provides explicit bindings and
 opt-in tracking. It does not promise that every Store action automatically
-becomes a fine-grained UI update, and it does not make a Store a second Vue or
-React renderer.
+becomes a fine-grained UI update, and it does not make a Store a second host
+renderer.
 
 ## When to choose Store
 

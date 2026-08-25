@@ -32,6 +32,10 @@ vooyaRsbuild({ framework: "react" });
 Rust dependencies and `web-sys` features use the same build-core contract as
 the Vite integration:
 
+The nearest `Cargo.toml` supplies defaults, and explicit `rust` options below
+override same-named manifest dependencies. Regular packages and workspace
+dependencies use the same shared build-core resolution rules.
+
 ```ts
 vooyaRsbuild({
   rust: {

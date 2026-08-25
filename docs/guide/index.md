@@ -4,8 +4,9 @@ These guides take you from the integration-layer mental model to a clean Web
 application with a small Rust/WASM island.
 They assume that the existing Web renderer remains the host application and
 that Vooya owns only the bounded capability you explicitly mount. Vue and React
-are the current first-party paths; the layer is intended to support other hosts
-through explicit adapters.
+are the current supported first-party paths. Solid and Svelte are experimental and
+currently covered on the Vite 7 Rust-file path; the layer can support other hosts only
+through explicit adapters and independent evidence.
 
 ## Mental model first
 
@@ -40,5 +41,6 @@ problem this layer is intended to solve.
 Vooya is currently an alpha source-authoring toolchain. A clean consumer still
 needs the Rust toolchain; a supported precompiled component distribution is a
 future product, not an implicit feature of this package set. The current
-first-party framework adapters are Vue and React, while other host renderers
-remain an adapter and evidence task.
+supported first-party framework adapters are Vue and React. Solid and Svelte
+are experimental first-party adapters; other host renderers remain an adapter
+and evidence task.

@@ -7,7 +7,7 @@ const [rootArgument, frameworkArgument = "vue"] = process.argv.slice(2);
 if (!rootArgument) {
   throw new Error("Usage: generate-declarations.js <application-root> [framework]");
 }
-if (frameworkArgument !== "vue" && frameworkArgument !== "react") {
+if (frameworkArgument !== "vue" && frameworkArgument !== "react" && frameworkArgument !== "solid" && frameworkArgument !== "svelte") {
   throw new Error(`Unsupported declaration framework: ${frameworkArgument}`);
 }
 

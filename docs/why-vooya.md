@@ -36,8 +36,9 @@ That is why Vooya is an **integration layer**, not another UI framework.
 
 The current alpha is host-first: the existing Web application's renderer owns
 the host element and application; Rust owns the local subtree and resources
-below it. Vue and React are the first-party adapters today, not the architectural
-limit.
+below it. Vue, React, Solid, and Svelte are the first-party adapters today, not
+the architectural limit. Vue and React are supported; Solid and Svelte are
+experimental with current evidence on the Vite 7 Rust-file path.
 
 ## What you gain by choosing Vooya
 
@@ -94,18 +95,20 @@ measure a real workload against a real host baseline.
 ### How do I use Rust/WASM in an existing Web application without rewriting it?
 
 Keep the existing renderer as the host, install a matching adapter and bundler
-plugin, then import an ordinary `.rs` component. The current first-party path is
-Vue or React; another framework needs its own adapter and compatibility evidence.
+plugin, then import an ordinary `.rs` component. The current first-party Vite
+path covers Vue, React, Solid, and Svelte; another framework needs its own
+adapter and compatibility evidence. Solid and Svelte are experimental Vite 7
+evidence, not general bundler or SSR claims.
 Start with the [quickstart](guide/getting-started.md) and inspect the
 [component boundary](concepts/component-boundary.md).
 
 ### Can Vooya work with another Web framework?
 
 The architecture is framework-agnostic: Vooya is the integration layer between a
-traditional Web host and a bounded WASM island. The published alpha currently
-ships and tests Vue and React adapters. Other frameworks are not implicitly
-supported; each needs an adapter, a documented contract, and independent
-compatibility evidence.
+traditional Web host and a bounded WASM island. The current source tree has
+first-party Vue, React, Solid, and Svelte adapters; Solid and Svelte remain
+experimental. Other frameworks are not implicitly supported; each needs an
+adapter, a documented contract, and independent compatibility evidence.
 
 ### What is the difference between `wasm-bindgen` and Vooya?
 

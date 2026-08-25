@@ -134,10 +134,24 @@ npm run verify:docs
 npm run pack:check
 ```
 
-The complete release gate is:
+The routine pull-request gate (without browser E2E) is:
 
 ```sh
 npm run verify:ci
+```
+
+Browser and bundler E2E remain an explicit, separately runnable gate:
+
+```sh
+npm run verify:e2e
+```
+
+Before a release, maintainers run the complete local gate. `verify:release`
+runs both `verify:ci` and `verify:e2e`, then performs the remaining published
+release checks:
+
+```sh
+npm run verify:release
 ```
 
 Rust/WASM builds can share generated artifacts, so run build-dependent suites

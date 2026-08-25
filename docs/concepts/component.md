@@ -20,8 +20,8 @@ pub fn Greeting(
 ```
 
 Optional `#[voo::props]` and `#[voo::events]` records define the host-facing
-contract. The current first-party consumption paths generate ordinary Vue or
-React components from the Rust module:
+contract. The current Vite path generates ordinary Vue, React, Solid, or Svelte
+components from the Rust module:
 
 ```tsx
 import Greeting from "./Greeting.rs";
@@ -31,8 +31,8 @@ export function App() {
 }
 ```
 
-The same generated contract is available through the Vue adapter; only the
-host-framework syntax changes. See the [Rust authoring guide](../guide/rust-file-authoring.md)
+The same generated contract is available through each adapter; only the
+host-framework syntax and lifecycle integration change. See the [Rust authoring guide](../guide/rust-file-authoring.md)
 and [API reference](../reference/api.md) for declaration and ABI details.
 
 ## Contract and ownership
@@ -40,7 +40,7 @@ and [API reference](../reference/api.md) for declaration and ABI details.
 | Part | Direction | Purpose | Current boundary |
 | --- | --- | --- | --- |
 | Props | Host → Rust | Initial values and declared updates | Top-level props are read-only Rust signals; updates arrive as one validated patch |
-| Events | Rust → Host | Narrow notifications from the island | Current Vue/React adapters use non-bubbling `vooya-<name>` events |
+| Events | Rust → Host | Narrow notifications from the island | Current Vue/React/Solid/Svelte adapters use non-bubbling `vooya-<name>` events |
 | Lifecycle | Host ↔ Rust | Mount, prop updates, errors, and disposal | The host owns the mount element and invokes `dispose` |
 | DOM and resources | Rust-owned below the host element | Local elements, listeners, and subscriptions | Every resource created by the island must have an owning cleanup scope |
 
@@ -48,6 +48,12 @@ Rust creates descendants and owned listeners after the host supplies a mount
 element. On unmount, the host drops the WASM handle and the component releases
 its descendants, subscriptions, and listeners. The host does not own the Rust
 subtree, and Rust does not own the surrounding application.
+
+The toolchain generates one framework-neutral Component bridge containing the
+component contract and asynchronous binding loader. Vue, React, Solid, and Svelte
+adapters turn that bridge into their native component and owner lifecycle. The
+bridge is generated implementation output, not a stable IR that application
+authors should hand-write or depend on directly.
 
 ## Why a Component?
 
