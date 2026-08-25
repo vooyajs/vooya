@@ -535,6 +535,15 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"]
 
+# Keep release WASM artifacts compact. These settings apply to
+# the generated application crate only; an existing user workspace remains
+# under the user's control.
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+
 [dependencies]
 vooya-core = { path = ${JSON.stringify(runtimeCrateRoot)} }
 ${authoringCrateRoot ? `vooya = { path = ${JSON.stringify(authoringCrateRoot)} }\n` : ""}js-sys = "=0.3.92"
