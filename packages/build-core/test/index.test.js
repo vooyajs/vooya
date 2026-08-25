@@ -106,6 +106,7 @@ web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
     const generated = readFileSync(resolve(workspaceRoot, "build/Cargo.toml"), "utf8");
     assert.match(generated, /"serde" = \{ version = "1", features = \["derive"\] \}/);
     assert.match(generated, /"HtmlCanvasElement"/);
+    assert.match(generated, /\[profile\.release\][\s\S]*opt-level = "s"[\s\S]*lto = true[\s\S]*codegen-units = 1[\s\S]*panic = "abort"/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
