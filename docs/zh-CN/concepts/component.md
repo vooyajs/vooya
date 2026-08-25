@@ -16,11 +16,16 @@ Canvas、解析结果视图或数据密集型控件交给 Rust，同时让宿主
 当前 Rust-file 形式是普通 `.rs` 文件，使用 `#[voo::component]`，并提供明确的
 `View`/`ViewElement` 签名；`rsx!` 描述 Rust-owned subtree，不替换宿主 renderer。
 
+工具链先生成包含 component contract 与异步 binding loader 的
+framework-neutral bridge，再由 Vue、React、Solid 或 Svelte adapter 接入各自的 component
+与 owner lifecycle。这个 bridge 是生成实现边界，不是要求应用作者手写或稳定依赖的
+public IR。
+
 ## 生命周期与所有权
 
 宿主创建 mount element 并转发声明的 props；Rust 创建 descendants 和自己拥有的
 listeners，直到宿主 dispose island。事件使用不冒泡的 `vooya-<name>` transport，
-由当前 Vue 或 React adapter 解码。Component 创建的每个资源都必须自己释放，宿主
+由当前 Vue、React、Solid 或 Svelte adapter 解码。Component 创建的每个资源都必须自己释放，宿主
 不拥有 Rust descendants。
 
 Component 适合局部渲染和交互，不适合充当页面路由、全局状态容器或普通宿主布局的

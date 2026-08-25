@@ -29,6 +29,31 @@ export type VooyaStoreSource<TSnapshot = unknown> =
   | VooyaStore<TSnapshot>
   | PromiseLike<VooyaStore<TSnapshot>>;
 
+export interface VooyaStoreBridge<TStore extends VooyaStore<unknown>> {
+  name: string;
+  create(): TStore | Promise<TStore>;
+  actions: readonly string[];
+}
+
+/** Turn the framework-neutral generated store bridge into a Vue composable. */
+export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
+  bridge: VooyaStoreBridge<TStore>,
+) {
+  return function useGeneratedVooyaStore(options: VooyaStoreOptions = {}) {
+    const consumed = useVooyaStore(bridge.create(), {
+      ...options,
+      disposeOnUnmount: true,
+    });
+    return {
+      state: consumed.snapshot,
+      ...Object.fromEntries(bridge.actions.map((action) => [
+        action,
+        (...args: unknown[]) => consumed.dispatch(action, ...args),
+      ])),
+    };
+  };
+}
+
 /**
  * Consume the framework-neutral Rust store contract from Vue. The store owns
  * state and notification ordering; Vue only mirrors its latest snapshot.
@@ -118,10 +143,16 @@ export interface VooyaComponentBindings {
 
 export type VooyaComponentBindingsLoader = () => Promise<VooyaComponentBindings>;
 
+export interface VooyaComponentBridge {
+  contract: VooyaComponentDefinition;
+  loadBindings: VooyaComponentBindingsLoader;
+}
+
 export function defineVooyaComponent(
-  definition: VooyaComponentDefinition,
-  loadBindings: VooyaComponentBindingsLoader,
+  bridge: VooyaComponentBridge | VooyaComponentDefinition,
+  legacyLoader?: VooyaComponentBindingsLoader,
 ) {
+  const { contract: definition, loadBindings } = normalizeComponentBridge(bridge, legacyLoader);
   const constructors = {
     number: Number,
     bigint: BigInt,
@@ -282,4 +313,13 @@ function truncate(value: string) {
 
 function isDevelopment() {
   return (import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV === true;
+}
+
+function normalizeComponentBridge(
+  bridge: VooyaComponentBridge | VooyaComponentDefinition,
+  legacyLoader?: VooyaComponentBindingsLoader,
+): VooyaComponentBridge {
+  if ("contract" in bridge) return bridge;
+  if (!legacyLoader) throw new Error("Vooya component bridge is missing loadBindings.");
+  return { contract: bridge, loadBindings: legacyLoader };
 }

@@ -4,7 +4,8 @@ Vooya is a WASM integration layer for existing Web applications. It compiles
 ordinary Rust component and store implementations into browser-consumable
 WebAssembly and exposes them through host-framework adapters. The old `.voo`
 format was an exploratory intermediate and is no longer a supported authoring
-path. Vue and React are the current first-party adapters.
+path. Vue and React are the supported first-party adapters; Solid and Svelte
+are experimental with current evidence on the Vite 7 Rust-file path.
 
 This directory is the source of truth for user-facing documentation and is
 published as a VitePress site. Markdown remains the canonical content format;
@@ -23,7 +24,7 @@ links back here for the contracts and guides behind each case.
 - [Contributing](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md): project scope, development setup, testing,
   and pull request expectations.
 - [Getting started](guide/getting-started.md): install the alpha toolchain and
-  run a first component through the current Vue or React adapter path.
+  run a first component through a current Vue, React, Solid, or Svelte adapter path.
 - [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
   schema records, generated bindings, and the current first-party Vite path.
 - [API reference](reference/api.md): public package exports, options, and

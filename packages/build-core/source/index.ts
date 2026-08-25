@@ -6,6 +6,8 @@ import { createRequire } from "node:module";
 import { dirname, relative, resolve } from "node:path";
 
 import { CargoBuildError, VooyaUserError } from "./errors.js";
+import { resolveRustBuildOptions } from "./cargo-manifest.js";
+import type { RustBuildOptions, RustDependency } from "./cargo-manifest.js";
 import { resolveToolchain } from "./toolchain.js";
 import type { ResolvedToolchain, ToolchainEnvironment } from "./toolchain.js";
 import {
@@ -28,37 +30,11 @@ import type { RustSchemaDocument } from "./schema.js";
 const require = createRequire(import.meta.url);
 
 export * from "./errors.js";
+export * from "./cargo-manifest.js";
 export * from "./schema.js";
 export * from "./schema-declarations.js";
 export * from "./toolchain.js";
 export * from "./workspace.js";
-
-export type RustDependency =
-  | string
-  | {
-      version?: string;
-      path?: string;
-      git?: string;
-      branch?: string;
-      tag?: string;
-      rev?: string;
-      package?: string;
-      defaultFeatures?: boolean;
-      features?: string[];
-    };
-
-export interface RustBuildOptions {
-  dependencies?: Record<string, RustDependency>;
-  webSysFeatures?: string[];
-  /** Optional authored crate entry relative to applicationRoot. */
-  entry?: string;
-  /** Plain Rust files to include in the generated crate module graph. */
-  files?: string[];
-  /** Rust files explicitly exposed by the generated JS-facing root. */
-  public?: string[];
-  /** Directory containing authored Rust modules, relative to applicationRoot. */
-  sourceRoot?: string;
-}
 
 export type MappedDiagnostic = string;
 export interface BuildAsset { path: string; code: string }
@@ -66,7 +42,7 @@ export interface WasmAsset { path: string; bytes: Uint8Array }
 export interface GeneratedCss { componentId: string; code: string }
 export interface GeneratedDeclaration {
   componentId: string;
-  framework: "vue" | "react";
+  framework: "vue" | "react" | "solid" | "svelte";
   code: string;
 }
 export interface BuildMetadata {
@@ -111,7 +87,7 @@ export interface BuildApplicationOptions {
   workspacePath?: string;
   outputDir?: string;
   buildMode?: "production" | "development";
-  framework?: "vue" | "react";
+  framework?: "vue" | "react" | "solid" | "svelte";
   onRustBuildStart?: () => void;
   toolchain?: ResolvedToolchain;
   spawn?: BuildSpawn;
@@ -281,6 +257,8 @@ export function buildApplication({
   exec = execFileSync,
 }: BuildApplicationOptions): BuildApplicationResult {
   if (!applicationRoot) throw new Error("Vooya build requires applicationRoot.");
+  const resolvedRust = resolveRustBuildOptions(applicationRoot, rust);
+  rust = resolvedRust.rust;
   const workspace = resolveVooyaWorkspace(applicationRoot, workspaceRoot);
   ensureVooyaWorkspace(workspace);
   workspacePath ??= workspace.build;
@@ -465,6 +443,7 @@ export function buildApplication({
         })),
       ],
     watchedFiles: [
+      ...(resolvedRust.manifestPath ? [resolvedRust.manifestPath] : []),
       resolve(runtimeCrateRoot, "src"),
       resolve(applicationRoot, configuredSourceRoot),
       ...resolveRustDependencyRoots(rust, applicationRoot),

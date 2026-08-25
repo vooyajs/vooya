@@ -37,34 +37,51 @@ vooya({
 });
 ```
 
-`framework` accepts `"vue"` or `"react"` and defaults to `"vue"`. The optional
+`framework` accepts `"vue"`, `"react"`, `"solid"`, or `"svelte"` and defaults to `"vue"`. The optional
 `toolchain.cargoPath` explicitly selects one Cargo executable. Vooya discovers
 the rustc used by that Cargo and rejects the explicit path if its target or
 wasm-bindgen CLI is incomplete; it does not fall back to another Cargo on
-`PATH`. Relative paths resolve from the Vite project root.
+`PATH`. Relative paths written in `vooya({ rust })` resolve from the Vite
+application root.
+
+Vooya discovers the nearest `Cargo.toml` by checking the configured `rust.entry`
+directory, then `rust.sourceRoot` (default `src`), then the application root,
+walking each location toward the repository boundary. Its ordinary
+`[dependencies]` become build defaults. This covers regular packages and
+workspace members whose dependencies use `workspace = true`. A same-named value in
+`vooya({ rust: { dependencies } })` wins; when neither source supplies a value,
+the generated crate keeps Vooya's default. Cargo path dependencies resolve from
+the manifest directory, while explicit plugin paths resolve from the application
+root. Cargo workspace dependencies are also resolved.
 
 `rust.dependencies` maps Cargo package names to either a version string or an
 object. Supported object fields are `version`, `path`, `git`, `branch`, `tag`,
-`rev`, `package`, `features`, and `defaultFeatures`. Relative paths resolve from
-the Vite application root and are watched during development.
+`rev`, `package`, `features`, and `defaultFeatures`. Path dependencies and the
+discovered manifest are watched during development.
 
-Vooya owns `vooya-core`, `wasm-bindgen`, `js-sys`, and `web-sys` in the
-generated crate. Add browser APIs through `rust.webSysFeatures` rather than
-overriding `web-sys`.
+Vooya owns the exact generated-crate versions or sources for `vooya`/`vooya-core`,
+`wasm-bindgen`, `js-sys`, and `web-sys` because its Rust runtime and
+`wasm-bindgen` CLI must agree. Manifest declarations can still contribute
+features, but the current compatibility check is intentionally narrow: it
+rejects a conflicting exact managed-version pin and is not a general semver
+solver.
+When `rust.webSysFeatures` is omitted, features are inherited from the nearest
+manifest's `web-sys` dependency. Supplying the option explicitly takes priority.
 
 ### `vooya()` options
 
 | Parameter | Type / values | Default | Purpose | Limit / evidence |
 | --- | --- | --- | --- | --- |
-| `framework` | `"vue" \| "react"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 fixtures are covered; it does not change the Rust ABI |
-| `rust.dependencies` | `Record<string, string \| Dependency>` | `{}` | Adds Cargo registry, Git, or path dependencies | The generated crate owns core browser dependencies; path edits may require a server restart in experimental adapters |
-| `rust.webSysFeatures` | `string[]` | `[]` | Enables the required `web-sys` browser APIs | Add features here instead of overriding generated `web-sys` |
+| `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 are supported; Solid 1.9 and Svelte 5 have experimental Vite 7 evidence; it does not change the Rust ABI |
+| `rust.dependencies` | `Record<string, string \| Dependency>` | Nearest `Cargo.toml`, then `{}` | Adds or overrides Cargo registry, Git, or path dependencies | The generated crate owns core browser dependency versions; path edits may require a server restart in experimental adapters |
+| `rust.webSysFeatures` | `string[]` | Nearest `Cargo.toml`, then `[]` | Enables the required `web-sys` browser APIs | An explicit array replaces manifest-provided features; built-in runtime features are always retained |
 | `toolchain.cargoPath` | `string` | PATH discovery | Chooses the Cargo executable used for the build | The selected Cargo's `rustc`, target, and CLI must be coherent; no silent fallback |
 | `workspace.root` | `string` | `.vooya/` | Moves generated build, WASM, types, cache, and metadata | `rootDirs` and cleanup commands must point to the override |
 
 `Dependency` accepts `version`, `path`, `git`, `branch`, `tag`, `rev`,
-`package`, `features`, and `defaultFeatures`. Relative paths resolve from the
-application root.
+`package`, `features`, and `defaultFeatures`. Explicit plugin paths resolve from
+the application root; inherited Cargo paths resolve from their manifest (or
+workspace manifest) directory.
 
 ## Doctor
 
@@ -93,7 +110,11 @@ user's PATH preference.
 | --- | --- | --- | --- |
 | Discovered | First coherent Cargo on `PATH` | A normal rustup installation | The build uses the `rustc` selected by that Cargo |
 | Explicit | `toolchain.cargoPath` / `--cargo-path` | Multiple Rust installations or Tauri toolchains | An incomplete explicit toolchain fails instead of switching silently |
-| Project policy | A project-selected Cargo path | Monorepos and desktop hosts | Native and WASM builds can share policy, but remain separate target crates |
+
+A project may choose and share its own Cargo policy across native and WASM
+builds, but that is project configuration, not a third Vooya-managed toolchain
+mode. Managed toolchains and Rust-free precompiled consumers are not current
+guarantees.
 
 ## Generated application workspace
 
@@ -130,17 +151,21 @@ Rust-file declarations use the same central tree and replace `.rs` with
 `.d.rs.ts`; they are generated from the versioned `__voo_schema` section after
 the WASM build.
 
-The Rust-file Vue and React fixtures are verified end to end with:
+The Rust-file Vue, React, Solid, and Svelte fixtures are verified end to end with:
 
 ```sh
 npm run test:rust-vue
 npm run test:rust-react
+npm run test:rust-solid
+npm run test:rust-svelte
 ```
 
 This command builds the fixture, serves the production assets with JavaScript
 and WASM MIME types, and checks component mounting, store action dispatch, and
 the resulting snapshot-driven DOM update in Chromium. The React fixture also
-mounts under `StrictMode`.
+mounts under `StrictMode`. The Svelte fixture additionally checks callback and
+prop update behavior, generated Svelte declarations, and exactly one Component
+handle cleanup plus one generated Store cleanup after child destruction.
 
 ## Vite development rebuilds
 
@@ -223,14 +248,23 @@ npm run test:e2e:extended
 npm run test:e2e:firefox
 ```
 
-Bundler-specific browser checks remain part of the normal release gate because
-they validate Webpack, Rspack, and Vite integration rather than duplicate the
-framework smoke suite.
+The repository keeps three explicit verification levels:
+
+```sh
+npm run verify:ci       # routine non-browser CI gate
+npm run verify:e2e      # browser and bundler E2E, run separately
+npm run verify:release  # verify:ci + verify:e2e + release checks
+```
+
+Bundler-specific browser checks live in `verify:e2e` because they validate
+Webpack, Rspack, and Vite integration rather than duplicate the framework smoke
+suite. Routine pull-request CI runs `verify:ci` without Playwright or browser
+matrices; the pre-release gate runs both levels.
 
 
 ## Repository verification
 
-The broad local gate is:
+The complete local gate is:
 
 ```sh
 npm run verify:release

@@ -32,8 +32,10 @@ capability island.
 
 Vooya is not a replacement for the host renderer or a full Rust application
 framework. It is a framework-agnostic integration layer for the build and
-runtime work around that island. Vue and React are the current first-party
-adapters; other hosts require their own adapter and evidence.
+runtime work around that island. Vue and React are the supported first-party
+adapters. Solid and Svelte are experimental first-party adapters with current
+evidence on the Vite 7 Rust-file path; other hosts require their own adapter
+and evidence.
 
 The short version is: **keep JavaScript, move only the expensive part**. The
 application remains the familiar surface, while one focused workload travels

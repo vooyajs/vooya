@@ -1,0 +1,13 @@
+{
+  "name": "vooya-rust-solid-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "vite build" },
+  "dependencies": {
+    "solid-js": "^1.9.9"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0",
+    "vite-plugin-solid": "^2.11.8"
+  }
+}

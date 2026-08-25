@@ -1,6 +1,6 @@
 # Releases
 
-Semifold is Vooya's only version planner. The eight release packages form one
+Semifold is Vooya's only version planner. The nine release packages form one
 fixed release group; never edit their versions or internal exact dependencies by
 hand. Semifold is a maintainer tool, not a dependency of published Vooya
 packages.
@@ -14,7 +14,7 @@ npm run verify:release
 
 `npm run release:status` runs Semifold's read-only release plan after checking
 Vooya's fixed-version contract. A pending `.changes/*.md` file must name all
-eight package IDs with the same bump level. This is deliberate: Semifold's Node
+nine package IDs with the same bump level. This is deliberate: Semifold's Node
 adapter does not infer Vooya's coordinated release policy from npm dependency
 ranges.
 

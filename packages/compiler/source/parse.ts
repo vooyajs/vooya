@@ -187,7 +187,7 @@ function parseManifestComponent(source: string, id: string): ManifestComponent {
       continue;
     }
     if (section === "adapter") {
-      const match = value.match(/^(vue|react)\s*:\s*([A-Za-z_$][\w$]*)$/);
+      const match = value.match(/^(vue|react|solid|svelte)\s*:\s*([A-Za-z_$][\w$]*)$/);
       if (!match) throw new VooParseError(`Invalid adapter declaration "${value}"`, id, line);
       component.adapters[match[1]] = match[2];
       continue;

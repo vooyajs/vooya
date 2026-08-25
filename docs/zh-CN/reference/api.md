@@ -4,6 +4,11 @@
 预发布版本间 breaking。没有公开导出的内部 `@vooya/build-core` helper 不在这里
 冒充稳定 API。
 
+当前生成的 `.rs` module 会把 framework-neutral Component/Store bridge 交给所选
+adapter。这个实现边界用于避免 generation 层出现框架分支，不是承诺给应用作者稳定
+依赖的 public IR。普通应用应使用下文的 generated component、`useName()` 与
+`createNameStore()`。
+
 相关背景见[工具参考](./tooling.md)、[兼容性矩阵](../project/compatibility.md)
 和[英文 ABI v1 RFC](../../rfcs/0007-rust-file-authoring-and-abi-v1.md)。
 
@@ -12,9 +17,9 @@
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
 | `vooya()` | `Plugin` | — | 加入 Vite config | Vite `>=7 <9`；`plugins: [vue(), vooya()]` |
-| `framework` | `"vue" \| "react"` | `"vue"` | 选择宿主 adapter | Vue 3 或 React 19；`vooya({ framework: "react" })` |
-| `rust.dependencies` | `Record<string, string \| Dependency>` | `{}` | 复用 Cargo registry/Git/path crate | 仅 browser-compatible Rust；`rust: { dependencies: { serde: "1" } }` |
-| `rust.webSysFeatures` | `string[]` | `[]` | 开启 `web-sys` browser API | 用它添加 feature，不要覆盖生成的 `web-sys` |
+| `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | 选择宿主 adapter | Vue 3、React 19 为 supported；Solid 1.9、Svelte 5 在 Vite 7 上为 experimental |
+| `rust.dependencies` | `Record<string, string \| Dependency>` | 就近 `Cargo.toml`，再回退 `{}` | 复用或覆盖 Cargo registry/Git/path crate | 仅 browser-compatible Rust；插件同名项优先 |
+| `rust.webSysFeatures` | `string[]` | 就近 `Cargo.toml`，再回退 `[]` | 开启 `web-sys` browser API | 插件显式 features 优先；生成运行时的内建 features 保留 |
 | `toolchain.cargoPath` | `string` | PATH discovery | 指定 Cargo | 该 Cargo 的 rustc、target、CLI 必须一致 |
 | `workspace.root` | `string` | `.vooya/` | 把 generated state 放到别处 | 也要同步 TS `rootDirs`；workspace 可重新生成 |
 
@@ -54,7 +59,7 @@ Vapor 时，仍需由宿主自行配置 `createVaporApp` 和 `vaporInteropPlugin
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
-| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | 自定义集成或共享实例的生命周期管理 | Vue `>=3.5.2`；不是普通用户的主入口 |
+| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | 自定义集成或共享实例的生命周期管理 | Vue `>=3.5.2 <4`；不是普通用户的主入口 |
 | `source` | `VooyaStore \| PromiseLike<VooyaStore>` | 必填 | 传入 instance 或 generated async store | 组件先 unmount 时会 dispose late instance |
 | `disposeOnUnmount` | `boolean` | `false` | 让当前组件拥有 disposal | instance-scoped store 通常设为 `true` |
 | `onError` | `(cause: unknown) => void` | — | 接收异步创建失败 | 不负责 retry 或隐藏 action error |
@@ -65,8 +70,8 @@ unsubscribe }`；`dispatch(name, ...args)` 调用声明的 store action。
 
 ## `@vooya/react`
 
-生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook。Vue 和 React 的生成
-hook 共享同一个公开 shape：`state` 加类型化 action；React 的 `state` 是当前快照值。
+生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook。Vue、React、Solid 和 Svelte
+获得相同的生成名称与字段：`state` 加类型化 action；React 的 `state` 是当前快照值。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
@@ -74,6 +79,42 @@ hook 共享同一个公开 shape：`state` 加类型化 action；React 的 `stat
 | Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `useSyncExternalStore`；每个 hook 生命周期一个 instance |
 | `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例集成 | 高级 API；factory 可同步或 Promise |
 | `onError` / `onNotify` | callbacks | — | 观察创建失败/通知 | adapter callback，不是全局 event bus |
+
+## `@vooya/solid`
+
+Solid 保持相同的 generated component 与 `useName()` 命名，但由 Solid owner、signal
+和 cleanup 包装统一的内部 bridge。由于 WASM Store 异步初始化，`state` 是 accessor。
+
+| 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
+| --- | --- | --- | --- | --- |
+| Generated component | Solid component props | — | 导入 `#[voo::component]` `.rs` | Solid `>=1.9 <2`；事件使用 `onEventName` callback prop |
+| Generated primitive | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `const { state, add } = useCart(); state()?.count` |
+| `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例 | 高级 API；factory 可同步或 Promise |
+| `onError` | `(cause: unknown) => void` | — | 观察异步 factory 失败 | 释放绑定到当前 Solid owner |
+| `onNotify` | 转发给 custom factory 的 callback 字段 | — | 高级 factory instrumentation | generated Solid Store 通过 subscription 发布 state，不提供独立 notification bus |
+
+统一 API 不等于强制统一响应式容器：Vue 返回 `Ref`，React 返回 snapshot，Solid 返回
+`Accessor`；这些 adapter 的生命周期、action、错误和所有权契约保持对齐。
+其中的 `undefined` 都表示异步 WASM Store 尚未 ready。
+
+## `@vooya/svelte`
+
+Svelte 保持相同的 generated component 与 `useName()` 命名，由 Svelte component
+lifecycle 包装 framework-neutral bridge。Store `state` 是
+`Readable<T | undefined>`，模板通过 `$state` 自动订阅。
+
+| 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
+| --- | --- | --- | --- | --- |
+| Generated component | Svelte component props | — | 导入 `#[voo::component]` `.rs` | Svelte `>=5 <6`；事件使用 `onEventName` callback prop |
+| Generated Store entry | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `const { state, add } = useCart()`；模板读取 `$state?.count` |
+| `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例 | 高级 API；factory 可同步或 Promise |
+| `onError` | `(cause: unknown) => void` | — | 观察异步 factory 失败 | Component 与 generated Store cleanup 绑定 Svelte destruction |
+| `onNotify` | 转发给 custom factory 的 callback 字段 | — | 高级 factory instrumentation | generated Svelte Store 通过 `Readable` 发布，不承诺独立 notification bus |
+
+当前证据是 Svelte 5 + Vite 7 + Chromium：覆盖 Component mount/callback、Store
+action、Component prop update、generated declarations，以及 Component handle 与
+generated Store 各一次 cleanup。没有覆盖 Svelte 3/4、SvelteKit、SSR、hydration、
+Vite 8、Rspack 或 Webpack。
 
 ## `@vooya/rspack`
 

@@ -60,8 +60,39 @@ test("generates React callback props from component events", () => {
   assert.match(declaration, /ComponentType<CounterProps>/);
 });
 
-test("rejects borrowed string types in Vue and React declaration generation", () => {
-  for (const framework of ["vue", "react"]) {
+test("generates Solid component declarations with idiomatic callback props", () => {
+  const declaration = generateVooDeclaration(
+    {
+      name: "Counter",
+      props: [{ name: "initial", rustType: "i32", required: true }],
+      events: [{ name: "selected", parameters: [{ name: "value", rustType: "i32" }] }],
+    },
+    "solid",
+  );
+
+  assert.match(declaration, /import type \{ Component \} from "solid-js"/);
+  assert.match(declaration, /onSelected\?: \(value: number\) => void/);
+  assert.match(declaration, /class\?: string/);
+  assert.match(declaration, /Component<CounterProps>/);
+});
+
+test("generates Svelte component declarations with callback props", () => {
+  const declaration = generateVooDeclaration(
+    {
+      name: "Counter",
+      props: [{ name: "initial", rustType: "i32", required: true }],
+      events: [{ name: "selected", parameters: [{ name: "value", rustType: "i32" }] }],
+    },
+    "svelte",
+  );
+
+  assert.match(declaration, /import type \{ Component \} from "svelte"/);
+  assert.match(declaration, /onSelected\?: \(value: number\) => void/);
+  assert.match(declaration, /Component<CounterProps>/);
+});
+
+test("rejects borrowed string types in framework declaration generation", () => {
+  for (const framework of ["vue", "react", "solid", "svelte"]) {
     for (const rustType of ["str", "&str", "&'static str"]) {
       assert.throws(
         () =>

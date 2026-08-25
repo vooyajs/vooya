@@ -158,10 +158,7 @@ jobs:
           chmod +x "$SEMIFOLD_BIN"
           npm run release:status
 
-      - name: Install Chromium for smoke coverage
-        run: npx playwright install --with-deps chromium
-
-      # This command is deliberately verification-only. Publishing and npm
-      # dist-tag inspection remain explicit maintainer actions in release:alpha.
-      - name: Run release gate
+      # Browser E2E and bundler browser matrices remain part of the local
+      # release gate (`npm run verify:release`), not routine pull-request CI.
+      - name: Run CI verification
         run: npm run verify:ci

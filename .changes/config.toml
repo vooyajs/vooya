@@ -53,6 +53,20 @@ channel = "alpha"
 publish = true
 github-release = false
 
+[packages.vooya-solid]
+path = "packages/solid"
+resolver = "nodejs"
+channel = "alpha"
+publish = true
+github-release = false
+
+[packages.vooya-svelte]
+path = "packages/svelte"
+resolver = "nodejs"
+channel = "alpha"
+publish = true
+github-release = false
+
 [packages.vooya-rspack]
 path = "packages/rspack"
 resolver = "nodejs"

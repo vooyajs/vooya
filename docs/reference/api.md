@@ -5,6 +5,12 @@ The alpha ABI may change between prereleases. Internal `@vooya/build-core`
 helpers are implementation details unless a package page explicitly exports
 them.
 
+Generated `.rs` modules currently pass a framework-neutral Component or Store
+bridge into the selected adapter. This is the implementation boundary that
+keeps framework branches out of generation; it is not a stable author-facing
+IR. The supported application APIs are the generated component, `useName()`,
+and `createNameStore()` exports described below.
+
 See the [tooling reference](./tooling.md), [compatibility matrix](../project/compatibility.md),
 and [ABI v1 RFC](../rfcs/0007-rust-file-authoring-and-abi-v1.md) for the wider
 boundary.
@@ -16,9 +22,9 @@ boundary.
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
 | `vooya()` | `Plugin` | — | Add Vooya to a Vite config | Vite `>=7 <9`; `plugins: [vue(), vooya()]` |
-| `framework` | `"vue" \| "react"` | `"vue"` | Select the host adapter | Vue 3 or React 19; `vooya({ framework: "react" })` |
-| `rust.dependencies` | `Record<string, string \| Dependency>` | `{}` | Reuse Cargo registry, Git, or path crates | Browser-compatible Rust only; `rust: { dependencies: { serde: "1" } }` |
-| `rust.webSysFeatures` | `string[]` | `[]` | Enable browser APIs from `web-sys` | Add features instead of overriding generated `web-sys` |
+| `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | Select the host adapter | Vue 3 and React 19 are supported; Solid 1.9 and Svelte 5 are experimental on Vite 7 |
+| `rust.dependencies` | `Record<string, string \| Dependency>` | Nearest `Cargo.toml`, then `{}` | Reuse or override Cargo registry, Git, or path crates | Browser-compatible Rust only; explicit plugin entries win by package name |
+| `rust.webSysFeatures` | `string[]` | Nearest `Cargo.toml`, then `[]` | Enable browser APIs from `web-sys` | Explicit plugin features win; generated runtime features remain enabled |
 | `toolchain.cargoPath` | `string` | PATH discovery | Select a specific Cargo | Explicit selection is authoritative; Cargo's rustc, target, and CLI must agree |
 | `workspace.root` | `string` | `.vooya/` | Put generated state elsewhere | Also update TypeScript `rootDirs`; generated state remains disposable |
 
@@ -55,7 +61,7 @@ the primary Store API for Vue application code; `state` is a readonly reactive
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
-| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | Custom integration or shared-instance ownership | Vue `>=3.5.2`; not the primary generated hook |
+| `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | Custom integration or shared-instance ownership | Vue `>=3.5.2 <4`; not the primary generated hook |
 | `source` | `VooyaStore \| PromiseLike<VooyaStore>` | required | Pass an instance or generated async store factory | The late instance is disposed if the component unmounts first |
 | `disposeOnUnmount` | `boolean` | `false` | Give this component ownership of disposal | Use `true` for an instance-scoped store; shared stores need an explicit owner |
 | `onError` | `(cause: unknown) => void` | — | Receive async creation failures | It does not retry or hide action errors |
@@ -71,8 +77,8 @@ The return value is `{ snapshot, dispatch, unsubscribe }`. `dispatch(name,
 ## `@vooya/react`
 
 Generated `.rs` imports expose a component or a typed hook such as `useCart()`.
-The generated Vue and React hooks share the same public shape: `state` plus typed
-actions. React's `state` is the current snapshot value.
+Vue, React, Solid, and Svelte receive the same generated names and fields: `state` plus
+typed actions. React's `state` is the current snapshot value.
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
@@ -80,6 +86,45 @@ actions. React's `state` is the current snapshot value.
 | Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | Uses `useSyncExternalStore`; one store instance per hook lifetime |
 | `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a store or Promise |
 | `onError` / `onNotify` | callbacks | — | Observe creation failures or notifications | Adapter callbacks only; no global event bus |
+
+## `@vooya/solid`
+
+Solid uses the same generated component and `useName()` entry names. The
+framework-neutral bridge is wrapped with Solid owners, signals, and cleanup;
+`state` is an accessor because the WASM store initializes asynchronously.
+
+| Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
+| --- | --- | --- | --- | --- |
+| Generated component | Solid component props | — | Import a `#[voo::component]` `.rs` file | Solid `>=1.9 <2`; callback props use `onEventName` |
+| Generated primitive | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | `const { state, add } = useCart(); state()?.count` |
+| `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a store or Promise |
+| `onError` | `(cause: unknown) => void` | — | Observe an asynchronous factory failure | Cleanup is tied to the current Solid owner |
+| `onNotify` | callback field forwarded to a custom factory | — | Advanced factory-specific instrumentation | Generated Solid Stores publish state through subscription; they do not expose a separate notification bus |
+
+The shared generated names intentionally do not force one reactive container
+across frameworks: Vue returns a `Ref`, React returns a snapshot value, and
+Solid returns an `Accessor`. The lifecycle, action, error, and ownership
+contract remains aligned. `undefined` means that the asynchronous WASM Store is
+not ready yet in these adapters.
+
+## `@vooya/svelte`
+
+Svelte uses the same generated component and `useName()` entry names. The
+framework-neutral bridge is wrapped with Svelte component lifecycle and a
+`Readable<T | undefined>` Store; templates consume it through `$state`.
+
+| Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
+| --- | --- | --- | --- | --- |
+| Generated component | Svelte component props | — | Import a `#[voo::component]` `.rs` file | Svelte `>=5 <6`; callback props use `onEventName` |
+| Generated Store entry | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | `const { state, add } = useCart()`; template reads `$state?.count` |
+| `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a Store or Promise |
+| `onError` | `(cause: unknown) => void` | — | Observe an asynchronous factory failure | Component and generated Store cleanup are tied to Svelte destruction |
+| `onNotify` | callback field forwarded to a custom factory | — | Advanced factory-specific instrumentation | Generated Svelte Stores publish through `Readable`; no separate notification bus is documented |
+
+The current evidence is Svelte 5 + Vite 7 + Chromium. It covers Component
+mount and callback, Store action, Component prop update, generated declarations,
+and one cleanup call each for the Component handle and generated Store. It does
+not cover Svelte 3/4, SvelteKit, SSR, hydration, Vite 8, Rspack, or Webpack.
 
 ## `@vooya/rspack`
 

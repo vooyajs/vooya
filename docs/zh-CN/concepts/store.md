@@ -9,8 +9,8 @@ Store 负责一块可以由 Rust 可靠维护、又能被多个宿主视图消�
 
 ## 从 Rust 到宿主
 
-下面用一个购物车说明完整路径：在 Rust 中声明 Store，Vooya 生成可导入的模块，Vue 或
-React 适配器（adapter）再把同一个 Store 契约接入各自的响应式系统。
+下面用一个购物车说明完整路径：在 Rust 中声明 Store，Vooya 生成可导入的模块，Vue、
+React、Solid 或 Svelte adapter 再把同一个 Store 契约接入各自的响应式系统。
 
 ### 1. 在 Rust 中编写 Store
 
@@ -50,7 +50,7 @@ impl Cart {
 ### 2. 在 Vue 中使用
 
 将 `.rs` 文件交给 Vooya bundler 适配器后，它会生成 `createCartStore` 和 `useCart`。
-Vue 和 React 都优先使用生成的 `useCart`，在组件卸载时释放这个 hook 自己创建的实例：
+各 adapter 都优先使用生成的 `useCart`，并按宿主生命周期管理它创建的实例：
 
 ```vue
 <script setup lang="ts">
@@ -67,7 +67,7 @@ const { state, add } = useCart();
 ```
 
 `useCart` 的名字来自 Rust Store 类型 `Cart`，不是文件名；如果类型名是
-`ShoppingCart`，生成的 hook 就是 `useShoppingCart`。这是普通 Vue/React 用户的主入口。
+`ShoppingCart`，生成的 hook 就是 `useShoppingCart`。这是普通宿主框架用户的主入口。
 
 ### 3. 在 React 中使用
 
@@ -89,20 +89,51 @@ export function CartButton() {
 }
 ```
 
+### 4. 在 Solid 中使用
+
+Solid 保持同名的 `useCart`，但 `state` 是符合 Solid 习惯的 accessor：
+
+```tsx
+import { useCart } from "./Cart.rs";
+
+export function CartButton() {
+  const { state, add } = useCart();
+  return <button onClick={() => add(1)}>Store {state()?.count ?? 0}</button>;
+}
+```
+
+### 5. 在 Svelte 中使用
+
+Svelte 保持同名 `useCart`，但 `state` 是 `Readable`，模板通过 `$state` 自动订阅：
+
+```svelte
+<script>
+  import { useCart } from "./Cart.rs";
+  const { state, add } = useCart();
+</script>
+
+<button onclick={() => add(1)}>Store {$state?.count ?? 0}</button>
+```
+
 Vue 的 `state` 是响应式 `Ref`（在 template 中会自动解包），React 的 `state` 是当前
-快照值；这是框架实现差异，不改变公开字段和动作 shape。需要自己管理实例、共享 Store
-或编写 adapter 时，才使用 `@vooya/vue` 或 `@vooya/react` 导出的底层 `useVooyaStore`。
+快照值，Solid 的 `state` 是 `Accessor`，Svelte 的 `state` 是 `Readable`；其中的
+`undefined` 都表示异步 WASM Store 尚未 ready。这些框架差异不改变生成名称、action、
+所有权和错误契约。需要自己管理
+实例、共享 Store 或编写 adapter 时，才使用对应 adapter 导出的底层
+`useVooyaStore`。
 
 ## 稳定契约与框架适配
 
-Vue 和 React 的生成便利 API 现在保持同一个公开 shape；内部响应式和生命周期实现可以
-不同，但两者消费的是同一个 Store 对象、ABI、通知顺序和释放语义。
+Vue、React、Solid 和 Svelte 的生成入口保持同一组名称与字段；内部响应式和生命周期
+实现可以不同，但四者消费的是同一个 Store 对象、ABI、通知顺序和释放语义。生成器内部只产出
+包含 factory 与 actions 的 framework-neutral bridge，再由各 adapter 包装；这避免把
+框架条件堆进 Rust/WASM 生成器，也不强迫三种框架使用不自然的同一种响应式容器。
 
 | 层级 | 是否跨框架 | 说明 |
 | --- | --- | --- |
 | Rust Store schema / ABI | 是 | 快照、订阅、声明动作和 `dispose()` |
 | `createCartStore()` | 是 | 返回相同的 Store 对象契约；模块加载可以是异步的 |
-| 生成的 `useCart()` | 是（公开 shape） | 返回 `state` 和类型化 action；内部接入当前框架的响应式系统 |
+| 生成的 `useCart()` | 是（公开字段） | 返回 `state` 和类型化 action；`state` 容器遵循当前框架习惯 |
 | `useVooyaStore` | 否（高级 API） | 供自定义集成、共享实例和 adapter 作者管理底层生命周期 |
 
 跨框架真正稳定的边界是：
@@ -119,8 +150,9 @@ Vue 和 React 的生成便利 API 现在保持同一个公开 shape；内部响�
 ## 所有权与释放
 
 Store 默认是实例级的。一个 Component 或宿主服务可以拥有一个 Store；多个消费者也可以
-共享它，但必须由独立的所有者（owner）负责生命周期。Vue 的 `disposeOnUnmount` 是显式选项；React
-生成的 hook 会在自己创建的实例对应 hook 卸载时释放。
+共享它，但必须由独立的所有者（owner）负责生命周期。Vue 的 `disposeOnUnmount` 是
+底层自定义集成的显式选项；四个 adapter 生成的 `useName()` 入口都会随各自的
+component/owner 生命周期释放自己创建的实例。
 
 不要把 Store 当作全局 singleton。共享 Store 时先确定所有者，并由所有者在结束时调用
 `dispose()`。如果需要 Rust 同时拥有局部渲染树，请使用 [Component](./component.md)；

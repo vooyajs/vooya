@@ -11,6 +11,8 @@ SSR and hydration. Each entry is evidence for the named test path only.
 | Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Source quickstarts run on Ubuntu + Node 20, macOS + Node 22, Windows + Node 22; the full release gate runs on Ubuntu + Node 22 |
 | Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
+| Solid | `>=1.9 <2` | Experimental | Vite 7 production browser fixture covers a Rust-file component, callback event, and Accessor-backed Store update; adapter unit tests cover owner cleanup and late resolution |
+| Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 production Chromium fixture covers Component mount/callback, Store action, Component prop update, generated `Readable` declarations, and Component/Store owner cleanup |
 | React 19 Rust-file authoring | Vite 7 | Experimental | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
 | Vue Vapor | Vue 3.6 experimental | Verified, experimental | Vite 8 + Vue 3.6.0-beta.17 mounts a Rust-file component when the app uses Vue's `vaporInteropPlugin`; Vapor remains an upstream Vue opt-in |
 
@@ -20,6 +22,8 @@ SSR and hydration. Each entry is evidence for the named test path only.
 | --- | --- | --- |
 | Vue 3 Rust-file component/store | Vite 7 production build, scoped CSS, store action and snapshot-driven component update | `npm run test:rust-vue`; packed source quickstarts run on the OS/Node jobs in `.github/workflows/verify.yml` |
 | React 19 Rust-file component/store | Vite 7 production build, StrictMode mount, store action and snapshot-driven component update | `npm run test:rust-react` |
+| Solid 1.9 Rust-file component/store | Vite 7 production build, callback event, Store action, and signal/Accessor-driven DOM update; adapter tests cover owner-scoped disposal | `npm run test:rust-solid`; `npm run test:solid` |
+| Svelte 5 Rust-file component/store | Vite 7 production build, callback event, Store action, prop update, `Readable` declaration, no Chromium runtime error, and exactly one Component handle plus generated Store disposal after child unmount | `npm run test:rust-svelte` |
 | Rust-file Vite development path | Rust source edit, failed rebuild recovery, subsequent successful rebuild, and full reload | `npm run test:rust-hmr` |
 | Rust `rsx!` DOM runtime | Signal text/attribute updates, owned events, conditional `if`/`else`, keyed `for` reorder and DOM identity, disposal | `npm run test:rsx` |
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
@@ -46,6 +50,9 @@ toolchain; a production smoke does not imply development-server or HMR support.
 - WebKit/Safari, mobile browsers, SSR, and hydration have no current
   compatibility claim. Firefox evidence is limited to the named Vue source
   component path above.
+- Svelte 3/4, SvelteKit, Svelte SSR/hydration, Vite 8 with Svelte, and Svelte
+  through Rspack/Webpack have no current compatibility claim. The Svelte row
+  above is limited to its named Vite 7 + Chromium fixture.
 - No precompiled component product is currently published; the Vue fixture is
   build-contract evidence only.
 - Webpack 4, Rspack versions below 2.1.10, Rollup, Turbopack, and other unlisted

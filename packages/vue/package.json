@@ -24,7 +24,8 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --external vue --tsconfig tsconfig.json --clean"
+    "build": "tsup src/index.ts --format esm --dts --external vue --tsconfig tsconfig.json --clean",
+    "test": "npm run build && node --test src/*.test.js"
   },
   "peerDependencies": {
     "vue": ">=3.5.2 <4"

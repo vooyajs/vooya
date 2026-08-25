@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import { discoverRustSourceFiles, generateRustCrateRoot, generatedCargoManifest, remapRustDiagnostic, resolveRustDependencyRoots, resolveRuntimeCrateRoot, resolveVooyaCrateRoot, rustModuleIdentifier, selectRustRootModules } from "../dist/index.js";
+import { buildApplication, discoverRustSourceFiles, findNearestCargoManifest, generateRustCrateRoot, generatedCargoManifest, remapRustDiagnostic, resolveRustBuildOptions, resolveRustDependencyRoots, resolveRuntimeCrateRoot, resolveVooyaCrateRoot, rustModuleIdentifier, selectRustRootModules } from "../dist/index.js";
 
 test("exposes a bundler-neutral runtime and dependency watch roots", () => {
   assert.equal(existsSync(`${resolveRuntimeCrateRoot()}/Cargo.toml`), true);
@@ -17,6 +17,141 @@ test("build manifest keeps compiler-managed dependencies pinned", () => {
   assert.match(manifest, /wasm-bindgen = "=0\.2\.115"/);
   assert.match(manifest, /"serde" = \{ version = "1", features = \["derive"\] \}/);
   assert.throws(() => generatedCargoManifest({ applicationRoot: "/consumer", runtimeCrateRoot: "/runtime", rust: { dependencies: { "web-sys": "1" } } }), /managed by Vooya/);
+});
+
+test("inherits Rust dependencies from the nearest Cargo manifest", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-cargo-manifest-"));
+  try {
+    mkdirSync(resolve(root, ".git"));
+    mkdirSync(resolve(root, "app/rust/src"), { recursive: true });
+    writeFileSync(resolve(root, "Cargo.toml"), '[dependencies]\nouter = "1"\n');
+    writeFileSync(resolve(root, "app/rust/Cargo.toml"), `
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+shared = { path = "../shared" }
+web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
+wasm-bindgen = "0.2"
+`);
+
+    const applicationRoot = resolve(root, "app");
+    const manifestPath = resolve(root, "app/rust/Cargo.toml");
+    assert.equal(
+      findNearestCargoManifest(applicationRoot, { sourceRoot: "rust/src" }),
+      manifestPath,
+    );
+    const resolved = resolveRustBuildOptions(applicationRoot, { sourceRoot: "rust/src" });
+    assert.equal(resolved.manifestPath, manifestPath);
+    assert.deepEqual(resolved.rust.dependencies.serde, { version: "1", features: ["derive"] });
+    assert.deepEqual(resolved.rust.dependencies.shared, { path: resolve(root, "app/shared") });
+    assert.equal(resolved.rust.dependencies.outer, undefined);
+    assert.deepEqual(resolved.rust.webSysFeatures, ["HtmlCanvasElement"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("explicit vooya Rust options override Cargo manifest defaults", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-cargo-precedence-"));
+  try {
+    mkdirSync(resolve(root, ".git"));
+    writeFileSync(resolve(root, "Cargo.toml"), `
+[dependencies]
+serde = "1"
+shared = { path = "cargo-shared" }
+web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
+`);
+    const resolved = resolveRustBuildOptions(root, {
+      dependencies: {
+        serde: "2",
+        shared: { path: "explicit-shared" },
+      },
+      webSysFeatures: ["AudioContext"],
+    });
+    assert.equal(resolved.rust.dependencies.serde, "2");
+    assert.deepEqual(resolved.rust.dependencies.shared, { path: "explicit-shared" });
+    assert.deepEqual(resolved.rust.webSysFeatures, ["AudioContext"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("buildApplication writes inherited Cargo defaults into the generated crate", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-cargo-build-"));
+  const workspaceRoot = resolve(root, ".vooya");
+  const toolchain = {
+    environment: {},
+    cargo: { path: "/selected/cargo", version: "cargo 1.94.0" },
+    rustc: { path: "/selected/rustc", version: "rustc 1.94.0", verboseVersion: "rustc 1.94.0", sysroot: "/selected" },
+    target: { triple: "wasm32-unknown-unknown", libdir: "/selected/wasm" },
+    wasmBindgen: { path: "/selected/wasm-bindgen", version: "0.2.115" },
+  };
+  try {
+    writeFileSync(resolve(root, "Cargo.toml"), `
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
+`);
+    buildApplication({
+      applicationRoot: root,
+      runtimeCrateRoot: "/runtime",
+      workspaceRoot,
+      toolchain,
+      spawn() { return { status: 0, stdout: "", stderr: "" }; },
+      exec(command, args) {
+        const outputDir = args[args.indexOf("--out-dir") + 1];
+        writeFileSync(resolve(outputDir, "vooya_app.js"), "");
+        writeFileSync(resolve(outputDir, "vooya_app_bg.wasm"), Buffer.alloc(0));
+      },
+    });
+    const generated = readFileSync(resolve(workspaceRoot, "build/Cargo.toml"), "utf8");
+    assert.match(generated, /"serde" = \{ version = "1", features = \["derive"\] \}/);
+    assert.match(generated, /"HtmlCanvasElement"/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("uses Vooya defaults when Cargo configuration is absent", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-no-cargo-"));
+  try {
+    assert.deepEqual(resolveRustBuildOptions(root, {}), { rust: {} });
+    writeFileSync(resolve(root, "Cargo.toml"), '[package]\nname = "app"\nversion = "0.0.0"\n');
+    const resolved = resolveRustBuildOptions(root, {});
+    assert.deepEqual(resolved.rust.dependencies, {});
+    assert.deepEqual(resolved.rust.webSysFeatures, []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("resolves workspace dependencies and rejects incompatible managed pins", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-cargo-workspace-"));
+  try {
+    mkdirSync(resolve(root, ".git"));
+    mkdirSync(resolve(root, "app"));
+    writeFileSync(resolve(root, "Cargo.toml"), `
+[workspace]
+members = ["app"]
+[workspace.dependencies]
+shared = { path = "shared", features = ["base"] }
+`);
+    writeFileSync(resolve(root, "app/Cargo.toml"), `
+[dependencies]
+shared = { workspace = true, features = ["browser"] }
+`);
+    assert.deepEqual(resolveRustBuildOptions(resolve(root, "app")).rust.dependencies.shared, {
+      path: resolve(root, "shared"),
+      features: ["base", "browser"],
+    });
+
+    writeFileSync(resolve(root, "app/Cargo.toml"), '[dependencies]\nwasm-bindgen = "=0.2.114"\n');
+    assert.throws(
+      () => resolveRustBuildOptions(resolve(root, "app")),
+      /requires wasm-bindgen =0\.2\.115/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("maps Cargo diagnostics using compiler source location metadata", () => {

@@ -9,13 +9,16 @@ npm install --save-dev @vooya/vite@alpha
 
 Configure `vooya({ framework: "react" })` after `@vitejs/plugin-react`, then
 import a Rust-file `.rs` component as a normal React component. Generated
-declarations expose its props and event callbacks to TypeScript. The older
-`.voo` component path is retained for legacy Vite projects.
+declarations expose its props and event callbacks to TypeScript. The retired
+`.voo` path is not a supported authoring format.
 
 Rust-file authoring uses ordinary `.rs` files. A `#[voo::component]` import is
 exposed as a React component, while a `#[voo::store]` import exposes a generated
 hook such as `useCart()`. Store snapshots use `useSyncExternalStore`; the hook
 owns one store instance until unmount and disposes asynchronous late arrivals.
+Generated Store names and fields align with Vue, Solid, and Svelte, while React
+keeps `state` as the current snapshot value instead of imitating a Vue `Ref`,
+Solid `Accessor`, or Svelte `Readable`.
 In ABI v1, stores are created from Rust's `Default` implementation, so the
 optional `useCart(options)` argument is adapter options rather than constructor
 props. Use explicit Rust actions for state changes after creation.

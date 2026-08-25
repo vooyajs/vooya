@@ -17,6 +17,7 @@ examples/rsx-basic/pkg/
 /.vooya-tools/
 /scripts/generated/
 packages/*/dist
+packages/*/.svelte-kit
 packages/*/.artifact-build
 *.wasm
 *.wasm.d.ts

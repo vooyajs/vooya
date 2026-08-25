@@ -1,7 +1,8 @@
 # 组件边界
 
 传统 Web renderer 继续拥有页面树、路由、周围状态和挂载用的 host element。
-Vue、React 是当前 first-party adapter；这个边界并不限定其他 host。挂载后：
+Vue、React 是当前 supported first-party adapter，Solid、Svelte 是 experimental adapter；
+这个边界并不限定其他 host。挂载后：
 
 ```text
 传统 Web 宿主应用
@@ -19,6 +20,10 @@ Vue、React 是当前 first-party adapter；这个边界并不限定其他 host�
 
 实际生命周期是 `mount → update* → dispose`；任何阶段的错误都会由 framework
 adapter 报告。事件不是全局 DOM bus，也不会冒泡到外层或其他 island。
+
+工具链生成一份 framework-neutral bridge，包含 contract 与异步 binding loader；
+Vue、React、Solid、Svelte adapter 再用各自原生 lifecycle 处理 props、events、errors 和
+dispose。它是生成实现边界，不是应用作者需要手写或稳定依赖的 public IR。
 
 ## 适合与不适合
 

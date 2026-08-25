@@ -30,7 +30,7 @@ try {
     writeFileSync(resolve(fixture, ".changes", "incomplete.md"), `---\nvooya-core: "patch:fix"\n---\n\nIncomplete release.\n`);
   }, /must name every fixed Vooya package/);
   assertSemifoldFailure("mixed fixed release bump levels", (fixture) => {
-    writeFileSync(resolve(fixture, ".changes", "mixed.md"), `---\nvooya-compiler: "patch:fix"\nvooya-core: "minor:fix"\nvooya-build-core: "patch:fix"\nvooya-vite: "patch:fix"\nvooya-vue: "patch:fix"\nvooya-react: "patch:fix"\nvooya-rspack: "patch:fix"\nvooya-webpack: "patch:fix"\n---\n\nMixed release.\n`);
+    writeFileSync(resolve(fixture, ".changes", "mixed.md"), `---\nvooya-compiler: "patch:fix"\nvooya-core: "minor:fix"\nvooya-build-core: "patch:fix"\nvooya-vite: "patch:fix"\nvooya-vue: "patch:fix"\nvooya-react: "patch:fix"\nvooya-solid: "patch:fix"\nvooya-svelte: "patch:fix"\nvooya-rspack: "patch:fix"\nvooya-webpack: "patch:fix"\n---\n\nMixed release.\n`);
   }, /must use one bump level/);
   console.log("Release contract regression checks passed.");
 } finally {

@@ -82,7 +82,8 @@ impl Cart {
 ```
 
 `#[voo::store]` 不会创建 DOM，也不会把 Store 变成全局 singleton。bundler 会根据 Store
-类型生成 `createCartStore()` 和跨框架同 shape 的 `useCart()`；详见 [Store 概念](../concepts/store.md)。
+类型生成 `createCartStore()` 和跨框架同名、同字段的 `useCart()`；`state` 仍保留各框架
+原生容器语义。详见 [Store 概念](../concepts/store.md)。
 
 ## Roles 与边界
 
@@ -109,8 +110,8 @@ pub fn Counter(
 | 阶段 | Rust 侧 | 宿主侧 |
 | --- | --- | --- |
 | mount | 创建状态、DOM 和 listener | 创建 host 并传入初始 props |
-| update | 应用声明的 prop patch | Vue/React 触发更新 |
-| event | 发出非冒泡 `vooya-*` CustomEvent | 转为 Vue emit 或 React callback |
+| update | 应用声明的 prop patch | Vue/React/Solid/Svelte 触发更新 |
+| event | 发出非冒泡 `vooya-*` CustomEvent | 转为 Vue emit 或 React/Solid/Svelte callback |
 | dispose | 删除拥有的 DOM、释放资源 | unmount 时丢弃 handle |
 
 事件不是全局 DOM bus。直接通过 `web_sys` 创建的 closure/listener 也必须由
@@ -120,9 +121,9 @@ pub fn Counter(
 
 `rsx!` 提供显式 signal binding、事件、条件分支和 keyed loop；异步 action、
 SSR、slots 和全局 store 不在 ABI v1。Store 是独立实例，通过 snapshot、
-subscribe、action 和 dispose 接入 Vue/React。
+subscribe、action 和 dispose 接入 Vue、React、Solid 或 Svelte。
 
-当 `.rs` 文件包含 `#[voo::store]` 时，两个 first-party adapter 都会生成同 shape
+当 `.rs` 文件包含 `#[voo::store]` 时，四个 first-party adapter 都会生成同名、同字段
 的 `useCart()`（名称跟随 Rust 类型名）以及框架无关的 `createCartStore()`：
 
 ```vue
@@ -146,9 +147,11 @@ export function CartButton() {
 }
 ```
 
-Vue 的 `state` 是响应式 Ref（template 中会自动解包），React 的 `state` 是当前快照值；
-公开字段和 action shape 保持一致。需要自己管理共享实例或编写 adapter 时，才使用
-`@vooya/vue` / `@vooya/react` 的底层 `useVooyaStore`。
+Vue 的 `state` 是响应式 `Ref`（template 中会自动解包），React 的 `state` 是当前快照值；
+Solid 的 `state` 是 `Accessor`，读取时调用 `state()`。生成名称与 action 字段保持一致，
+Svelte 的 `state` 是 `Readable`，模板通过 `$state` 自动订阅。生成名称与 action 字段
+保持一致，但响应式容器不会被伪装成同一种类型。需要自己管理共享实例或编写 adapter 时，才使用
+对应 adapter 的底层 `useVooyaStore`。
 
 ABI v1 支持有限数字、`bigint`、布尔、owned string、vector、tuple 和 string-key
 map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-copy

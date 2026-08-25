@@ -44,6 +44,18 @@ the primary path. Check the [compatibility matrix](./project/compatibility.md)
 before choosing a bundler; do not infer support for unlisted versions,
 Turbopack, Rollup, SSR, or hydration.
 
+## Which framework adapters are available?
+
+Vue `>=3.5.2 <4` and React `>=19` are the supported first-party adapters. Solid
+`>=1.9 <2` and Svelte `>=5 <6` are experimental on the Vite 7 Rust-file path.
+Svelte evidence includes Component and generated Store cleanup after child
+unmount. Neither experimental adapter implies Rspack/Webpack, SSR, hydration,
+framework meta-framework integration, or broad browser support.
+
+Generated `useName()` entries keep the same names and fields, but not one fake
+reactive container: Vue returns a `Ref`, React returns a snapshot, Solid returns
+an `Accessor`, and Svelte returns a `Readable` consumed as `$state` in templates.
+
 ## Does Vooya make my app faster?
 
 Not automatically. The value is an explicit Rust/WASM capability boundary,

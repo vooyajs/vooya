@@ -2,10 +2,10 @@
 
 Vooya is a public alpha and an architecture-validation project. It is not a
 stable compiler or a production compatibility promise. The latest published
-coordinated release is `v0.1.0-alpha.10`; use the npm `alpha` tag to resolve the
+coordinated release is `v0.1.0-alpha.11`; use the npm `alpha` tag to resolve the
 latest published set.
 
-The eight packages form one coordinated release unit:
+The nine packages form one coordinated release unit:
 
 - `@vooya/compiler`
 - `@vooya/core`
@@ -13,6 +13,7 @@ The eight packages form one coordinated release unit:
 - `@vooya/vite`
 - `@vooya/vue`
 - `@vooya/react`
+- `@vooya/solid`
 - `@vooya/rspack`
 - `@vooya/webpack`
 
@@ -24,7 +25,7 @@ prerelease.
 
 - Compile Rust-file components and stores into application-level WASM.
 - Generate typed mount, prop update, event, dispose, and ABI bindings.
-- Import one `.rs` file as a Vue 3 or React 19 component.
+- Import one `.rs` file as a Vue 3, React 19, Solid 1.9, or Svelte 5 component through Vite.
 - Generate mirrored TypeScript declarations under `.vooya/types` from
   component contracts.
 - Compile optional PostCSS-based scoped styles.
@@ -41,17 +42,28 @@ prerelease.
 - Verify a test-only precompiled Vue WASM consumer in a clean Vite project
   without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
 - Extract versioned Rust-file schema records from WASM, validate file groups,
-  and generate central `.d.rs.ts` declarations for Vue/React consumers.
+  and generate central `.d.rs.ts` declarations for Vue, React, Solid, and Svelte
+  consumers.
 - Build and exercise a real Rust-file component and store through Vite 7 + Vue
   3.5, including scoped CSS, the public `vooya` authoring dependency, generated
   WASM bindings, and Chromium interaction.
 - Build and exercise Rust-file components and instance-scoped stores through
   Vite 7 + React 19, including StrictMode mount cleanup, store actions,
   snapshot subscriptions, and atomic component prop patches.
+- Build and exercise a Rust-file Component and instance-scoped Store through
+  Vite 7 + Solid 1.9, including a callback event, generated `Accessor`
+  declaration, Store action, and Accessor-driven DOM update. Adapter unit tests
+  cover owner cleanup and a Store that resolves after its owner is gone.
+- Build and exercise a Rust-file Component and instance-scoped Store through
+  Svelte 5 + Vite 7, including callback delivery, Store action, Component prop
+  update, generated `Readable` declarations, and Chromium without runtime
+  errors. The same fixture unmounts a child and verifies exactly one Component
+  handle disposal plus one generated Store disposal.
 - Verify Rust-file Vite development rebuilds, failed-build recovery, and
   successful full reloads without preserving component state.
-- Expose the instance-scoped store contract to Vue and React through generated
-  `useName()` hooks with the same `state` plus typed-action shape; retain
+- Expose the instance-scoped Store contract to Vue, React, Solid, and Svelte through
+  generated `useName()` entries with aligned names and fields; retain each
+  framework's native `Ref`, snapshot, `Accessor`, or `Readable` state container and keep
   `useVooyaStore` as an advanced adapter-level helper.
 - Generate a Vite virtual module for `.rs` stores, including independent
   factory creation, snapshot reads, subscriptions, actions, and disposal.
@@ -64,7 +76,7 @@ prerelease.
 
 - Source consumers need Cargo, the WASM target, and `wasm-bindgen-cli`.
 - Vite `>=7 <9` is the supported source-authoring bundler range, with Vite 8
-  as the primary compatibility target. Vite 7 Rust-file Vue and React
+  as the primary compatibility target. Vite 7 Rust-file Vue, React, Solid, and Svelte
   production/browser fixtures pass, and the packed Vite 8 fixture covers
   production, rebuild, HMR, and error recovery. Rspack `>=2.1.10`
   has an experimental first-party adapter with Rsbuild, Rslib, and direct
@@ -81,9 +93,11 @@ prerelease.
   tuples, and string-key maps. User-defined recursive schemas, borrowed
   values, arbitrary generics, non-string maps, and TypedArray transport remain
   outside the current boundary.
-- Rust store schema/declarations, the generated `.rs` store module, and the Vue
-  composable are available; Vue and React browser-level store interaction are
-  covered by `test:rust-vue` and `test:rust-react`.
+- Rust Store schema/declarations and generated `.rs` Store modules are
+  available for Vue, React, Solid, and Svelte. Browser-level interaction is
+  covered by `test:rust-vue`, `test:rust-react`, `test:rust-solid`, and
+  `test:rust-svelte`; Solid and Svelte claims remain limited to their Vite 7
+  fixtures and named adapter tests.
 - The public `vooya` Cargo authoring crate is copied into the packed
   `@vooya/core` source bundle during the package build, so clean npm consumers
   can compile `.rs` files without a checkout of this repository. It is not a
@@ -97,7 +111,8 @@ prerelease.
 - `vooya doctor` is a local diagnostic and deterministic PATH candidate selector,
   not a toolchain installer; it warns when its valid Cargo choice differs from
   the first Cargo on `PATH`.
-- SSR, hydration, slots, and standalone application rendering are out of scope.
+- SSR, hydration, slots, SvelteKit integration, and standalone application
+  rendering are out of the current evidence boundary.
 - Alpha ABI revisions can be breaking.
 - The default CI browser evidence is a small Chromium smoke suite plus the
   bundler integration fixtures. Extended DataGrid, scatter, trace, and Firefox

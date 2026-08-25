@@ -86,8 +86,9 @@ impl Cart {
 ```
 
 `#[voo::store]` does not create DOM or turn the Store into a global singleton.
-The bundler generates `createCartStore()` and the same public-shape `useCart()`
-for the first-party adapters; see the [Store concept](../concepts/store.md).
+The bundler generates `createCartStore()` and a `useCart()` entry with the same
+names and fields for the first-party adapters. Its `state` container remains
+framework-native; see the [Store concept](../concepts/store.md).
 
 The earlier `.voo` format combined a manifest, Rust, and CSS in one custom file.
 We moved away from it because it hid Rust from normal tooling, required a
@@ -195,8 +196,8 @@ view.emit("selected", wasm_bindgen::JsValue::from_f64(value as f64))?;
 ```
 
 `View::emit` dispatches the non-bubbling `vooya-selected` CustomEvent on the
-framework host. Vue and React adapters decode the declared event parameters
-and deliver them to the framework callback. The v1 API accepts a `JsValue` at
+framework host. Vue, React, Solid, and Svelte adapters decode the declared event
+parameters and deliver them to the framework callback. The v1 API accepts a `JsValue` at
 this call site; users should encode values with the shared owned ABI helpers.
 
 ## Component and store boundaries
@@ -207,12 +208,12 @@ Components and stores have different host contracts:
   events, and `dispose` calls;
 - a store owns an instance-scoped state machine and exposes a snapshot,
   subscriptions, actions, and disposal;
-- Vue and React adapters consume the same Rust/WASM ABI but do not share a
+- Vue, React, Solid, and Svelte adapters consume the same Rust/WASM ABI but do not share a
   component lifecycle wrapper with stores.
 
-When a `.rs` file contains a `#[voo::store]`, both first-party adapters expose
-the same generated hook shape. A `Cart` Store generates `useCart()` in Vue and
-React, alongside the framework-neutral factory:
+When a `.rs` file contains a `#[voo::store]`, the first-party adapters expose
+the same generated names and fields. A `Cart` Store generates `useCart()`
+alongside the framework-neutral factory:
 
 ```vue
 <script setup lang="ts">
@@ -235,6 +236,23 @@ export function CartButton() {
 }
 ```
 
+In Solid, `state` is an accessor rather than a snapshot value:
+
+```tsx
+const { state, add } = useCart();
+return <button onClick={() => add(1)}>{state()?.count ?? 0}</button>;
+```
+
+In Svelte, `state` is a `Readable`; templates use `$state`:
+
+```svelte
+<script>
+  const { state, add } = useCart();
+</script>
+
+<button onclick={() => add(1)}>{$state?.count ?? 0}</button>
+```
+
 The generated module also exports an async factory. Its name follows the Rust
 Store type, not the file name: `Cart` generates `createCartStore`, while
 `ShoppingCart` generates `createShoppingCartStore`:
@@ -248,10 +266,10 @@ console.log(cartStore.getSnapshot());
 cartStore.dispose();
 ```
 
-The generated hook creates one instance for its component lifetime and disposes
-it on unmount. The lower-level `useVooyaStore` export from `@vooya/vue` or
-`@vooya/react` remains available for custom integrations, shared instances, and
-adapter authors; it is not the ordinary application entry point.
+The generated `useName()` entry creates one instance for its framework owner
+and disposes it on cleanup. The lower-level `useVooyaStore` export from the
+selected adapter remains available for custom integrations, shared instances,
+and adapter authors; it is not the ordinary application entry point.
 
 In ABI v1, a store is created from Rust's `Default` implementation and does not
 accept constructor props. The optional argument to `useCart` is the adapter
@@ -320,7 +338,8 @@ build, and `vaporInteropPlugin` in the host application.
 Vooya owns generated Rust roots, WASM output, and TypeScript declarations under
 `.vooya/`. Source directories are not polluted with generated `.d.ts` files.
 The generated Cargo application depends on the public `vooya` authoring crate,
-so Rust files can write `use vooya as voo;`; users do not add a Cargo manifest
-or maintain the generated crate root.
+so Rust files can write `use vooya as voo;`; users do not need to add a Cargo
+manifest or maintain the generated crate root. An existing `Cargo.toml` is optional and,
+when present, supplies dependency defaults to the generated crate.
 The generated root is reconciled on each build, so removed or renamed `.rs`
 files cannot remain as stale modules in the application crate.

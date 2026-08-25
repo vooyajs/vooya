@@ -10,6 +10,7 @@ import {
   isVooyaUserError,
   resolveVooyaWorkspace,
   resolveRuntimeCrateRoot,
+  resolveRustBuildOptions,
   resolveRustDependencyRoots,
   resolveToolchain,
   buildRustComponentContracts,
@@ -18,6 +19,7 @@ import {
   writeVooDeclarations,
   rustTypeToRuntimeType,
 } from "@vooya/build-core";
+import type { RustBuildOptions } from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
 import {
   compileVooStyle,
@@ -35,12 +37,24 @@ const runtimeId = "virtual:vooya-runtime";
 const stylePrefix = "virtual:vooya-style:";
 const rustStylePrefix = "virtual:vooya-rust-style:";
 
+export type VooyaFramework = "vue" | "react" | "solid" | "svelte";
+
+export interface VooyaPluginOptions {
+  framework?: VooyaFramework;
+  rust?: RustBuildOptions;
+  toolchain?: { cargoPath?: string };
+  workspace?: { root?: string };
+}
+
 export function vooya({
   framework = "vue",
   rust = {},
   toolchain: toolchainOptions = {},
   workspace: workspaceOptions = {},
-} = {}) {
+}: VooyaPluginOptions = {}) {
+  if (!isSupportedFramework(framework)) {
+    throw new Error(`Unknown Vooya framework ${framework}.`);
+  }
   let applicationRoot;
   let buildScheduler;
   let runtimeModule;
@@ -185,7 +199,7 @@ export function vooya({
         component.id = id;
         const { exportName, disposeName, updateNames } = generatedComponentBinding(component);
         const definition = generatedAdapterDefinition(component);
-        const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
+        const adapter = adapterPackage(framework);
         return `
           ${component.style ? `import "${stylePrefix}${encodeURIComponent(id)}.css";` : ""}
           import init, { ${exportName}, ${disposeName}, ${Object.values(updateNames).join(", ")}${Object.keys(updateNames).length ? ", " : ""}voo_abi_version } from "${runtimeId}";
@@ -212,10 +226,13 @@ export function vooya({
           }
 
           export const metadata = ${JSON.stringify(componentMetadata(component))};
-          export default defineVooyaComponent(${JSON.stringify(definition)}, loadBindings);
+          export default defineVooyaComponent({
+            contract: ${JSON.stringify(definition)},
+            loadBindings,
+          });
         `;
       }
-      const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
+      const adapter = adapterPackage(framework);
       const factory = component.adapters[framework];
       if (!factory) {
         this.error(`Unsupported Voo component ${component.name} for framework ${framework}.`);
@@ -245,9 +262,11 @@ export function vooya({
       `;
     },
     configureServer(server) {
+      const resolvedRust = resolveRustBuildOptions(applicationRoot, rust);
       watchedRustRoots = [
         resolve(resolveRuntimeCrateRoot(), "src"),
-        ...resolveRustDependencyRoots(rust, applicationRoot),
+        ...(resolvedRust.manifestPath ? [resolvedRust.manifestPath] : []),
+        ...resolveRustDependencyRoots(resolvedRust.rust, applicationRoot),
       ];
       server.watcher.add(watchedRustRoots);
       buildScheduler = createBuildScheduler({
@@ -375,7 +394,7 @@ export function generateRustComponentModule(contract, framework = "vue", compone
   };
   const propAssignments = props.map((prop, index) => `${JSON.stringify(prop.name)}: props[${index}]`).join(", ");
   const updates = props.map((prop) => `update_${rustProperty(prop.name)}(value) { currentProps[${JSON.stringify(prop.name)}] = value; ${update}(handle, currentProps); }`).join(",\n                      ");
-  const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
+  const adapter = adapterPackage(framework);
   return `${styleImport}
 import init, { ${mount}, ${update}, ${dispose}, voo_abi_version } from "${runtimeId}";
 import { defineVooyaComponent } from "${adapter}";
@@ -403,11 +422,16 @@ async function loadBindings() {
 }
 
 export const metadata = ${JSON.stringify({ name, props, events })};
-export default defineVooyaComponent(${JSON.stringify(definition)}, loadBindings);
+export default defineVooyaComponent({
+  contract: ${JSON.stringify(definition)},
+  loadBindings,
+});
 `;
 }
 
 export const generateRustVueModule = (contract) => generateRustComponentModule(contract, "vue");
+export const generateRustSolidModule = (contract) => generateRustComponentModule(contract, "solid");
+export const generateRustSvelteModule = (contract) => generateRustComponentModule(contract, "svelte");
 
 export function generateRustStoreModule(store, framework = "vue") {
   const name = store.name.split("::").at(-1) ?? store.name;
@@ -423,11 +447,8 @@ export function generateRustStoreModule(store, framework = "vue") {
     return `${JSON.stringify(action.name)}(...args) { return ${exportName}(handle, ...args); }`;
   }).join(",\n      " );
   const imports = ["voo_abi_version", create, snapshot, subscribe, unsubscribe, dispose, ...store.actions.map((action) => `voo_${stem}_store_${action.name}`)];
-  const adapter = framework === "react" ? "react" : "vue";
-  const adapterImport = `import { useVooyaStore } from "@vooya/${adapter}";\n`;
-  const hook = `\nexport function use${name}(options = {}) {\n  const consumed = ${adapter === "react"
-    ? `useVooyaStore(create${name}Store, undefined, options)`
-    : `useVooyaStore(create${name}Store(), { ...options, disposeOnUnmount: true })`};\n  return {\n    state: consumed.${adapter === "react" ? "state" : "snapshot"},\n    ${store.actions.map((action) => `${rustProperty(action.name)}: (...args) => ${adapter === "react" ? `consumed.store?.[${JSON.stringify(action.name)}](...args)` : `consumed.dispatch(${JSON.stringify(action.name)}, ...args)`}`).join(",\n    ")}\n  };\n}\n`;
+  const adapter = framework;
+  const adapterImport = `import { defineVooyaStore } from "@vooya/${adapter}";\n`;
   return `${adapterImport}import init, { ${imports.join(", ")} } from "${runtimeId}";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
 
@@ -463,7 +484,14 @@ export async function create${name}Store() {
     },
   };
 }
-${hook}
+
+const storeBridge = {
+  name: ${JSON.stringify(name)},
+  create: create${name}Store,
+  actions: ${JSON.stringify(store.actions.map((action) => action.name))},
+};
+
+export const use${name} = defineVooyaStore(storeBridge);
 
 export default create${name}Store;
 export const metadata = ${JSON.stringify({ name, actions: store.actions, snapshot: store.snapshot ?? null })};
@@ -471,6 +499,17 @@ export const metadata = ${JSON.stringify({ name, actions: store.actions, snapsho
 }
 
 export const generateRustVueStoreModule = (store) => generateRustStoreModule(store, "vue");
+export const generateRustSolidStoreModule = (store) => generateRustStoreModule(store, "solid");
+export const generateRustSvelteStoreModule = (store) => generateRustStoreModule(store, "svelte");
+
+function isSupportedFramework(framework) {
+  return framework === "vue" || framework === "react" || framework === "solid" || framework === "svelte";
+}
+
+function adapterPackage(framework) {
+  if (!isSupportedFramework(framework)) throw new Error(`Unknown Vooya framework ${framework}.`);
+  return `@vooya/${framework}`;
+}
 
 function rustStem(name) {
   return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^A-Za-z0-9_]/g, "_").toLowerCase();

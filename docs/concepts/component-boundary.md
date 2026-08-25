@@ -3,8 +3,8 @@
 Vooya is a WASM integration layer, not a replacement application framework. The
 traditional Web renderer continues to own the application tree, routing,
 surrounding state, and the element used to mount a Vooya component. Vue and
-React are the current first-party adapters; the boundary itself is not tied to
-either framework.
+React are the supported first-party adapters; Solid and Svelte are experimental. The
+boundary itself is not tied to any of them.
 
 After mount, the ownership boundary is:
 
@@ -18,7 +18,7 @@ traditional Web application
 The host framework sends initial props through the generated WASM mount
 function. Later prop changes call generated `update_<prop>` methods. Rust emits
 browser `CustomEvent` instances using the `vooya-<event>` prefix; the adapter
-turns those into Vue emits or React callbacks.
+turns those into Vue emits or React/Solid/Svelte callbacks.
 
 Events are dispatched on that exact host and do **not** bubble. They are a
 narrow adapter transport, not an ambient application event bus: outer DOM
@@ -67,11 +67,13 @@ libraries. It is not a claim that WASM makes ordinary DOM work faster.
 
 ## Current runtime layers
 
-The generated framework adapter owns asynchronous WASM loading, host lifecycle,
-prop forwarding, event forwarding, lifecycle errors, and disposal. Load, mount,
-update, and dispose failures use the same Vue `error` / React `onError` channel.
-The generated
-application crate owns the stable export shape and ABI version check.
+The generated framework-neutral bridge carries the contract and asynchronous
+binding loader. Each framework adapter owns host lifecycle, prop and event
+forwarding, error delivery, and disposal using its native primitives. Load,
+mount, update, and dispose failures use Vue's `error` channel or React/Solid/Svelte's
+`onError` callback. The generated application crate owns the export shape and
+ABI version check. This bridge is generated implementation output, not a
+stable author-facing IR.
 
 `@vooya/core` provides the Rust runtime source used by that generated crate:
 

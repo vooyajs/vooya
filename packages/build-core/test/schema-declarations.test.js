@@ -56,8 +56,28 @@ test("generates Vue declarations from a Rust component contract", () => {
   });
   assert.match(code, /total: bigint/);
   assert.match(code, /coupon\?: string \| null/);
-  assert.match(code, /"checked-out": \(bigint\) => void/);
+  assert.match(code, /"checked-out": \(order: bigint\) => void/);
   assert.match(code, /DefineComponent/);
+});
+
+test("generates Solid declarations from the same Rust component contract", () => {
+  const code = generateRustSchemaDeclaration({
+    framework: "solid",
+    contract: {
+      component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", params: [] },
+      props: { version: 1, kind: "props", id: "cart::Props", name: "Props", fields: [{ name: "total", type: "u32" }] },
+      events: {
+        version: 1,
+        kind: "events",
+        id: "cart::Events",
+        name: "Events",
+        methods: [{ name: "checked-out", params: [{ name: "order", type: "u64" }] }],
+      },
+    },
+  });
+  assert.match(code, /import type \{ Component \} from "solid-js"/);
+  assert.match(code, /onCheckedOut\?: \(order: bigint\) => void/);
+  assert.match(code, /class\?: string/);
 });
 
 test("generates framework-specific Rust store exports", () => {
@@ -86,4 +106,14 @@ test("generates framework-specific Rust store exports", () => {
   assert.match(react, /export declare function useCart\(options\?: VooyaStoreOptions\)/);
   assert.match(react, /state: CartSnapshot \| undefined/);
   assert.match(react, /add\(...args: \[number\]\): void/);
+
+  const solid = generateRustStoreDeclaration(store, "solid");
+  assert.match(solid, /import type \{ Accessor \} from "solid-js"/);
+  assert.match(solid, /from "@vooya\/solid"/);
+  assert.match(solid, /state: Accessor<CartSnapshot \| undefined>/);
+
+  const svelte = generateRustStoreDeclaration(store, "svelte");
+  assert.match(svelte, /import type \{ Readable \} from "svelte\/store"/);
+  assert.match(svelte, /from "@vooya\/svelte"/);
+  assert.match(svelte, /state: Readable<CartSnapshot \| undefined>/);
 });

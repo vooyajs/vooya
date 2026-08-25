@@ -19,7 +19,7 @@ try {
   writeFileSync(resolve(fixture, "package.json"), JSON.stringify({ private: true, workspaces: ["packages/*"] }));
   const currentVersion = JSON.parse(readFileSync(resolve(fixture, "packages/core/package.json"), "utf8")).version;
   const expectedVersion = nextAlphaVersion(currentVersion);
-  writeFileSync(resolve(fixture, ".changes", "fixed-group.md"), `---\nvooya-compiler: "patch:chore"\nvooya-core: "patch:chore"\nvooya-build-core: "patch:chore"\nvooya-vite: "patch:chore"\nvooya-vue: "patch:chore"\nvooya-react: "patch:chore"\nvooya-rspack: "patch:chore"\nvooya-webpack: "patch:chore"\n---\n\nVerify Vooya's coordinated release group.\n`);
+  writeFileSync(resolve(fixture, ".changes", "fixed-group.md"), `---\nvooya-compiler: "patch:chore"\nvooya-core: "patch:chore"\nvooya-build-core: "patch:chore"\nvooya-vite: "patch:chore"\nvooya-vue: "patch:chore"\nvooya-react: "patch:chore"\nvooya-solid: "patch:chore"\nvooya-svelte: "patch:chore"\nvooya-rspack: "patch:chore"\nvooya-webpack: "patch:chore"\n---\n\nVerify Vooya's coordinated release group.\n`);
   const pushEvent = resolve(fixture, "push-event.json");
   writeFileSync(pushEvent, JSON.stringify({ repository: { name: "vooya" } }));
   for (const args of [["init", "--quiet"], ["add", "."], ["-c", "user.name=Vooya test", "-c", "user.email=tests@vooya.dev", "commit", "--quiet", "-m", "fixture"]]) {
@@ -39,8 +39,8 @@ try {
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const output = `${result.stdout}\n${result.stderr}`;
-  assert.match(output, /已规划 8 个包|planned 8 package/i);
-  for (const id of ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-rspack", "vooya-webpack"]) {
+  assert.match(output, /已规划 10 个包|planned 10 package/i);
+  for (const id of ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-solid", "vooya-svelte", "vooya-rspack", "vooya-webpack"]) {
     assert.match(output, new RegExp(id));
   }
 
@@ -51,7 +51,7 @@ try {
   });
   assert.equal(version.status, 0, version.stderr || version.stdout);
   const versionOutput = `${version.stdout}\n${version.stderr}`;
-  for (const id of ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-rspack", "vooya-webpack"]) {
+  for (const id of ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-solid", "vooya-svelte", "vooya-rspack", "vooya-webpack"]) {
     assert.match(versionOutput, new RegExp(id));
   }
   assert.match(versionOutput, new RegExp(escapeRegExp(expectedVersion)));
@@ -63,7 +63,7 @@ try {
   });
   assert.equal(apply.status, 0, apply.stderr || apply.stdout);
   const lockfile = JSON.parse(readFileSync(resolve(fixture, "package-lock.json"), "utf8"));
-  for (const directory of ["compiler", "core", "build-core", "vite", "vue", "react", "rspack", "webpack"]) {
+  for (const directory of ["compiler", "core", "build-core", "vite", "vue", "react", "solid", "svelte", "rspack", "webpack"]) {
     assert.equal(lockfile.packages[`packages/${directory}`].version, expectedVersion);
   }
   assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/core"], expectedVersion);

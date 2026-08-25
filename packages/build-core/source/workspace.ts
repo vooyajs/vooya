@@ -42,7 +42,7 @@ export interface VooyaWorkspaceMetadata {
 export interface WriteVooDeclarationsOptions {
   applicationRoot: string;
   components: ParsedComponent[];
-  framework: "vue" | "react";
+  framework: "vue" | "react" | "solid" | "svelte";
   workspaceRoot?: string;
 }
 
@@ -55,7 +55,7 @@ export interface WriteRustSchemaDeclarationsOptions {
   applicationRoot: string;
   contracts: RustComponentContract[];
   stores?: RustStoreSchema[];
-  framework: "vue" | "react";
+  framework: "vue" | "react" | "solid" | "svelte";
   workspaceRoot?: string;
 }
 
