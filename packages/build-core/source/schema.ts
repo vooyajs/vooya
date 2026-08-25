@@ -241,6 +241,17 @@ function parseRecord(text: string, sectionOffset: number, index: number): RustSc
   } catch {
     throw new RustSchemaError(`schema custom section at byte ${sectionOffset}, record ${index + 1}, is not valid JSON.`);
   }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    if ("kind" in record || "id" in record || "name" in record) {
+      if (record.version === undefined) {
+        throw new RustSchemaError(`schema custom section at byte ${sectionOffset}, record ${index + 1}, is missing a schema version.`);
+      }
+      if (typeof record.version !== "number" || !Number.isInteger(record.version)) {
+        throw new RustSchemaError(`schema custom section at byte ${sectionOffset}, record ${index + 1}, has an invalid schema version.`);
+      }
+    }
+  }
   if (!isRecord(value)) throw new RustSchemaError(`schema custom section at byte ${sectionOffset}, record ${index + 1}, is not a supported record.`);
   return value;
 }
