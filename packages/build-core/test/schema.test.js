@@ -34,6 +34,13 @@ function wasm(...sections) {
   ]);
 }
 
+function rawCustomSection(name, dataText) {
+  const nameBytes = [...encoder.encode(name)];
+  const data = [...encoder.encode(dataText)];
+  const payload = [...varUint32(nameBytes.length), ...nameBytes, ...data];
+  return [0, ...varUint32(payload.length), ...payload];
+}
+
 test("reads versioned records from repeated Vooya custom sections", () => {
   const bytes = wasm(
     customSection("__voo_schema", {
@@ -131,5 +138,47 @@ test("rejects more than one role record of the same kind in a file group", () =>
   assert.throws(
     () => validateVooyaSchemaGroups(schema),
     (error) => error instanceof RustSchemaError && /contains multiple component/.test(error.message),
+  );
+});
+
+test("rejects invalid LEB128 section lengths", () => {
+  // Fifth byte sets bits beyond u32 -> overflow.
+  const overflow = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 0, 0x80, 0x80, 0x80, 0x80, 0x7f]);
+  assert.throws(
+    () => readVooyaSchema(overflow),
+    (error) => error instanceof RustSchemaError && /section length near byte 8 overflows u32/.test(error.message),
+  );
+  // Five continuation bytes never terminate -> not a valid u32.
+  const unterminated = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 0, 0x80, 0x80, 0x80, 0x80, 0x80]);
+  assert.throws(
+    () => readVooyaSchema(unterminated),
+    (error) => error instanceof RustSchemaError && /section length near byte 8 is not a valid u32/.test(error.message),
+  );
+});
+
+test("rejects an invalid JSON schema record", () => {
+  const bytes = new Uint8Array([
+    0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
+    ...rawCustomSection("__voo_schema", '{"version":1,'),
+  ]);
+  assert.throws(
+    () => readVooyaSchema(bytes),
+    (error) => error instanceof RustSchemaError && /record 1, is not valid JSON/.test(error.message),
+  );
+});
+
+test("rejects a schema record missing its version", () => {
+  const bytes = wasm(customSection("__voo_schema", { kind: "props", id: "A", name: "A", fields: [] }));
+  assert.throws(
+    () => readVooyaSchema(bytes),
+    (error) => error instanceof RustSchemaError && /is missing a schema version/.test(error.message),
+  );
+});
+
+test("rejects a schema record with a non-integer version", () => {
+  const bytes = wasm(customSection("__voo_schema", { version: "1", kind: "props", id: "A", name: "A", fields: [] }));
+  assert.throws(
+    () => readVooyaSchema(bytes),
+    (error) => error instanceof RustSchemaError && /has an invalid schema version/.test(error.message),
   );
 });
