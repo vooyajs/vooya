@@ -23,7 +23,7 @@ test("generates Vue props and event declarations from a component contract", () 
   assert.match(declaration, /label\?: string;/);
   assert.match(declaration, /change: \(value: number\) => void;/);
   assert.match(declaration, /"reset-all": \(\) => void;/);
-  assert.match(declaration, /error: \(error: \{ stage: "load" | "mount" | "update" | "dispose"; cause: unknown \}\) => void/);
+  assert.match(declaration, /error: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
   assert.match(declaration, /preserving these literal event names keeps \$emit type-safe/);
   assert.match(declaration, /DefineComponent</);
 });
@@ -58,7 +58,7 @@ test("generates React callback props from component events", () => {
   assert.match(declaration, /label\?: string;/);
   assert.match(declaration, /onChange\?: \(value: number\) => void;/);
   assert.match(declaration, /onResetAll\?: \(\) => void;/);
-  assert.match(declaration, /onError\?: \(error: \{ stage: "load" | "mount" | "update" | "dispose"; cause: unknown \}\) => void/);
+  assert.match(declaration, /onError\?: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
   assert.match(declaration, /ComponentType<CounterProps>/);
 });
 

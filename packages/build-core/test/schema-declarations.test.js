@@ -57,7 +57,7 @@ test("generates Vue declarations from a Rust component contract", () => {
   assert.match(code, /total: bigint/);
   assert.match(code, /coupon\?: string \| null/);
   assert.match(code, /"checked-out": \(order: bigint\) => void/);
-  assert.match(code, /error: \(error: \{ stage: "load" | "mount" | "update" | "dispose"; cause: unknown \}\) => void/);
+  assert.match(code, /error: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
   assert.match(code, /DefineComponent/);
 });
 
@@ -84,7 +84,7 @@ test("generates React declarations exposing the four-stage error union", () => {
   });
   assert.match(code, /import type \{ ComponentType \} from "react"/);
   assert.match(code, /onCheckedOut\?: \(order: bigint\) => void/);
-  assert.match(code, /onError\?: \(error: \{ stage: "load" | "mount" | "update" | "dispose"; cause: unknown \}\) => void/);
+  assert.match(code, /onError\?: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
 });
 
 test("generates Solid declarations from the same Rust component contract", () => {
