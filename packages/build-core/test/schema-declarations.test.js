@@ -57,7 +57,34 @@ test("generates Vue declarations from a Rust component contract", () => {
   assert.match(code, /total: bigint/);
   assert.match(code, /coupon\?: string \| null/);
   assert.match(code, /"checked-out": \(order: bigint\) => void/);
+  assert.match(code, /error: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
   assert.match(code, /DefineComponent/);
+});
+
+test("generates React declarations exposing the four-stage error union", () => {
+  const code = generateRustSchemaDeclaration({
+    framework: "react",
+    contract: {
+      component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", params: [] },
+      props: {
+        version: 1,
+        kind: "props",
+        id: "cart::Props",
+        name: "Props",
+        fields: [{ name: "total", type: "u32" }],
+      },
+      events: {
+        version: 1,
+        kind: "events",
+        id: "cart::Events",
+        name: "Events",
+        methods: [{ name: "checked-out", params: [{ name: "order", type: "u64" }] }],
+      },
+    },
+  });
+  assert.match(code, /import type \{ ComponentType \} from "react"/);
+  assert.match(code, /onCheckedOut\?: \(order: bigint\) => void/);
+  assert.match(code, /onError\?: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
 });
 
 test("generates Solid declarations from the same Rust component contract", () => {

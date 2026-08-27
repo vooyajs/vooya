@@ -3,6 +3,10 @@ import { validatePublicAbi } from "./abi.js";
 
 export type VooDeclarationFramework = "vue" | "react" | "solid" | "svelte";
 
+/** The four lifecycle error stages the runtime can emit; kept in one place so
+ * every framework declaration exposes the same union. */
+const ERROR_STAGE_UNION = '"load" | "mount" | "update" | "dispose"';
+
 export function generateVooDeclaration(component: CodegenComponent, framework: VooDeclarationFramework) {
   validatePublicAbi(component);
   if (framework === "react") return generateReactDeclaration(component);
@@ -34,7 +38,7 @@ import type { Component } from "svelte";
 interface ${component.name}Props {
 ${props}
 ${events}
-  onError?: (error: { stage: "load" | "mount" | "update" | "dispose"; cause: unknown }) => void;
+  onError?: (error: { stage: ${ERROR_STAGE_UNION}; cause: unknown }) => void;
   class?: string;
   className?: string;
 }
@@ -64,7 +68,7 @@ function generateVueDeclaration(component: CodegenComponent) {
   const eventsDefinition = component.events.length
     ? `interface ${component.name}Events {
 ${events}
-  error: (error: { stage: "load" | "mount"; cause: unknown }) => void;
+  error: (error: { stage: ${ERROR_STAGE_UNION}; cause: unknown }) => void;
 }`
     : `type ${component.name}Events = ["error"];`;
   const emitsType = component.events.length
@@ -119,7 +123,7 @@ import type { ComponentType } from "react";
 interface ${component.name}Props {
 ${props}
 ${events}
-  onError?: (error: { stage: "load" | "mount"; cause: unknown }) => void;
+  onError?: (error: { stage: ${ERROR_STAGE_UNION}; cause: unknown }) => void;
   className?: string;
 }
 
@@ -151,7 +155,7 @@ import type { Component } from "solid-js";
 interface ${component.name}Props {
 ${props}
 ${events}
-  onError?: (error: { stage: "load" | "mount" | "update" | "dispose"; cause: unknown }) => void;
+  onError?: (error: { stage: ${ERROR_STAGE_UNION}; cause: unknown }) => void;
   class?: string;
   className?: string;
 }
