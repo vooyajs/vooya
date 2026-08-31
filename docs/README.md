@@ -19,6 +19,13 @@ compatibility boundaries into runnable browser cases. Its source lives in the
 [vooyajs/vooya-lab](https://github.com/vooyajs/vooya-lab) repository; the lab
 links back here for the contracts and guides behind each case.
 
+## Related native project
+
+[Vooya FS](https://github.com/vooyajs/fs) continues Rush-FS as a Rust-powered
+batch filesystem engine for Node.js. It shares Vooya's boundary-first and
+evidence-gated design, but uses native Node-API for direct host filesystem
+semantics instead of browser WebAssembly.
+
 ## Start here
 
 - [Contributing](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md): project scope, development setup, testing,

@@ -18,9 +18,11 @@ Vooya's name comes from a voyage to an island: the JavaScript application stays
 the familiar surface, while one focused workload travels to the runtime best
 suited to handle it. This is an incremental integration model, not a request to
 rewrite a product in Rust. The same idea appears across the Vooya organization:
-for example, Rush-FS keeps a Node-style JavaScript boundary while moving
-filesystem work to native Rust. Vooya applies that boundary-first thinking to
-browser WASM islands.
+[Vooya FS](https://github.com/vooyajs/fs), the continuation of Rush-FS, keeps a
+Node-style JavaScript boundary while moving measured batch filesystem work to
+native Rust through Node-API. Vooya applies that boundary-first thinking to
+browser WASM islands. The runtime choice follows the host and workload; WASM is
+not treated as a universal replacement for native addons.
 
 The project is maintained as a set of focused tools and experiments around this
 boundary. The repository contains the compiler, adapters, examples, and

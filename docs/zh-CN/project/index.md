@@ -13,3 +13,10 @@ Vooya 是一个公开 alpha 项目，正在验证“传统 Web 应用与 WASM �
 ## 如何理解支持声明
 
 “Verified”表示仓库中针对命名 fixture 的自动化命令通过；“Experimental”表示路径可用于研究，但矩阵或契约仍不完整；“Not supported”表示项目目前没有对该路径做兼容性承诺。Vue/React 的 supported 版本行与 Solid/Svelte 的 experimental 版本行都是当前 first-party adapter 证据，不是 Vooya 的架构上限。
+
+## 项目家族
+
+- [Vooya FS](https://github.com/vooyajs/fs)：Rush-FS 在 Vooya 边界模型下的延续，面向 Node.js 原生批量文件系统任务。
+- [Vooya Lab](https://vooyajs.github.io/vooya-lab/)：Rust、WASM、ABI、内存与宿主运行时决策的可运行实验和证据。
+
+这些项目共享设计原则，但不共享兼容矩阵；本仓库的浏览器兼容结论不能外推为 Node 文件系统兼容结论，反之亦然。

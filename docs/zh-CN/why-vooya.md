@@ -13,9 +13,11 @@
 
 Vooya 这个名字来自“驶向岛屿”的想法：JavaScript 继续作为熟悉的应用表面，
 只有一个聚焦的高成本能力被交给更适合它的运行时。它强调渐进式接入，而不是
-要求团队把产品重写成 Rust。Vooya 组织里的其他项目也遵循类似的边界思路：例如
-Rush-FS 保留 Node 风格的 JavaScript API，同时把文件系统工作交给原生 Rust；
-Vooya 则把这种“先保留宿主边界”的方法带到浏览器 WASM 能力岛。
+要求团队把产品重写成 Rust。Vooya 组织里的其他项目也遵循类似的边界思路：
+[Vooya FS](https://github.com/vooyajs/fs) 是 Rush-FS 的延续，保留 Node 风格的
+JavaScript API，同时通过 Node-API 把经过测量的批量文件系统工作交给原生 Rust；
+Vooya 则把这种“先保留宿主边界”的方法带到浏览器 WASM 能力岛。运行时选择服从
+宿主和 workload，而不是把 WASM 当成原生扩展的普遍替代品。
 
 Vooya 由一组围绕这条边界的工具和实验组成。仓库里的 compiler、adapter、示例和
 验证 fixture 服务于集成工作；它不是宿主应用的 framework、router 或 design system

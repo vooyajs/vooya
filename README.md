@@ -62,6 +62,22 @@ Vooya is not a replacement for the application framework, and it does not
 assume that WASM makes ordinary DOM work faster. Performance claims belong to
 measured, component-level workloads.
 
+## Project family
+
+Vooya's shared idea is boundary-first Rust integration, not one universal
+runtime:
+
+- **This repository** owns browser components, stores, compiler contracts, and
+  framework adapters; WebAssembly is the browser execution target.
+- **[Vooya FS](https://github.com/vooyajs/fs)** continues Rush-FS as a native
+  Node.js batch-filesystem engine. It uses stable Node-API rather than WASM for
+  direct OS semantics and threaded traversal.
+- **[Vooya Lab](https://vooyajs.github.io/vooya-lab/)** hosts runnable evidence
+  for browser, ABI, memory, and host-boundary decisions.
+
+The projects share measurement and boundary principles while keeping their
+runtime and compatibility promises separate.
+
 ## Quick start with Vue
 
 ### 1. Prerequisites
@@ -411,6 +427,8 @@ behind these statements.
 - [Project status](docs/project/status.md)
 - [Compatibility matrix](docs/project/compatibility.md)
 - [Design RFCs](docs/README.md#design-records)
+- [Vooya FS native Node.js filesystem engine](https://github.com/vooyajs/fs)
+- [Vooya Lab boundary experiments](https://vooyajs.github.io/vooya-lab/)
 
 ## Examples
 
