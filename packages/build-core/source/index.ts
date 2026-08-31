@@ -88,6 +88,7 @@ export interface BuildApplicationOptions {
   outputDir?: string;
   buildMode?: "production" | "development";
   framework?: "vue" | "react" | "solid" | "svelte";
+  mode?: "source" | "system";
   onRustBuildStart?: () => void;
   toolchain?: ResolvedToolchain;
   spawn?: BuildSpawn;
@@ -251,6 +252,7 @@ export function buildApplication({
   outputDir,
   buildMode = "production",
   framework = "vue",
+  mode = "source",
   onRustBuildStart = () => {},
   toolchain = resolveToolchain({ cwd: applicationRoot }),
   spawn = spawnSync,
@@ -403,6 +405,8 @@ export function buildApplication({
     (component) => generatedAdapterDefinition(component).abiVersion,
   );
   writeWorkspaceMetadata(workspace, {
+    mode,
+    artifact: "source-build",
     abiVersions,
     toolchain: {
       cargo: toolchain.cargo.version,

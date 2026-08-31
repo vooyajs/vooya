@@ -41,3 +41,37 @@ test("vooya clean honors an explicit workspace root", () => {
     rmSync(root, { force: true, recursive: true });
   }
 });
+
+test("vooya doctor reports precompiled mode without probing Rust", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-doctor-precompiled-"));
+  try {
+    const result = spawnSync(process.execPath, [cli, "doctor", "--mode", "precompiled", "--json"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.mode, "precompiled");
+    assert.equal(report.ok, true);
+    assert.match(report.results[0].detail, /not required/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test("vooya doctor rejects unimplemented managed mode", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-doctor-managed-"));
+  try {
+    const result = spawnSync(process.execPath, [cli, "doctor", "--mode=managed", "--json"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 1);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.mode, "managed");
+    assert.equal(report.ok, false);
+    assert.match(report.results[0].detail, /not supported yet/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});

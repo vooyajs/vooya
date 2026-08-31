@@ -83,6 +83,13 @@ toolchain diagnostics. Managed installation and a complete precompiled consumer
 workflow are future work; they must remain configuration-compatible with the
 same `vooya()` entry point.
 
+The supported mode vocabulary is explicit: `source` is the default and uses
+PATH discovery, while `system` requires `toolchain.cargoPath` and validates the
+selected Cargo/rustc/target/wasm-bindgen chain. `precompiled` is a consumer
+distribution mode and does not invoke the source compiler; `managed` is not
+implemented and never downloads executables implicitly. `vooya doctor --json`
+is available for CI and editor integrations.
+
 ### Artifact boundary
 
 Vooya should define a versioned artifact contract for WASM, JavaScript bindings,
