@@ -1,7 +1,7 @@
 // This package is intentionally bundler-neutral: adapters own virtual modules,
 // watching and presentation, while this module owns the Rust/WASM application build.
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, cpSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, relative, resolve } from "node:path";
 
@@ -241,7 +241,17 @@ export function resolveRustDependencyRoots(
  * Build compiler results into a reusable WASM application artifact. `components`
  * are the parsed `.voo` compiler results; callers retain all bundler-specific IO.
  */
-export function buildApplication({
+export function buildApplication(options: BuildApplicationOptions): BuildApplicationResult {
+  const workspace = resolveVooyaWorkspace(options.applicationRoot, options.workspaceRoot);
+  const release = acquireBuildLock(workspace.root);
+  try {
+    return buildApplicationUnlocked(options);
+  } finally {
+    release();
+  }
+}
+
+function buildApplicationUnlocked({
   applicationRoot,
   components = [],
   rust = {},
@@ -363,8 +373,7 @@ export function buildApplication({
     spawn,
   );
 
-  rmSync(outputDir, { force: true, recursive: true });
-  mkdirSync(outputDir, { recursive: true });
+  const stagingOutputDir = createStagingDirectory(outputDir);
   try {
     exec(
       toolchain.wasmBindgen.path,
@@ -375,12 +384,13 @@ export function buildApplication({
         ),
         "--target",
         "web",
-        "--out-dir",
-        outputDir,
+          "--out-dir",
+          stagingOutputDir,
       ],
       { cwd: applicationRoot, env: toolchain.environment, stdio: "inherit" },
     );
   } catch (cause) {
+    removeDirectory(stagingOutputDir);
     const detail = cause instanceof Error ? cause.message : String(cause);
     throw new VooyaUserError(
       `wasm-bindgen failed using ${toolchain.wasmBindgen.path}: ${detail}`,
@@ -388,20 +398,24 @@ export function buildApplication({
     );
   }
 
-  const runtimeModule = resolve(outputDir, "vooya_app.js");
-  const wasm = resolve(outputDir, "vooya_app_bg.wasm");
-  const wasmBytes = new Uint8Array(readFileSync(wasm));
+  const stagedWasm = resolve(stagingOutputDir, "vooya_app_bg.wasm");
+  let wasmBytes: Uint8Array;
+  try {
+    wasmBytes = new Uint8Array(readFileSync(stagedWasm));
   // Test doubles and legacy precompiled artifacts may not contain a full WASM
   // binary. Treat those as schema-less artifacts; a real WASM binary is still
   // parsed strictly and malformed schema sections fail the build.
   const schema = isWasmBinary(wasmBytes)
-    ? readVooyaSchema(wasmBytes)
-    : { version: 1 as const, records: [] };
+      ? readVooyaSchema(wasmBytes)
+      : { version: 1 as const, records: [] };
   const schemaIndex = indexVooyaSchema(schema);
   validateVooyaSchemaGroups(schemaIndex);
   const abiVersions = components.map(
     (component) => generatedAdapterDefinition(component).abiVersion,
   );
+  commitStagedDirectory(stagingOutputDir, outputDir);
+  const runtimeModule = resolve(outputDir, "vooya_app.js");
+  const wasm = resolve(outputDir, "vooya_app_bg.wasm");
   writeWorkspaceMetadata(workspace, {
     abiVersions,
     toolchain: {
@@ -455,6 +469,10 @@ export function buildApplication({
       wasmBindgenTarget: "web",
     },
   };
+  } catch (cause) {
+    removeDirectory(stagingOutputDir);
+    throw cause;
+  }
 }
 
 // Builds the empty runtime artifact shipped by @vooya/core without depending on
@@ -755,4 +773,102 @@ function writeIfChanged(path: string, content: string): void {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
   writeFileSync(path, content);
+}
+
+const BUILD_LOCK_TIMEOUT_MS = 30_000;
+const BUILD_LOCK_RETRY_MS = 50;
+
+function acquireBuildLock(workspaceRoot: string): () => void {
+  mkdirSync(workspaceRoot, { recursive: true });
+  const lockPath = resolve(workspaceRoot, ".build.lock");
+  const started = Date.now();
+  while (true) {
+    try {
+      const descriptor = openSync(lockPath, "wx");
+      writeFileSync(descriptor, `${process.pid}\n`);
+      return () => {
+        closeSync(descriptor);
+        try { unlinkSync(lockPath); } catch (cause) {
+          if ((cause as NodeJS.ErrnoException).code !== "ENOENT") throw cause;
+        }
+      };
+    } catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code !== "EEXIST") throw cause;
+      if (isStaleBuildLock(lockPath)) {
+        try { unlinkSync(lockPath); } catch (removeCause) {
+          if ((removeCause as NodeJS.ErrnoException).code !== "ENOENT") throw removeCause;
+        }
+        continue;
+      }
+      if (Date.now() - started >= BUILD_LOCK_TIMEOUT_MS) {
+        throw new VooyaUserError(
+          `Vooya build workspace is busy: ${workspaceRoot}. Another build may still be running; retry after it finishes.`,
+          { kind: "workspace-lock" },
+        );
+      }
+      // Build calls are synchronous, so a short sleep prevents concurrent
+      // Vite/production invocations from deleting each other's source tree.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, BUILD_LOCK_RETRY_MS);
+    }
+  }
+}
+
+function isStaleBuildLock(lockPath: string): boolean {
+  let owner: number;
+  try {
+    owner = Number.parseInt(readFileSync(lockPath, "utf8"), 10);
+    if (!Number.isInteger(owner) || owner <= 0) return false;
+    process.kill(owner, 0);
+    return false;
+  } catch (cause) {
+    // ESRCH means the owning process exited. EPERM means it still exists but
+    // cannot be inspected, so only treat missing-process errors as stale.
+    return (cause as NodeJS.ErrnoException).code === "ESRCH";
+  }
+}
+
+function createStagingDirectory(outputDir: string): string {
+  const staging = `${outputDir}.staging-${process.pid}-${Date.now()}`;
+  removeDirectory(staging);
+  mkdirSync(staging, { recursive: true });
+  return staging;
+}
+
+function commitStagedDirectory(staging: string, destination: string): void {
+  const backup = `${destination}.previous-${process.pid}-${Date.now()}`;
+  try {
+    if (statIfExists(destination)) renameWithRetry(destination, backup);
+    renameWithRetry(staging, destination);
+  } catch (cause) {
+    if (!statIfExists(destination) && statIfExists(backup)) {
+      try { renameWithRetry(backup, destination); } catch { /* Preserve the original failure. */ }
+    }
+    throw cause;
+  }
+  removeDirectory(backup);
+}
+
+function statIfExists(path: string): boolean {
+  try { statSync(path); return true; } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw cause;
+  }
+}
+
+function renameWithRetry(from: string, to: string): void {
+  let lastCause: unknown;
+  for (const delay of [0, 25, 50, 100, 200]) {
+    if (delay) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay);
+    try { renameSync(from, to); return; } catch (cause) {
+      lastCause = cause;
+      if (!["ENOTEMPTY", "EBUSY", "EPERM", "EACCES"].includes((cause as NodeJS.ErrnoException).code ?? "")) throw cause;
+    }
+  }
+  throw lastCause;
+}
+
+function removeDirectory(path: string): void {
+  try { rmSync(path, { force: true, recursive: true, maxRetries: 4, retryDelay: 50 }); } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code !== "ENOENT") throw cause;
+  }
 }
