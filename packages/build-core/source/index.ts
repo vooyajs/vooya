@@ -26,6 +26,8 @@ import {
 import { buildRustComponentContracts, indexVooyaSchema, readVooyaSchema, validateVooyaSchemaGroups } from "./schema.js";
 import { generateRustSchemaDeclaration, generateRustStoreDeclaration } from "./schema-declarations.js";
 import type { RustSchemaDocument } from "./schema.js";
+import { createRustArtifact, validateArtifact } from "./artifact.js";
+import type { VooyaArtifactManifest } from "./artifact.js";
 
 const require = createRequire(import.meta.url);
 
@@ -35,6 +37,7 @@ export * from "./schema.js";
 export * from "./schema-declarations.js";
 export * from "./toolchain.js";
 export * from "./workspace.js";
+export * from "./artifact.js";
 
 export type MappedDiagnostic = string;
 export interface BuildAsset { path: string; code: string }
@@ -189,6 +192,7 @@ export interface BuildApplicationResult {
   watchedFiles: string[];
   diagnostics: MappedDiagnostic[];
   metadata: BuildMetadata;
+  artifact: VooyaArtifactManifest;
 }
 
 interface DiagnosticMapping {
@@ -412,6 +416,17 @@ export function buildApplication({
     },
   });
   const schemaContracts = buildRustComponentContracts(schemaIndex);
+  const artifact = validateArtifact(createRustArtifact({
+    runtimeModule,
+    wasm,
+    abiVersion: abiVersions.length === 1 ? abiVersions[0] : undefined,
+    watchedFiles: [
+      ...(resolvedRust.manifestPath ? [resolvedRust.manifestPath] : []),
+      resolve(runtimeCrateRoot, "src"),
+      resolve(applicationRoot, configuredSourceRoot),
+      ...resolveRustDependencyRoots(rust, applicationRoot),
+    ],
+  }));
   return {
     workspaceRoot: workspace.root,
     runtimeModule,
@@ -454,6 +469,7 @@ export function buildApplication({
       abiVersions,
       wasmBindgenTarget: "web",
     },
+    artifact,
   };
 }
 

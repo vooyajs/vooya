@@ -66,6 +66,7 @@ next available number.
 - [RFC 0006: precompiled Vue artifacts](rfcs/0006-precompiled-vue-artifacts.md)
 - [RFC 0007: Rust-file authoring and ABI v1](rfcs/0007-rust-file-authoring-and-abi-v1.md)
 - [RFC 0008: layer boundary and version roadmap](rfcs/0008-layer-boundary-and-roadmap.md)
+- [RFC 0009: provider-neutral artifact contract](rfcs/0009-provider-artifact-contract.md)
 
 Performance work is recorded separately:
 
