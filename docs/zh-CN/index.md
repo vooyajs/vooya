@@ -36,6 +36,12 @@ Vooya 的工作方式可以概括为：**保留 JavaScript，只移动昂贵的�
 名字所表达的含义。我们希望把这条集成路径做成可复用的工具，而不是再造一个
 要求全栈迁移的 Rust UI framework。
 
+同一套“先找清楚边界，再决定运行时”的原则也用于
+[Vooya FS](https://github.com/vooyajs/fs)：它是 Rush-FS 的延续，通过 Node-API
+把有规模的批量文件系统任务交给原生 Rust。浏览器 Vooya 使用 WASM，Vooya FS
+保持原生，两者不会混淆宿主能力和性能承诺。可运行的边界实验集中在
+[Vooya Lab](https://vooyajs.github.io/vooya-lab/)。
+
 先读[为什么是 Vooya](why-vooya.md)和[组件边界](concepts/component-boundary.md)，
 再开始[快速开始](guide/getting-started.md)。
 

@@ -39,15 +39,21 @@ and evidence.
 
 The short version is: **keep JavaScript, move only the expensive part**. The
 application remains the familiar surface, while one focused workload travels
-to a Rust/WASM island. That “voyage to island” idea also guides other Vooya
-organization projects such as Rush-FS, which keeps a Node-style API while moving
-filesystem work to native Rust.
+to a Rust/WASM island. That “voyage to island” idea also guides
+[Vooya FS](https://github.com/vooyajs/fs), the continuation of Rush-FS: it keeps a
+Node-style API while moving measured batch filesystem work to native Rust through
+Node-API. Browser Vooya uses WASM; Vooya FS stays native because their host
+capabilities and performance boundaries differ.
 
 Read [why Vooya](why-vooya.md) for the design context, then the
 [component boundary](concepts/component-boundary.md) and [getting started guide](guide/getting-started.md).
 
 After the first run, check the [toolchain reference](reference/tooling.md) and
 [compatibility matrix](project/compatibility.md) before choosing a bundler.
+
+For adjacent projects, see [Vooya FS](https://github.com/vooyajs/fs) for native
+Node.js batch filesystem operations and
+[Vooya Lab](https://vooyajs.github.io/vooya-lab/) for runnable boundary evidence.
 
 ## Why choose Vooya?
 
