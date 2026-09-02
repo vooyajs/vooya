@@ -75,6 +75,13 @@ The Vite, Rspack, and Webpack paths are designed to recover after a failed
 compilation. A successful Rust rebuild currently causes a full page reload, so
 component state is not preserved.
 
+Builds using the same `.vooya` workspace are serialized. Vooya writes a new
+WASM result into a temporary staging directory and replaces the previous result
+only after compilation, binding generation, and schema validation succeed. If
+the rebuild fails, the last successful artifact remains available to the
+development server. A concurrent process waits briefly for the workspace lock;
+if another process owns it for too long, retry after that build completes.
+
 ## Still blocked
 
 Report the exact package versions, Node/Rust/wasm-bindgen versions, framework,
