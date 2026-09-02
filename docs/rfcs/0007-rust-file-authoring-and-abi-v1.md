@@ -99,14 +99,17 @@ All nested public fields must themselves be supported.
 | `Option<T>` | `T \| null` | Absent, `undefined`, and `null` input become `None`; output `None` is `null`. |
 | `(A, B, ...)` | `[A, B, ...]` | Fixed-length tuple. |
 | `BTreeMap<String, T>` / `HashMap<String, T>` | `Record<string, T>` | String keys only. |
-| named structs/enums | generated object/union | Supported only when their contents are supported. |
+| named structs/enums | runtime object/union | `FromJs`/`ToJs` conversion is available; standalone schema records and precise generated TypeScript remain follow-up work in #54. |
 
 <!-- markdownlint-restore -->
 
 Recursive public types, arbitrary generic ABI, non-string maps, borrowed
 values, zero-copy TypedArray transport, and custom `undefined` semantics are
 not ABI v1. The compiler rejects them at the public boundary and explains the
-owned-data fallback; it must not emit inaccurate TypeScript.
+owned-data fallback; it must not emit inaccurate TypeScript. A named type can
+cross the runtime boundary with `FromJs`/`ToJs`, but until #54 adds standalone
+type schema records the declaration generator intentionally uses an
+object-shaped fallback rather than claiming an exact TypeScript object/union.
 
 ## Build, schema, and styles
 
