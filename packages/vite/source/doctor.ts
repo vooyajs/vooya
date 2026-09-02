@@ -30,7 +30,25 @@ export function inspectToolchain({
   probeManifestPath = undefined,
   cargoPath = undefined,
   workspaceRoot = undefined,
+  mode = "source",
 } = {}) {
+  if (mode === "managed") {
+    return {
+      mode,
+      ok: false,
+      results: [{ name: "managed toolchain", status: "error", detail: "Managed toolchain installation is not supported yet." }],
+      workspaceRoot: resolveVooyaWorkspace(cwd, workspaceRoot).root,
+    };
+  }
+  if (mode === "precompiled") {
+    const workspace = resolveVooyaWorkspace(cwd, workspaceRoot);
+    return {
+      mode,
+      ok: true,
+      results: [{ name: "precompiled consumer", status: "ok", detail: "Rust, Cargo, rustup, and wasm-bindgen are not required." }],
+      workspaceRoot: workspace.root,
+    };
+  }
   let toolchain;
   let resolutionError;
   try {
@@ -146,6 +164,7 @@ export function inspectToolchain({
   }
 
   return {
+    mode,
     toolchain,
     cargo: cargo?.version,
     cargoPath: toolchain?.cargo.path ?? cargo?.path ?? resolutionError?.cargoCandidates?.[0],
@@ -165,7 +184,7 @@ export function inspectToolchain({
 }
 
 export function formatToolchainReport(report) {
-  const lines = ["Vooya doctor", ""];
+  const lines = ["Vooya doctor", `mode: ${report.mode ?? "source"}`, ""];
   for (const result of report.results) {
     const label = result.status === "ok" ? "ok" : result.status === "warning" ? "warning" : "error";
     lines.push(`[${label}] ${result.name}: ${result.detail}`);

@@ -44,6 +44,15 @@ wasm-bindgen CLI is incomplete; it does not fall back to another Cargo on
 `PATH`. Relative paths written in `vooya({ rust })` resolve from the Vite
 application root.
 
+Use `mode: "system"` when the application owns its Rust installation:
+
+```ts
+vooya({
+  mode: "system",
+  toolchain: { cargoPath: "/opt/custom-rust/bin/cargo" },
+});
+```
+
 Vooya discovers the nearest `Cargo.toml` by checking the configured `rust.entry`
 directory, then `rust.sourceRoot` (default `src`), then the application root,
 walking each location toward the repository boundary. Its ordinary
@@ -73,6 +82,7 @@ manifest's `web-sys` dependency. Supplying the option explicitly takes priority.
 | Parameter | Type / values | Default | Purpose | Limit / evidence |
 | --- | --- | --- | --- | --- |
 | `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 are supported; Solid 1.9 and Svelte 5 have experimental Vite 7 evidence; it does not change the Rust ABI |
+| `mode` | `"source" \| "system"` | `"source"` | Declares who owns the Rust toolchain | `system` requires `toolchain.cargoPath`; managed and precompiled consumer modes are not Vite source-build modes |
 | `rust.dependencies` | `Record<string, string \| Dependency>` | Nearest `Cargo.toml`, then `{}` | Adds or overrides Cargo registry, Git, or path dependencies | The generated crate owns core browser dependency versions; path edits may require a server restart in experimental adapters |
 | `rust.webSysFeatures` | `string[]` | Nearest `Cargo.toml`, then `[]` | Enables the required `web-sys` browser APIs | An explicit array replaces manifest-provided features; built-in runtime features are always retained |
 | `toolchain.cargoPath` | `string` | PATH discovery | Chooses the Cargo executable used for the build | The selected Cargo's `rustc`, target, and CLI must be coherent; no silent fallback |
@@ -91,6 +101,7 @@ by the Vite process:
 ```sh
 npx vooya doctor
 npx vooya doctor --cargo-path /opt/custom-rust/bin/cargo
+npx vooya doctor --mode precompiled --json
 ```
 
 It checks every `cargo` found on `PATH` in order unless `--cargo-path` explicitly
@@ -108,8 +119,8 @@ user's PATH preference.
 
 | Mode | Cargo selection | Best for | What Vooya guarantees |
 | --- | --- | --- | --- |
-| Discovered | First coherent Cargo on `PATH` | A normal rustup installation | The build uses the `rustc` selected by that Cargo |
-| Explicit | `toolchain.cargoPath` / `--cargo-path` | Multiple Rust installations or Tauri toolchains | An incomplete explicit toolchain fails instead of switching silently |
+| Source | First coherent Cargo on `PATH` | A normal Rust authoring installation | The build uses the `rustc` selected by that Cargo |
+| System | `toolchain.cargoPath` / `--cargo-path` | Multiple Rust installations or Tauri toolchains | An incomplete explicit toolchain fails instead of switching silently |
 
 A project may choose and share its own Cargo policy across native and WASM
 builds, but that is project configuration, not a third Vooya-managed toolchain

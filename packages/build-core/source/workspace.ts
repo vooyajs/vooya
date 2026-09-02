@@ -30,6 +30,8 @@ export interface VooyaWorkspacePaths {
 export interface VooyaWorkspaceMetadata {
   product: "vooya";
   schemaVersion: number;
+  mode?: "source" | "system";
+  artifact?: "source-build" | "precompiled";
   abiVersions?: number[];
   toolchain?: {
     cargo: string;

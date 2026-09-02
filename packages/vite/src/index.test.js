@@ -211,3 +211,10 @@ test("generates Svelte virtual modules with readable stores", () => {
 test("rejects unknown framework adapters instead of silently using Vue", () => {
   assert.throws(() => vooya({ framework: "angular" }), /Unknown Vooya framework angular/);
 });
+
+test("rejects unknown authoring modes", () => {
+  assert.throws(
+    () => vooya({ mode: "managed" }),
+    /Use source or system for Rust authoring/,
+  );
+});

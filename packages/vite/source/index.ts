@@ -41,6 +41,7 @@ export type VooyaFramework = "vue" | "react" | "solid" | "svelte";
 
 export interface VooyaPluginOptions {
   framework?: VooyaFramework;
+  mode?: "source" | "system";
   rust?: RustBuildOptions;
   toolchain?: { cargoPath?: string };
   workspace?: { root?: string };
@@ -48,12 +49,16 @@ export interface VooyaPluginOptions {
 
 export function vooya({
   framework = "vue",
+  mode = "source",
   rust = {},
   toolchain: toolchainOptions = {},
   workspace: workspaceOptions = {},
 }: VooyaPluginOptions = {}) {
   if (!isSupportedFramework(framework)) {
     throw new Error(`Unknown Vooya framework ${framework}.`);
+  }
+  if (mode !== "source" && mode !== "system") {
+    throw new Error(`Unsupported Vooya mode ${mode}. Use source or system for Rust authoring.`);
   }
   let applicationRoot;
   let buildScheduler;
@@ -87,6 +92,9 @@ export function vooya({
     const progress = createRustBuildProgress(logger);
     try {
       if (!toolchain) {
+        if (mode === "system" && !toolchainOptions?.cargoPath) {
+          throw new Error("Vooya system mode requires toolchain.cargoPath.");
+        }
         toolchain = resolveToolchain({
           cwd: applicationRoot,
           cargoPath: toolchainOptions?.cargoPath,
@@ -101,6 +109,7 @@ export function vooya({
         components: sourceComponents,
         rust,
         framework,
+        mode,
         workspaceRoot: resolveVooyaWorkspace(applicationRoot, workspaceOptions.root).root,
         toolchain,
         onRustBuildStart: progress.start,
