@@ -287,6 +287,12 @@ hook for the selected framework. In the current ABI-v1 alpha, a snapshot that re
 user-defined `ToJs` struct is declared as an object-shaped fallback until
 standalone schema records for those structs are added:
 
+`#[derive(FromJs)]` and `#[derive(ToJs)]` already make named structs and enums
+usable at runtime. The fallback affects generated TypeScript only: precise
+object/union declarations require the standalone type-schema work tracked by
+Issue #54, so callers must not treat `Record<string, unknown>` as a complete
+compile-time description of the Rust value.
+
 ```ts
 import type { Ref } from "vue";
 import type { VooyaStoreOptions } from "@vooya/vue";
@@ -316,6 +322,7 @@ Props, event payloads, action arguments, and snapshots use one shared mapping:
 | `Option<T>` | `T \| null` | `undefined` and `null` input decode as `None`; output is `null`. |
 | `(A, B, ...)` | `[A, B, ...]` | Fixed-length tuples. |
 | `HashMap<String, T>` / `BTreeMap<String, T>` | `Record<string, T>` | Only string keys are supported. |
+| Named struct/enum with `FromJs`/`ToJs` | Runtime object/union | Generated declarations use `Record<string, unknown>` until #54 adds type schema records. |
 
 Borrowed values, recursive public types, arbitrary generics, non-string-key
 maps, and zero-copy `TypedArray` transport are outside ABI v1. Keep those
