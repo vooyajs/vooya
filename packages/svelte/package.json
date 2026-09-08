@@ -1,6 +1,6 @@
 {
   "name": "@vooya/svelte",
-  "version": "0.1.0-alpha.11",
+  "version": "0.1.0-alpha.12",
   "description": "Svelte host adapter for Vooya component islands.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
