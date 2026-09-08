@@ -1,0 +1,22 @@
+{
+  "name": "vooya-math-plot-astro-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/vue": "7.0.2",
+    "@astrojs/check": "0.9.4",
+    "@vooya/build-core": "file:../../packages/build-core",
+    "@vooya/compiler": "file:../../packages/compiler",
+    "@vooya/core": "file:../../packages/core",
+    "@vooya/vite": "file:../../packages/vite",
+    "@vooya/vue": "file:../../packages/vue",
+    "astro": "7.3.2",
+    "typescript": "5.9.3",
+    "vue": "3.5.24"
+  }
+}

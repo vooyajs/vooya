@@ -1,0 +1,8 @@
+.vooya-math-plot { background: var(--vooya-plot-bg, #fff); border: 1px solid color-mix(in srgb, var(--vooya-plot-text, #172019) 22%, transparent); color: var(--vooya-plot-text, #172019); container-type: inline-size; display: grid; overflow: hidden; }
+.vooya-math-header { align-items: center; border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent); display: flex; gap: 1rem; min-height: 3rem; padding: 0 .85rem; }
+.vooya-math-title { font: 600 .92rem/1.3 ui-sans-serif, system-ui, sans-serif; }
+.vooya-math-status { color: color-mix(in srgb, currentColor 62%, transparent); font: .72rem/1.4 ui-monospace, monospace; margin-left: auto; }
+.vooya-math-reset { background: transparent; border: 1px solid color-mix(in srgb, currentColor 32%, transparent); color: inherit; cursor: pointer; font: .72rem/1 ui-monospace, monospace; min-height: 2rem; padding: 0 .7rem; }
+.vooya-math-canvas { aspect-ratio: 16 / 9; cursor: crosshair; display: block; outline: none; touch-action: none; width: 100%; }
+.vooya-math-canvas:focus-visible { box-shadow: inset 0 0 0 3px var(--vooya-plot-accent, #3157d5); }
+.vooya-math-help { border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); color: color-mix(in srgb, currentColor 64%, transparent); font: .7rem/1.45 ui-monospace, monospace; margin: 0; padding: .55rem .85rem; }

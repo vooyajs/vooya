@@ -16,6 +16,7 @@ import {
   generateRustVueStoreModule,
   vooya,
 } from "../dist/index.js";
+import { isVooyaSourceChange, unresolvedRustImportMessage } from "../dist/module-resolution.js";
 
 test("reports stable Rust/WASM build stages with their elapsed duration", () => {
   const messages = [];
@@ -53,13 +54,32 @@ events:
     const plugin = vooya();
     plugin.configResolved({ root });
 
-    const output = plugin.load.call({}, id);
+    const output = plugin.load.call({}, `${id}?import`);
     assert.match(output, /voo_counter_mount/);
     assert.match(output, /scopeId/);
     assert.match(output, /"initial","type":"number","required":false,"defaultValue":0/);
   } finally {
     rmSync(root, { force: true, recursive: true });
   }
+});
+
+test("resolves Rust-file imports with Vite query parameters", () => {
+  const plugin = vooya();
+  const importer = "/consumer/src/App.vue?vue&type=script";
+  const resolved = plugin.resolveId.call({}, "./Counter.rs?import", importer);
+  assert.equal(resolved, "/consumer/src/Counter.rs?import");
+});
+
+test("explains unsupported nested Rust-file imports", () => {
+  assert.match(
+    unresolvedRustImportMessage("/consumer/src/components/Counter.rs", "/consumer"),
+    /cannot expose nested Rust file.*src\/\*\.rs.*directory mod\.rs.*rust\.entry/s,
+  );
+});
+
+test("ignores generated Rust copies when frameworks watch dot directories", () => {
+  assert.equal(isVooyaSourceChange("/consumer/.vooya/build/src/rust/src/Counter.rs", "/consumer/.vooya"), false);
+  assert.equal(isVooyaSourceChange("/consumer/src/Counter.rs", "/consumer/.vooya"), true);
 });
 
 test("generates a Vue virtual module for a Rust-file component contract", () => {
@@ -98,12 +118,13 @@ test("loads and scopes Rust-file CSS through the bundler hook", () => {
   writeFileSync(resolve(root, "Counter.css"), ".counter { color: red; }");
   try {
     const plugin = vooya();
-    const source = `virtual:vooya-rust-style:${encodeURIComponent(JSON.stringify({
+    const source = `virtual:vooya-rust-style:${Buffer.from(JSON.stringify({
       componentId,
       name: "Counter",
       styles: [{ path: "./Counter.css", scoped: true }],
-    }))}.css`;
+    })).toString("base64url")}.css`;
     const resolved = plugin.resolveId(source);
+    assert.doesNotMatch(resolved, /[\0{}"']/);
     const css = plugin.load(resolved);
     assert.match(css, /data-voo-scope/);
     assert.match(css, /color: red/);

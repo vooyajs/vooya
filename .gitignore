@@ -1,5 +1,7 @@
 /target
 /node_modules
+**/node_modules
+**/.astro
 /dist
 /docs/.vitepress/dist
 /docs/.vitepress/cache

@@ -1,0 +1,143 @@
+import { execFileSync } from "node:child_process";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createServer } from "node:net";
+import { chromium } from "playwright";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const source = resolve(root, "examples/math-plot-astro");
+const temporary = mkdtempSync(resolve(tmpdir(), "vooya-astro-math-"));
+const packs = resolve(temporary, "packs");
+mkdirSync(packs);
+let runningAstro;
+
+try {
+  run("npm", ["run", "build:packages"], root);
+  const packages = ["compiler", "build-core", "core", "vite", "vue"];
+  const tarballs = Object.fromEntries(packages.map((name) => [name, pack(resolve(root, "packages", name), packs)]));
+  cpSync(source, temporary, {
+    recursive: true,
+    filter(path) {
+      const relative = path.slice(source.length).replace(/^[/\\]/, "");
+      return !new Set(["node_modules", "dist", ".astro", ".vooya"]).has(relative.split(sep)[0]);
+    },
+  });
+  const manifestPath = resolve(temporary, "package.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  for (const name of packages) manifest.dependencies[`@vooya/${name}`] = `file:${tarballs[name]}`;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"], temporary);
+
+  const devPort = await availablePort();
+  runningAstro = { command: "dev", port: devPort };
+  astro(["dev", "--background", "--host", "127.0.0.1", "--port", String(devPort)]);
+  await waitForServer(devPort);
+  await verifyBrowser(devPort);
+  await new Promise((resolveWait) => setTimeout(resolveWait, 500));
+  const logs = astro(["dev", "logs"], true);
+  const builds = logs.match(/Vooya: building Rust\/WASM source/g)?.length ?? 0;
+  if (builds !== 1) throw new Error(`expected one stable dev build, observed ${builds}\n${logs}`);
+  astro(["dev", "stop"]);
+  runningAstro = undefined;
+
+  // This exact order reproduces the Astro multi-environment alpha.11 failure:
+  // check builds the Rust artifact once; build must not race a second cleanup.
+  run("npx", ["astro", "check"], temporary);
+  run("npm", ["run", "build"], temporary);
+
+  const html = readFileSync(resolve(temporary, "dist/index.html"), "utf8");
+  if (!html.includes("Static fallback: y = 1.25x + 0.5")) throw new Error("missing readable static fallback");
+  if (html.includes("data-math-plot")) throw new Error("browser-only Rust DOM executed during prerender");
+  const assets = readdirSync(resolve(temporary, "dist/_astro"));
+  if (!assets.some((file) => file.endsWith(".wasm"))) throw new Error("Astro build did not emit WASM");
+  if (!existsSync(resolve(temporary, ".vooya/types/src/MathPlot.d.rs.ts"))) throw new Error("missing generated Math Plot declaration");
+  const previewPort = await availablePort();
+  runningAstro = { command: "preview", port: previewPort };
+  astro(["preview", "--background", "--host", "127.0.0.1", "--port", String(previewPort)]);
+  await waitForServer(previewPort);
+  await verifyBrowser(previewPort);
+  astro(["preview", "stop"]);
+  runningAstro = undefined;
+  console.log(`Clean Astro consumer passed dev mount, check → build, and production preview with ${packages.length} packed Vooya packages.`);
+} finally {
+  if (runningAstro) {
+    try { astro([runningAstro.command, "stop"]); } catch {}
+  }
+  if (process.env.VOOYA_KEEP_ASTRO_MATH_FIXTURE) console.log(`Kept fixture: ${temporary}`);
+  else rmSync(temporary, { recursive: true, force: true });
+}
+
+function astro(args, capture = false) {
+  return run(process.execPath, [resolve(temporary, "node_modules/astro/bin/astro.mjs"), ...args], temporary, capture);
+}
+
+async function verifyBrowser(port) {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+    const plot = page.locator("[data-math-plot]");
+    await plot.waitFor();
+    const canvas = page.locator("canvas");
+    await canvas.evaluate((node) => { window.__vooyaMathCanvas = node; });
+    await page.locator("[data-weight]").press("ArrowRight");
+    await page.waitForFunction(() => document.querySelector("[data-math-plot]")?.getAttribute("data-spec-revision") === "1");
+    if (!await canvas.evaluate((node) => window.__vooyaMathCanvas === node)) throw new Error("props update replaced the Canvas node");
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    const x = box.x + 56 + 0.5 * (box.width - 86);
+    const y = box.y + 22 + ((7 - 0.7) / 12) * (box.height - 68);
+    await page.mouse.move(x, y);
+    await page.waitForFunction(() => document.querySelector("[data-probe]")?.textContent?.includes("series_id"));
+    const before = await plot.getAttribute("data-viewport");
+    await page.mouse.wheel(0, -180);
+    await page.waitForFunction((value) => document.querySelector("[data-math-plot]")?.getAttribute("data-viewport") !== value, before);
+    await canvas.focus();
+    await canvas.press("ArrowRight");
+    const size = await canvas.evaluate((node) => ({ css: node.getBoundingClientRect().width, bitmap: node.width, dpr: devicePixelRatio }));
+    if (size.bitmap < size.css * size.dpr - 1) throw new Error(`Canvas is not HiDPI responsive: ${JSON.stringify(size)}`);
+    const mounts = Number(await page.evaluate(() => sessionStorage.getItem("__vooyaMathMounts") ?? 0));
+    const disposes = Number(await page.evaluate(() => sessionStorage.getItem("__vooyaMathDisposes") ?? 0));
+    await page.locator("[data-toggle]").click();
+    await plot.waitFor({ state: "detached" });
+    const nextDisposes = Number(await page.evaluate(() => sessionStorage.getItem("__vooyaMathDisposes") ?? 0));
+    if (nextDisposes !== disposes + 1 || mounts < 1) throw new Error("component dispose lifecycle did not run");
+    if (errors.length) throw new Error(`browser errors:\n${errors.join("\n")}`);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function waitForServer(port) {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    try { if ((await fetch(`http://127.0.0.1:${port}/`)).ok) return; } catch {}
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  throw new Error(`Astro server on ${port} did not start`);
+}
+
+function availablePort() {
+  return new Promise((resolvePort, rejectPort) => {
+    const server = createServer();
+    server.once("error", rejectPort);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      server.close((error) => error ? rejectPort(error) : resolvePort(address.port));
+    });
+  });
+}
+
+function pack(directory, destination) {
+  const output = run("npm", ["pack", "--pack-destination", destination, "--json"], directory, true);
+  return resolve(destination, JSON.parse(output)[0].filename);
+}
+
+function run(command, args, cwd, capture = false) {
+  return execFileSync(command, args, { cwd, encoding: "utf8", stdio: capture ? "pipe" : "inherit" });
+}

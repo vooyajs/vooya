@@ -164,6 +164,8 @@ test("maps Cargo diagnostics using compiler source location metadata", () => {
 
 test("generates deterministic Rust module declarations", () => {
   assert.equal(rustModuleIdentifier("widgets/cart-item.rs"), "cart_item");
+  assert.equal(rustModuleIdentifier("widgets/MathPlot.rs"), "math_plot");
+  assert.equal(rustModuleIdentifier("widgets/HTTPClient.rs"), "http_client");
   const root = generateRustCrateRoot(["rust/z.rs", "rust/a.rs", "rust/a.test.rs"], ["rust/a.rs"]);
   assert.match(root, /#\[path = "rust\/a\.rs"\] pub mod a;/);
   assert.match(root, /#\[path = "rust\/a\.test\.rs"\] mod a_test;/);

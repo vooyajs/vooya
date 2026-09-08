@@ -43,6 +43,8 @@ export interface RustComponentSchema {
   params: RustSchemaParameter[];
   return?: string;
   styles?: RustStyleDependency[];
+  /** Optional opt-in component update mode. `in-place` preserves the mounted root. */
+  update?: "in-place" | null;
 }
 
 export interface RustStyleDependency {

@@ -15,6 +15,15 @@ See the [tooling reference](./tooling.md), [compatibility matrix](../project/com
 and [ABI v1 RFC](../rfcs/0007-rust-file-authoring-and-abi-v1.md) for the wider
 boundary.
 
+## Rust component update modes
+
+`#[voo::component]` keeps the compatibility behavior of replacing its owned
+root after a framework prop change. Stateful browser surfaces can opt into
+`#[voo::component(update = "path::to::handler")]`; the handler receives
+`(&voo::ViewElement, Props)` and updates the mounted root in place. The handler
+is synchronous, receives the complete next props object, and shares the
+original root's disposal scope. See [RFC 0010](../rfcs/0010-in-place-component-updates.md).
+
 ## `@vooya/vite`
 
 ### `vooya(options?)`

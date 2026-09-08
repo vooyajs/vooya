@@ -97,7 +97,12 @@ export interface BuildApplicationOptions {
 /** Convert a user Rust path into a deterministic Rust module identifier. */
 export function rustModuleIdentifier(path: string): string {
   const stem = path.replaceAll("\\", "/").replace(/\.rs$/i, "").split("/").pop() ?? "module";
-  const normalized = stem.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[^A-Za-z_]+/, "_");
+  const normalized = stem
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9_]/g, "_")
+    .replace(/^[^A-Za-z_]+/, "_")
+    .toLowerCase();
   return normalized || "module";
 }
 

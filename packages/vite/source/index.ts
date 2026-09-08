@@ -2,7 +2,7 @@
 // is TypeScript-authored; its Vite hook boundary remains intentionally loose.
 // @ts-nocheck
 import { readFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import {
   buildApplication,
   clearToolchainCache,
@@ -30,6 +30,12 @@ import {
 } from "@vooya/compiler";
 import { readVooComponents } from "./voo-project.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
+import {
+  isPathInside,
+  isVooyaSourceChange,
+  modulePath,
+  unresolvedRustImportMessage,
+} from "./module-resolution.js";
 
 const componentExtension = ".voo";
 const rustExtension = ".rs";
@@ -64,15 +70,11 @@ export function vooya({
   let rustStores = [];
   let watchedRustRoots = [];
   let logger;
+  let hasInitialBuild = false;
+  let generatedWorkspaceRoot;
 
   const handleVooyaHotUpdate = ({ file }) => {
-    if (
-      !file.endsWith(componentExtension) &&
-      !file.endsWith(rustExtension) &&
-      !watchedRustRoots.some((root) => isPathInside(file, root))
-    ) {
-      return;
-    }
+    if (!isVooyaSourceChange(file, generatedWorkspaceRoot, watchedRustRoots)) return;
     buildScheduler?.schedule();
     // The generated WASM module owns live component handles. Letting the
     // framework hot-replace a .voo importer first would run cleanup against a
@@ -101,7 +103,7 @@ export function vooya({
         components: sourceComponents,
         rust,
         framework,
-        workspaceRoot: resolveVooyaWorkspace(applicationRoot, workspaceOptions.root).root,
+        workspaceRoot: generatedWorkspaceRoot,
         toolchain,
         onRustBuildStart: progress.start,
       });
@@ -131,12 +133,19 @@ export function vooya({
     }
   };
 
+  const ensureCompiled = () => {
+    if (hasInitialBuild && runtimeModule) return;
+    compile();
+    hasInitialBuild = true;
+  };
+
   return {
     name: "vooya",
     enforce: "pre",
     configResolved(config) {
       applicationRoot = config.root;
       logger = config.logger;
+      generatedWorkspaceRoot = resolveVooyaWorkspace(applicationRoot, workspaceOptions.root).root;
       const typesProblem = inspectGeneratedTypesConfiguration(
         applicationRoot,
         workspaceOptions.root,
@@ -144,27 +153,34 @@ export function vooya({
       if (typesProblem) logger?.warn(`Vooya: WARNING: ${typesProblem.message}`);
     },
     buildStart() {
-      compile();
+      // Astro creates multiple Vite environments from one plugin instance.
+      // They share one generated browser artifact and must not race rebuilding it.
+      ensureCompiled();
     },
     resolveId(source, importer, options = {}) {
       if (source === runtimeId) return runtimeModule;
-      if (source.startsWith(stylePrefix)) return `\0${source}`;
-      if (source.startsWith(rustStylePrefix)) return `\0${source}`;
+      if (source.startsWith(stylePrefix)) return source;
+      if (source.startsWith(rustStylePrefix)) return source;
       if (!importer) return null;
-      if (source.endsWith(rustExtension)) return resolve(importer, "..", source);
-      if (!source.endsWith(componentExtension)) return null;
+      const sourcePath = modulePath(source);
+      const suffix = source.slice(sourcePath.length);
+      if (sourcePath.endsWith(rustExtension)) {
+        return `${resolve(dirname(modulePath(importer)), sourcePath)}${suffix}`;
+      }
+      if (!sourcePath.endsWith(componentExtension)) return null;
       // Preserve Vite's root, alias and package semantics without re-entering
       // this plugin for the delegated request.
       return this.resolve(source, importer, { ...options, skipSelf: true });
     },
     load(id) {
-      if (id.startsWith(`\0${stylePrefix}`)) {
-        const componentId = decodeURIComponent(id.slice(stylePrefix.length + 1, -4));
+      const cleanId = modulePath(id);
+      if (cleanId.startsWith(stylePrefix)) {
+        const componentId = decodeURIComponent(cleanId.slice(stylePrefix.length, -4));
         const component = parseVooComponent(readFileSync(componentId, "utf8"), componentId);
         return compileVooStyle({ ...component, id: componentId });
       }
-      if (id.startsWith(`\0${rustStylePrefix}`)) {
-        const payload = JSON.parse(decodeURIComponent(id.slice(rustStylePrefix.length + 1, -4)));
+      if (cleanId.startsWith(rustStylePrefix)) {
+        const payload = JSON.parse(Buffer.from(cleanId.slice(rustStylePrefix.length, -4), "base64url").toString("utf8"));
         const componentId = payload.componentId;
         const componentName = payload.name;
         const styles = payload.styles ?? [];
@@ -182,26 +198,27 @@ export function vooya({
           style: { content, scoped },
         });
       }
-      if (id.endsWith(rustExtension)) {
-        const contract = findRustContract(rustContracts, id, applicationRoot);
+      if (cleanId.endsWith(rustExtension)) {
+        ensureCompiled();
+        const contract = findRustContract(rustContracts, cleanId, applicationRoot);
         if (contract) {
-          return generateRustComponentModule(contract, framework, id);
+          return generateRustComponentModule(contract, framework, cleanId);
         }
-        const store = findRustStore(rustStores, id, applicationRoot);
+        const store = findRustStore(rustStores, cleanId, applicationRoot);
         if (store) {
           return generateRustStoreModule(store, framework);
         }
-        return null;
+        this.error(unresolvedRustImportMessage(cleanId, applicationRoot, rust));
       }
-      if (!id.endsWith(componentExtension)) return null;
-      const component = parseVooComponent(readFileSync(id, "utf8"), id);
+      if (!cleanId.endsWith(componentExtension)) return null;
+      const component = parseVooComponent(readFileSync(cleanId, "utf8"), cleanId);
       if (component.format === "source") {
-        component.id = id;
+        component.id = cleanId;
         const { exportName, disposeName, updateNames } = generatedComponentBinding(component);
         const definition = generatedAdapterDefinition(component);
         const adapter = adapterPackage(framework);
         return `
-          ${component.style ? `import "${stylePrefix}${encodeURIComponent(id)}.css";` : ""}
+          ${component.style ? `import "${stylePrefix}${encodeURIComponent(cleanId)}.css";` : ""}
           import init, { ${exportName}, ${disposeName}, ${Object.values(updateNames).join(", ")}${Object.keys(updateNames).length ? ", " : ""}voo_abi_version } from "${runtimeId}";
           import { defineVooyaComponent } from "${adapter}";
           import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
@@ -311,11 +328,6 @@ export function createRustBuildProgress(logger, now = () => performance.now()) {
   };
 }
 
-function isPathInside(file, directory) {
-  const path = relative(directory, file);
-  return path === "" || (!path.startsWith("..") && !isAbsolute(path));
-}
-
 function isToolchainExecutionError(error) {
   return (
     (error && ["EACCES", "ENOENT", "EPERM"].includes(error.code)) ||
@@ -376,7 +388,7 @@ export function generateRustComponentModule(contract, framework = "vue", compone
   const events = contract.events?.methods ?? [];
   const styles = contract.component.styles ?? [];
   const styleImport = styles.length
-    ? `import "${rustStylePrefix}${encodeURIComponent(JSON.stringify({ componentId, name, styles }))}.css";`
+    ? `import "${rustStylePrefix}${Buffer.from(JSON.stringify({ componentId, name, styles })).toString("base64url")}.css";`
     : "";
   const scopeId = styles.some((style) => style.scoped)
     ? generatedScopeId({ id: componentId, name })
