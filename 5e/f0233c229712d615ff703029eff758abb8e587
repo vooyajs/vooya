@@ -1,0 +1,19 @@
+tests/astro-math-consumer.mjs
+  s_eb4a03454f9b6b::t_d087c42a52f12e 109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "5ef0233c229712d615ff703029eff758abb8e587",
+  "prompts": {},
+  "sessions": {
+    "s_eb4a03454f9b6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a083d6-81cb-7372-a632-f244ba6a681e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "亚亥yahai <shenyuyou@xiaohongshu.com>"
+    }
+  }
+}
