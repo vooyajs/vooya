@@ -106,6 +106,7 @@ async function verifyBrowser(port) {
     await page.mouse.move(mobileX, mobileY);
     await page.waitForFunction(() => document.querySelector("[data-probe]")?.textContent?.includes('"series_id":"training"'));
     await page.setViewportSize({ width: 1100, height: 900 });
+    await canvas.hover();
     const before = await plot.getAttribute("data-viewport");
     await page.mouse.wheel(0, -180);
     await page.waitForFunction((value) => document.querySelector("[data-math-plot]")?.getAttribute("data-viewport") !== value, before);
