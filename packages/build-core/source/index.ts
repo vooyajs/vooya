@@ -144,6 +144,44 @@ export function generateRustCrateRoot(
   return `${declarations.join("\n")}\n`;
 }
 
+/**
+ * Generate a module index inside an authored source root. Conventional `mod`
+ * declarations are important here: unlike a crate-root `#[path]` declaration,
+ * they preserve Rust's `Entry.rs` -> `Entry/*.rs` and `Entry/mod.rs` module
+ * lookup rules for maintainable multi-file components.
+ */
+export function generateRustSourceRoot(
+  files: string[],
+  publicFiles: string[] = [],
+  rootPrefix = "",
+): string {
+  const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
+  const publicSet = new Set(publicFiles.map((file) => file.replaceAll("\\", "/")));
+  const declarations: string[] = [];
+  const used = new Set<string>();
+  for (const file of selectRustRootModules(files, prefix)) {
+    const relativePath = prefix && file.startsWith(`${prefix}/`)
+      ? file.slice(prefix.length + 1)
+      : file;
+    const parts = relativePath.split("/");
+    const sourceName = parts.length === 2 && parts[1] === "mod.rs"
+      ? parts[0]
+      : parts[0].replace(/\.rs$/i, "");
+    const conventional = /^[A-Za-z_][A-Za-z0-9_]*$/.test(sourceName) && !rustModuleKeywords.has(sourceName);
+    let identifier = conventional ? sourceName : rustModuleIdentifier(relativePath);
+    if (used.has(identifier)) {
+      let suffix = 2;
+      while (used.has(`${identifier}_${suffix}`)) suffix += 1;
+      identifier = `${identifier}_${suffix}`;
+    }
+    used.add(identifier);
+    const visibility = publicSet.has(file) ? "pub " : "";
+    const attribute = conventional ? "#[allow(non_snake_case)]\n" : `#[path = ${JSON.stringify(relativePath)}]\n`;
+    declarations.push(`${attribute}${visibility}mod ${identifier};`);
+  }
+  return `${declarations.join("\n")}\n`;
+}
+
 /** Keep only files that can be declared directly by a conventional crate root. */
 export function selectRustRootModules(files: string[], rootPrefix = ""): string[] {
   const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
@@ -352,10 +390,14 @@ export function buildApplication({
         const publicFiles = (rust.public ?? []).map(
           (file) => `${rootPrefix}/${file.replaceAll("\\", "/")}`,
         );
-        return generateRustCrateRoot(
-          selectRustRootModules(copiedRustFiles, rootPrefix),
-          selectRustRootModules(publicFiles, rootPrefix),
+        const sourceRoot = resolve(workspacePath, "src", rootPrefix);
+        const generatedRoot = resolve(sourceRoot, "__vooya_root.rs");
+        writeIfChanged(
+          generatedRoot,
+          generateRustSourceRoot(copiedRustFiles, publicFiles, rootPrefix),
         );
+        const hasPublicModules = selectRustRootModules(publicFiles, rootPrefix).length > 0;
+        return `#[path = ${JSON.stringify(`${rootPrefix}/__vooya_root.rs`)}] mod authored;${hasPublicModules ? "\npub use authored::*;" : ""}`;
       })();
   writeIfChanged(
     resolve(workspacePath, "src/lib.rs"),
@@ -378,6 +420,7 @@ export function buildApplication({
     ],
     diagnosticMappings,
     spawn,
+    workspacePath,
   );
 
   rmSync(outputDir, { force: true, recursive: true });
@@ -700,10 +743,11 @@ function generatedDependencySpecification(
 export function remapRustDiagnostic(
   message: CargoDiagnostic,
   mappings: Map<string, DiagnosticMapping>,
+  generatedRoot = process.cwd(),
 ): string {
   let rendered = message.rendered ?? `${message.level ?? "error"}: ${message.message}\n`;
   for (const span of message.spans ?? []) {
-    const mapping = mappings.get(resolve(span.file_name));
+    const mapping = mappings.get(resolve(generatedRoot, span.file_name)) ?? mappings.get(resolve(span.file_name));
     if (!mapping) continue;
     const line = mapping.startLine + span.line_start - 1 - mapping.generatedLineOffset;
     rendered = rendered
@@ -722,6 +766,7 @@ function runCargo(
   args: string[],
   mappings: Map<string, DiagnosticMapping>,
   spawn: BuildSpawn,
+  generatedRoot: string,
 ): MappedDiagnostic[] {
   const result = spawn(toolchain.cargo.path, [...args, "--message-format=json"], {
     cwd: root,
@@ -735,7 +780,7 @@ function runCargo(
     try {
       const message = JSON.parse(line) as { reason?: string; message?: CargoDiagnostic };
       if (message.reason === "compiler-message" && message.message) {
-        const mapped = remapRustDiagnostic(message.message, mappings);
+        const mapped = remapRustDiagnostic(message.message, mappings, generatedRoot);
         diagnostics.push(mapped);
         process.stderr.write(mapped);
       }

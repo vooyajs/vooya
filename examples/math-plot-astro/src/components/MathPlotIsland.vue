@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import MathPlot from "../MathPlot.rs";
+import NestedProof from "./math/NestedProof.rs";
 
 const weight = ref(1.25);
 const bias = ref(0.5);
@@ -26,6 +27,7 @@ const spec = computed(() => JSON.stringify({
       <button type="button" data-toggle @click="mounted = !mounted">{{ mounted ? "Unmount plot" : "Remount plot" }}</button>
     </div>
     <MathPlot v-if="mounted" :spec="spec" theme="auto" @probe="probe = String($event)" />
+    <NestedProof label="Nested Rust module ready" />
     <p class="probe" data-probe aria-live="polite">{{ probe }}</p>
   </section>
 </template>

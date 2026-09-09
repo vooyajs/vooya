@@ -73,7 +73,7 @@ test("resolves Rust-file imports with Vite query parameters", () => {
 test("explains unsupported nested Rust-file imports", () => {
   assert.match(
     unresolvedRustImportMessage("/consumer/src/components/Counter.rs", "/consumer"),
-    /cannot expose nested Rust file.*src\/\*\.rs.*directory mod\.rs.*rust\.entry/s,
+    /nested Rust file.*conventional mod\.rs chain.*src\/\*\.rs.*rust\.entry/s,
   );
 });
 

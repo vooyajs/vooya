@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Verify and publish fixed package group
+    name: Build and publish planned packages
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -54,11 +54,10 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Run release gate
-        run: npm run verify:release
+      - name: Verify release metadata
+        run: |
+          test "${GITHUB_REF}" = "refs/heads/main"
+          npm run verify:versions
 
       - name: Build publishable packages
         run: npm run build:packages
@@ -70,4 +69,11 @@ jobs:
           npm run build:scripts
           node scripts/generated/semifold.js publish
           node scripts/generated/sync-alpha-dist-tags.js
-          node scripts/generated/sync-alpha-dist-tags.js --check
+          for delay in 0 5 10 20 40 80; do
+            if node scripts/generated/sync-alpha-dist-tags.js --check; then
+              exit 0
+            fi
+            sleep "$delay"
+          done
+          echo "npm registry did not expose the published versions and dist-tags in time" >&2
+          exit 1

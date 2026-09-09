@@ -32,9 +32,9 @@ export function unresolvedRustImportMessage(
   const isInsideSourceRoot = sourceRelative !== "" && !sourceRelative.startsWith("../") && !isAbsolute(sourceRelative);
   const parts = sourceRelative.split("/");
   if (isInsideSourceRoot && parts.length > 1 && parts.at(-1) !== "mod.rs" && !rust.entry) {
-    return `Vooya cannot expose nested Rust file ${file} as an automatic crate root. ` +
-      `Move the public Component or Store to ${rust.sourceRoot ?? "src"}/*.rs, use a directory mod.rs, ` +
-      `or configure rust.entry for a conventional Rust module tree.`;
+    return `Vooya imported nested Rust file ${file}, but it is not reachable from the generated crate root. ` +
+      `Add a conventional mod.rs chain from ${rust.sourceRoot ?? "src"}, move the public Component or Store to ` +
+      `${rust.sourceRoot ?? "src"}/*.rs and keep its helpers beside it, or configure rust.entry for a conventional crate.`;
   }
   return `Vooya imported ${file}, but the compiled schema contains no public Component or Store for that file. ` +
     `Add a #[voo::component] or #[voo::store] role, or import the public Rust module that owns it.`;

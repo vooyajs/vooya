@@ -1,9 +1,10 @@
 # Releases
 
-Semifold is Vooya's only version planner. The ten release packages form one
-fixed release group; never edit their versions or internal exact dependencies by
-hand. Semifold is a maintainer tool, not a dependency of published Vooya
-packages.
+Semifold is Vooya's only version planner. Changesets name only packages with
+source or public-contract changes. Semifold then propagates version bumps to
+dependants whose exact internal dependency must change. Never edit versions or
+internal exact dependencies by hand. Semifold is a maintainer tool, not a
+dependency of published Vooya packages.
 
 ## Inspect before changing state
 
@@ -13,10 +14,12 @@ npm run verify:release
 ```
 
 `npm run release:status` runs Semifold's read-only release plan after checking
-Vooya's fixed-version contract. A pending `.changes/*.md` file must name all
-nine package IDs with the same bump level. This is deliberate: Semifold's Node
-adapter does not infer Vooya's coordinated release policy from npm dependency
-ranges.
+that changesets use known Vooya package IDs. A pending `.changes/*.md` file
+must name at least one directly affected package. Do not add unchanged packages
+to force a coordinated version: Semifold's `depends-on` graph plans required
+downstream bumps. For example, a `build-core` change also bumps the bundler
+packages that pin it exactly, but it does not republish unrelated framework
+adapters.
 
 ## Publish another alpha
 
@@ -32,11 +35,14 @@ Review the version, lockfile, exact internal dependencies, tarballs, and npm
 dist-tags before the last command. `release:alpha` is the only local command in
 this sequence that publishes to npm.
 
-After the version commit reaches `main`, maintainers can instead run the
-`Publish alpha` workflow manually. It applies the same release gate, publishes
-the fixed package group with the repository's `NPM_TOKEN` Actions secret, and
-verifies the resulting `alpha` dist-tags. Keep the workflow manual: merging a
-pull request must never publish packages by itself.
+After the version commit and its required CI checks reach `main`, maintainers
+can run the `Publish alpha` workflow manually. The workflow builds package
+artifacts, lets Semifold skip versions already present in npm, publishes the
+planned versions with the repository's `NPM_TOKEN`, and retries registry/tag
+verification to tolerate npm propagation delay. It deliberately does not rerun
+the browser and multi-bundler release gate already completed before the version
+commit. Keep the workflow manual: merging a pull request must never publish
+packages by itself.
 
 ## First stable release
 
