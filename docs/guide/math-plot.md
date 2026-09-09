@@ -41,4 +41,3 @@ The template uses `#[voo::component(update = "update_math_plot")]`. This is an
 opt-in in-place update hook: the handler receives the mounted `ViewElement` and
 the complete next props value. It must update its own state atomically. Without
 the option, Vooya retains the existing replace-root update behavior.
-

@@ -87,6 +87,7 @@ async function verifyBrowser(port) {
     await canvas.evaluate((node) => { window.__vooyaMathCanvas = node; });
     await page.locator("[data-weight]").press("ArrowRight");
     await page.waitForFunction(() => document.querySelector("[data-math-plot]")?.getAttribute("data-spec-revision") === "1");
+    await page.waitForFunction(() => document.querySelector(".vooya-math-title")?.textContent?.includes("1.30"));
     if (!await canvas.evaluate((node) => window.__vooyaMathCanvas === node)) throw new Error("props update replaced the Canvas node");
     await canvas.scrollIntoViewIfNeeded();
     const box = await canvas.boundingBox();
@@ -94,6 +95,17 @@ async function verifyBrowser(port) {
     const y = box.y + 22 + ((7 - 0.7) / 12) * (box.height - 68);
     await page.mouse.move(x, y);
     await page.waitForFunction(() => document.querySelector("[data-probe]")?.textContent?.includes("series_id"));
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.waitForFunction(() => window.innerWidth === 320);
+    const mobileBox = await canvas.boundingBox();
+    if (mobileBox.width >= 320) throw new Error(`expected a sub-320px responsive Canvas, observed ${mobileBox.width}px`);
+    const logicalWidth = Math.max(mobileBox.width, 320);
+    const logicalHeight = Math.max(mobileBox.height, 240);
+    const mobileX = mobileBox.x + (56 + ((4 - -6) / 12) * (logicalWidth - 86)) * mobileBox.width / logicalWidth;
+    const mobileY = mobileBox.y + (22 + ((7 - 5.7) / 12) * (logicalHeight - 68)) * mobileBox.height / logicalHeight;
+    await page.mouse.move(mobileX, mobileY);
+    await page.waitForFunction(() => document.querySelector("[data-probe]")?.textContent?.includes('"series_id":"training"'));
+    await page.setViewportSize({ width: 1100, height: 900 });
     const before = await plot.getAttribute("data-viewport");
     await page.mouse.wheel(0, -180);
     await page.waitForFunction((value) => document.querySelector("[data-math-plot]")?.getAttribute("data-viewport") !== value, before);

@@ -3,6 +3,7 @@ use std::{
     rc::Rc,
 };
 
+use js_sys::Array;
 use serde::Deserialize;
 use vooya as voo;
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
@@ -73,6 +74,7 @@ fn default_radius() -> f64 {
     3.5
 }
 
+#[derive(Clone, Copy)]
 struct Drag {
     x: f64,
     y: f64,
@@ -84,6 +86,13 @@ struct PlotState {
     viewport: Domain,
     drag: Option<Drag>,
     revision: u32,
+}
+
+#[derive(Clone, Copy)]
+struct CanvasGeometry {
+    width: f64,
+    height: f64,
+    plot: [f64; 4],
 }
 
 #[voo::component(update = "update_math_plot")]
@@ -147,34 +156,56 @@ pub fn MathPlot(view: &voo::View, props: MathPlotProps) -> Result<voo::ViewEleme
     let update_state = state.clone();
     let update_canvas = canvas.clone();
     let update_root = root.clone();
+    let update_title = title.clone();
     root.on_owned("vooya-internal-props", move |event| {
         let Some(event) = event.dyn_ref::<CustomEvent>() else {
             return;
         };
-        let Some(payload) = event.detail().as_string() else {
+        let Ok(request) = event.detail().dyn_into::<Array>() else {
             return;
         };
-        let Ok(next) = serde_json::from_str::<UpdatePayload>(&payload) else {
-            return;
-        };
-        let Ok(spec) = parse_spec(&next.spec) else {
-            return;
-        };
-        let mut state = update_state.borrow_mut();
-        let domain_changed =
-            state.spec.domain.x != spec.domain.x || state.spec.domain.y != spec.domain.y;
-        state.spec = spec;
-        if domain_changed {
-            state.viewport = state.spec.domain;
-        }
-        state.revision += 1;
-        let _ = update_root
-            .as_element()
-            .set_attribute("data-theme", &next.theme);
-        let _ = update_root
-            .as_element()
-            .set_attribute("data-spec-revision", &state.revision.to_string());
-        let _ = draw(&update_canvas, &update_root, &state);
+        let result = (|| -> Result<(), JsValue> {
+            let source = request
+                .get(0)
+                .as_string()
+                .ok_or_else(|| JsValue::from_str("Math Plot update spec must be a string"))?;
+            let theme = request
+                .get(1)
+                .as_string()
+                .ok_or_else(|| JsValue::from_str("Math Plot update theme must be a string"))?;
+            let spec = parse_spec(&source)?;
+            let current = update_state.borrow();
+            let domain_changed =
+                current.spec.domain.x != spec.domain.x || current.spec.domain.y != spec.domain.y;
+            let next = PlotState {
+                viewport: if domain_changed {
+                    spec.domain
+                } else {
+                    current.viewport
+                },
+                spec,
+                drag: current.drag,
+                revision: current.revision + 1,
+            };
+            drop(current);
+            draw(&update_canvas, &update_root, &next)?;
+            update_root
+                .as_element()
+                .set_attribute("data-theme", &theme)?;
+            update_root
+                .as_element()
+                .set_attribute("data-spec-revision", &next.revision.to_string())?;
+            update_title.set_text(&next.spec.title);
+            *update_state.borrow_mut() = next;
+            Ok(())
+        })();
+        request.set(
+            2,
+            match result {
+                Ok(()) => JsValue::NULL,
+                Err(error) => error,
+            },
+        );
     })?;
 
     let resize_state = state.clone();
@@ -231,22 +262,26 @@ pub fn MathPlot(view: &voo::View, props: MathPlotProps) -> Result<voo::ViewEleme
     Ok(root)
 }
 
-#[derive(Deserialize)]
-struct UpdatePayload {
-    spec: String,
-    theme: String,
-}
-
 fn update_math_plot(root: &voo::ViewElement, props: MathPlotProps) -> Result<(), JsValue> {
-    let payload =
-        serde_json::to_string(&serde_json::json!({ "spec": props.spec, "theme": props.theme }))
-            .map_err(|error| JsValue::from_str(&error.to_string()))?;
+    let request = Array::new();
+    request.push(&JsValue::from_str(&props.spec));
+    request.push(&JsValue::from_str(&props.theme));
+    request.push(&JsValue::UNDEFINED);
     let init = CustomEventInit::new();
-    init.set_detail(&JsValue::from_str(&payload));
+    init.set_detail(request.as_ref());
     let event: web_sys::Event =
         CustomEvent::new_with_event_init_dict("vooya-internal-props", &init)?.into();
     root.as_element().dispatch_event(&event)?;
-    Ok(())
+    let result = request.get(2);
+    if result.is_null() {
+        Ok(())
+    } else if result.is_undefined() {
+        Err(JsValue::from_str(
+            "Math Plot update listener is unavailable",
+        ))
+    } else {
+        Err(result)
+    }
 }
 
 fn attach_pointer_handlers(
@@ -261,6 +296,7 @@ fn attach_pointer_handlers(
     let move_view = view.clone();
     owned_listener(root, canvas, "pointermove", move |event: PointerEvent| {
         let rect = move_canvas.get_bounding_client_rect();
+        let geometry = canvas_geometry(rect.width(), rect.height());
         let mut state = move_state.borrow_mut();
         if let Some(drag) = &state.drag {
             let width = rect.width().max(1.0);
@@ -276,10 +312,17 @@ fn attach_pointer_handlers(
             let _ = draw(&move_canvas, &move_root, &state);
         } else if let Some(probe) = nearest_probe(
             &state,
-            event.client_x() as f64 - rect.left(),
-            event.client_y() as f64 - rect.top(),
-            rect.width(),
-            rect.height(),
+            logical_pointer_coordinate(
+                event.client_x() as f64 - rect.left(),
+                rect.width(),
+                geometry.width,
+            ),
+            logical_pointer_coordinate(
+                event.client_y() as f64 - rect.top(),
+                rect.height(),
+                geometry.height,
+            ),
+            geometry,
         ) {
             let _ = move_view.emit("probe", JsValue::from_str(&probe));
         }
@@ -414,8 +457,9 @@ fn draw(
     state: &PlotState,
 ) -> Result<(), JsValue> {
     let rect = canvas.get_bounding_client_rect();
-    let width = rect.width().max(320.0);
-    let height = rect.height().max(240.0);
+    let geometry = canvas_geometry(rect.width(), rect.height());
+    let width = geometry.width;
+    let height = geometry.height;
     let ratio = web_sys::window()
         .map(|window| window.device_pixel_ratio())
         .unwrap_or(1.0)
@@ -445,13 +489,7 @@ fn draw(
     let point = color("--vooya-plot-point", "#e44f73");
     context.set_fill_style_str(&background);
     context.fill_rect(0.0, 0.0, width, height);
-    let pad = [56.0, 22.0, 30.0, 46.0];
-    let plot = [
-        pad[0],
-        pad[1],
-        width - pad[0] - pad[2],
-        height - pad[1] - pad[3],
-    ];
+    let plot = geometry.plot;
     context.set_font("11px ui-monospace, monospace");
     context.set_line_width(1.0);
     for index in 0..=8 {
@@ -545,8 +583,22 @@ fn draw(
     Ok(())
 }
 
-fn nearest_probe(state: &PlotState, px: f64, py: f64, width: f64, height: f64) -> Option<String> {
-    let plot = [56.0, 22.0, width - 86.0, height - 68.0];
+fn canvas_geometry(css_width: f64, css_height: f64) -> CanvasGeometry {
+    let width = css_width.max(320.0);
+    let height = css_height.max(240.0);
+    CanvasGeometry {
+        width,
+        height,
+        plot: [56.0, 22.0, width - 86.0, height - 68.0],
+    }
+}
+
+fn logical_pointer_coordinate(coordinate: f64, css_size: f64, logical_size: f64) -> f64 {
+    coordinate * logical_size / css_size.max(1.0)
+}
+
+fn nearest_probe(state: &PlotState, px: f64, py: f64, geometry: CanvasGeometry) -> Option<String> {
+    let plot = geometry.plot;
     if px < plot[0] || py < plot[1] || px > plot[0] + plot[2] || py > plot[1] + plot[3] {
         return None;
     }

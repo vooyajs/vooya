@@ -9,7 +9,7 @@ const mounted = ref(true);
 
 const spec = computed(() => JSON.stringify({
   version: 1,
-  title: "A linear hypothesis and observed samples",
+  title: `Linear hypothesis at w = ${weight.value.toFixed(2)}`,
   domain: { x: [-6, 6], y: [-5, 7] },
   series: [
     { kind: "linear", id: "hypothesis", label: "y = w·x + b", w: weight.value, b: bias.value, samples: 320 },
@@ -20,7 +20,7 @@ const spec = computed(() => JSON.stringify({
 
 <template>
   <section class="lesson" data-math-lesson>
-    <div class="controls" aria-label="Linear model controls">
+    <div class="controls" role="group" aria-label="Linear model controls">
       <label>weight <output>{{ weight.toFixed(2) }}</output><input v-model.number="weight" data-weight type="range" min="-2" max="3" step="0.05" /></label>
       <label>bias <output>{{ bias.toFixed(2) }}</output><input v-model.number="bias" data-bias type="range" min="-3" max="3" step="0.05" /></label>
       <button type="button" data-toggle @click="mounted = !mounted">{{ mounted ? "Unmount plot" : "Remount plot" }}</button>
@@ -36,6 +36,6 @@ const spec = computed(() => JSON.stringify({
   label { color: #657068; display: grid; font: .8rem/1.4 ui-monospace, monospace; gap: .35rem; grid-template-columns: 1fr auto; }
   input { accent-color: #3157d5; grid-column: 1 / -1; width: 100%; }
   button { background: transparent; border: 1px solid currentColor; color: inherit; min-height: 2.4rem; padding: 0 .9rem; }
-  .probe { color: #657068; font: .82rem/1.5 ui-monospace, monospace; margin: 0; min-height: 1.5em; }
+  .probe { color: #657068; font: .82rem/1.5 ui-monospace, monospace; margin: 0; min-height: 1.5em; min-width: 0; overflow-wrap: anywhere; }
   @media (max-width: 700px) { .controls { grid-template-columns: 1fr; } }
 </style>

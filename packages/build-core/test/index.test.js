@@ -166,9 +166,18 @@ test("generates deterministic Rust module declarations", () => {
   assert.equal(rustModuleIdentifier("widgets/cart-item.rs"), "cart_item");
   assert.equal(rustModuleIdentifier("widgets/MathPlot.rs"), "math_plot");
   assert.equal(rustModuleIdentifier("widgets/HTTPClient.rs"), "http_client");
-  const root = generateRustCrateRoot(["rust/z.rs", "rust/a.rs", "rust/a.test.rs"], ["rust/a.rs"]);
+  assert.equal(rustModuleIdentifier("widgets/123.rs"), "module");
+  assert.equal(rustModuleIdentifier("widgets/Type.rs"), "module_type");
+  assert.equal(rustModuleIdentifier("widgets/Mod.rs"), "module_mod");
+  assert.equal(rustModuleIdentifier("widgets/Try.rs"), "module_try");
+  const root = generateRustCrateRoot(
+    ["rust/z.rs", "rust/a.rs", "rust/a.test.rs", "rust/123.rs", "rust/Type.rs"],
+    ["rust/a.rs"],
+  );
   assert.match(root, /#\[path = "rust\/a\.rs"\] pub mod a;/);
   assert.match(root, /#\[path = "rust\/a\.test\.rs"\] mod a_test;/);
+  assert.match(root, /#\[path = "rust\/123\.rs"\] mod module;/);
+  assert.match(root, /#\[path = "rust\/Type\.rs"\] mod module_type;/);
   assert.match(root, /#\[path = "rust\/z\.rs"\] mod z;/);
   assert.deepEqual(
     selectRustRootModules(["rust/src/domain/cart.rs", "rust/src/domain/mod.rs", "rust/src/main.rs"], "rust/src"),
