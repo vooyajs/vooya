@@ -9,9 +9,3 @@
 ### Fixes
 
 - Add an Astro 7.3 client-island release proof and a reusable ordinary-Rust Math Plot template. Prevent repeated Astro environment builds from racing generated WASM cleanup, ignore generated workspace changes in dev HMR, use selector-safe virtual CSS IDs, and normalize queried Rust module IDs. Add an opt-in in-place component update hook for Canvas and other stateful browser surfaces.
-
-## Unreleased
-
-- Add the first Solid adapter for Rust-file components and instance-scoped
-  stores, including callback events, accessor state, owner-scoped cleanup, and
-  the shared generated bridge contract.

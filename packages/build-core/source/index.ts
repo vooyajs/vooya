@@ -29,6 +29,17 @@ import type { RustSchemaDocument } from "./schema.js";
 
 const require = createRequire(import.meta.url);
 
+// Strict and reserved Rust keywords cannot be emitted as module identifiers.
+// Weak keywords remain valid module names outside their special contexts.
+const rustModuleKeywords = new Set([
+  "_", "abstract", "as", "async", "await", "become", "box", "break", "const",
+  "continue", "crate", "do", "dyn", "else", "enum", "extern", "false", "final",
+  "fn", "for", "gen", "if", "impl", "in", "let", "loop", "macro", "match", "mod",
+  "move", "mut", "override", "priv", "pub", "ref", "return", "self", "static",
+  "struct", "super", "trait", "true", "try", "type", "typeof", "unsafe", "unsized",
+  "use", "virtual", "where", "while", "yield",
+]);
+
 export * from "./errors.js";
 export * from "./cargo-manifest.js";
 export * from "./schema.js";
@@ -97,8 +108,14 @@ export interface BuildApplicationOptions {
 /** Convert a user Rust path into a deterministic Rust module identifier. */
 export function rustModuleIdentifier(path: string): string {
   const stem = path.replaceAll("\\", "/").replace(/\.rs$/i, "").split("/").pop() ?? "module";
-  const normalized = stem.replace(/[^A-Za-z0-9_]/g, "_").replace(/^[^A-Za-z_]+/, "_");
-  return normalized || "module";
+  const normalized = stem
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9_]/g, "_")
+    .replace(/^[^A-Za-z_]+/, "_")
+    .toLowerCase();
+  if (!normalized || normalized === "_") return "module";
+  return rustModuleKeywords.has(normalized) ? `module_${normalized}` : normalized;
 }
 
 /**

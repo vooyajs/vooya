@@ -1,5 +1,5 @@
-use vooya as voo;
 use std::collections::BTreeMap;
+use vooya as voo;
 
 #[derive(voo::FromJs, voo::ToJs, PartialEq, Clone)]
 struct AbiV1Values {
@@ -72,6 +72,22 @@ pub fn CartPanel(
 ) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
     let _ = props;
     view.element("div")
+}
+
+fn update_cart_panel(
+    root: &voo::ViewElement,
+    props: CartProps,
+) -> Result<(), voo::__private::wasm_bindgen::JsValue> {
+    root.set_text(&props.initial_items.to_string());
+    Ok(())
+}
+
+#[voo::component(id = "schema_usage::LiveCartPanel", update = "update_cart_panel")]
+pub fn LiveCartPanel(
+    view: &voo::View,
+    props: CartProps,
+) -> Result<voo::ViewElement, voo::__private::wasm_bindgen::JsValue> {
+    Ok(view.element("div")?.text(&props.initial_items.to_string()))
 }
 
 #[test]

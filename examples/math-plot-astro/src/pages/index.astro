@@ -1,0 +1,37 @@
+---
+import MathPlotIsland from "../components/MathPlotIsland.vue";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" href="data:," />
+    <title>Vooya Math Plot</title>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">VOOYA · RUST/WASM TEACHING SURFACE</p>
+      <h1>Linear models you can touch</h1>
+      <p class="intro">The article and controls are Vue. Sampling, transforms, probing, pan, zoom, and Canvas drawing stay inside one Rust/WASM component.</p>
+      <MathPlotIsland client:only="vue">
+        <figure slot="fallback" class="fallback">
+          <figcaption>Static fallback: y = 1.25x + 0.5 with six training samples over x ∈ [−6, 6].</figcaption>
+          <table><thead><tr><th>x</th><th>y</th></tr></thead><tbody><tr><td>−2</td><td>−2</td></tr><tr><td>0</td><td>0.5</td></tr><tr><td>2</td><td>3</td></tr></tbody></table>
+        </figure>
+      </MathPlotIsland>
+    </main>
+  </body>
+</html>
+
+<style is:global>
+  :root { background: #f5f7f2; color: #172019; font-family: Inter, ui-sans-serif, system-ui, sans-serif; --vooya-plot-bg: #fbfdf8; --vooya-plot-grid: #dce5d8; --vooya-plot-axis: #657565; --vooya-plot-text: #172019; --vooya-plot-accent: #3157d5; --vooya-plot-point: #e44f73; }
+  @media (prefers-color-scheme: dark) { :root { background: #0a100c; color: #e9f2e8; --vooya-plot-bg: #0d1510; --vooya-plot-grid: #213127; --vooya-plot-axis: #708174; --vooya-plot-text: #e9f2e8; --vooya-plot-accent: #8da5ff; --vooya-plot-point: #ff809b; } }
+  body { margin: 0; } main { margin: 0 auto; max-width: 72rem; padding: 3rem 1.25rem 5rem; }
+  h1 { font: 700 clamp(2.25rem, 7vw, 5rem)/.98 Georgia, serif; margin: .4rem 0 1rem; max-width: 12ch; }
+  .eyebrow { color: #557060; font: 700 .75rem/1.4 ui-monospace, monospace; letter-spacing: .12em; }
+  .intro { color: #657068; line-height: 1.65; max-width: 48rem; }
+  .fallback { border: 1px solid #b9c7b8; margin-top: 2rem; padding: 1rem; }
+  table { border-collapse: collapse; margin-top: .75rem; } th, td { border: 1px solid #b9c7b8; padding: .35rem .75rem; }
+</style>

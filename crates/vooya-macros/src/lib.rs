@@ -3,16 +3,16 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use serde_json::{Value, json};
+use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
 use syn::{
     Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct,
     ItemTrait, Lit, LitStr, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
 };
-use syn::spanned::Spanned;
 use syn::{
     Token, braced,
     parse::{Parse, ParseStream, Parser},
 };
-use syn::punctuated::Punctuated;
 
 const SCHEMA_VERSION: u32 = 1;
 
@@ -49,7 +49,8 @@ pub fn props(attribute: TokenStream, input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn events(attribute: TokenStream, input: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(input as ItemTrait);
+    let mut item = parse_macro_input!(input as ItemTrait);
+    item.attrs.push(syn::parse_quote!(#[allow(dead_code)]));
     let name = item.ident.to_string();
     let metadata = match schema_metadata(attribute, &name, item.span().file()) {
         Ok(id) => id,
@@ -80,9 +81,10 @@ pub fn events(attribute: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
     let mut item = parse_macro_input!(input as ItemFn);
+    item.attrs.push(syn::parse_quote!(#[allow(non_snake_case)]));
     let name = item.sig.ident.to_string();
     let function_name = item.sig.ident.clone();
-    let metadata = match schema_metadata(attribute, &name, item.span().file()) {
+    let metadata = match component_metadata(attribute, &name, item.span().file()) {
         Ok(id) => id,
         Err(error) => return error.into_compile_error().into(),
     };
@@ -91,8 +93,13 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
         Err(error) => return error.into_compile_error().into(),
     };
     item.attrs.retain(|attribute| {
-        if !attribute.path().is_ident("doc") { return true; }
-        let text = attribute.meta.require_name_value().ok()
+        if !attribute.path().is_ident("doc") {
+            return true;
+        }
+        let text = attribute
+            .meta
+            .require_name_value()
+            .ok()
             .and_then(|meta| match &meta.value {
                 Expr::Lit(expression) => match &expression.lit {
                     Lit::Str(value) => Some(value.value()),
@@ -111,6 +118,7 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "params": parameters(&item.sig.inputs),
         "return": return_type(&item.sig.output),
         "styles": styles,
+        "update": metadata.update.as_ref().map(|_| "in-place"),
     });
     let schema: proc_macro2::TokenStream = emit_schema(item.clone(), record, "component").into();
     let Some(props_type) = component_parameters(&item) else {
@@ -136,6 +144,19 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
     let dispose_name = format_ident!("voo_{}_dispose", stem);
     let handles_name = format_ident!("VOO_{}_HANDLES", stem.to_uppercase());
     let handle_name = format_ident!("Voo{}Handle", name);
+    let update_component = if let Some(update) = metadata.update {
+        quote! {
+            #update(&existing.root, props)?;
+        }
+    } else {
+        quote! {
+            existing.root.remove();
+            let view = ::vooya::View::from_host(&existing.host)?;
+            let root = #function_name(&view, props)?;
+            root.mount(&existing.host)?;
+            existing.root = root;
+        }
+    };
     let generated = quote! {
         #schema
 
@@ -170,11 +191,7 @@ pub fn component(attribute: TokenStream, input: TokenStream) -> TokenStream {
                     return ::core::result::Result::Err(::vooya::abi_error("invalid component handle"));
                 };
                 let props = <#props_type as ::vooya::FromJs>::from_js(&props)?;
-                existing.root.remove();
-                let view = ::vooya::View::from_host(&existing.host)?;
-                let root = #function_name(&view, props)?;
-                root.mount(&existing.host)?;
-                existing.root = root;
+                #update_component
                 ::core::result::Result::Ok(())
             })
         }
@@ -198,10 +215,18 @@ fn component_parameters(item: &ItemFn) -> Option<Type> {
         return None;
     }
     let mut inputs = item.sig.inputs.iter();
-    let FnArg::Typed(view) = inputs.next()? else { return None };
-    let FnArg::Typed(props) = inputs.next()? else { return None };
-    let Pat::Ident(_) = view.pat.as_ref() else { return None };
-    let Pat::Ident(_) = props.pat.as_ref() else { return None };
+    let FnArg::Typed(view) = inputs.next()? else {
+        return None;
+    };
+    let FnArg::Typed(props) = inputs.next()? else {
+        return None;
+    };
+    let Pat::Ident(_) = view.pat.as_ref() else {
+        return None;
+    };
+    let Pat::Ident(_) = props.pat.as_ref() else {
+        return None;
+    };
     let view_type = type_name(&view.ty);
     if !view_type.contains("View") {
         return None;
@@ -228,15 +253,15 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
     let actions = action_methods
         .iter()
-        .map(|method| json!({
+        .map(|method| {
+            json!({
                 "name": method.sig.ident.to_string(),
                 "params": parameters(&method.sig.inputs),
-            }))
+            })
+        })
         .collect::<Vec<_>>();
     let snapshot_method = item.items.iter().find_map(|member| match member {
-        ImplItem::Fn(method) if has_vooya_attribute(&method.attrs, "snapshot") => {
-            Some(method)
-        }
+        ImplItem::Fn(method) if has_vooya_attribute(&method.attrs, "snapshot") => Some(method),
         _ => None,
     });
     let snapshot = snapshot_method.map(|method| return_type(&method.sig.output));
@@ -262,13 +287,19 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
         return syn::Error::new_spanned(
             &item.self_ty,
             "#[voo::store] requires one #[voo::snapshot] method",
-        ).into_compile_error().into();
+        )
+        .into_compile_error()
+        .into();
     };
     let snapshot_type = match &snapshot_method.sig.output {
         syn::ReturnType::Type(_, ty) => ty.clone(),
         syn::ReturnType::Default => {
-            return syn::Error::new_spanned(&snapshot_method.sig.output, "#[voo::snapshot] must return a ToJs + PartialEq snapshot value")
-                .into_compile_error().into();
+            return syn::Error::new_spanned(
+                &snapshot_method.sig.output,
+                "#[voo::snapshot] must return a ToJs + PartialEq snapshot value",
+            )
+            .into_compile_error()
+            .into();
         }
     };
     let snapshot_method_name = &snapshot_method.sig.ident;
@@ -462,20 +493,33 @@ fn component_styles(attrs: &[Attribute]) -> syn::Result<Vec<Value>> {
     attrs
         .iter()
         .filter_map(|attribute| {
-            let attribute_name = attribute.path().segments.last().map(|segment| segment.ident.to_string());
+            let attribute_name = attribute
+                .path()
+                .segments
+                .last()
+                .map(|segment| segment.ident.to_string());
             if attribute_name.as_deref() == Some("style") {
-                return Some(attribute.parse_args::<StyleArgs>()
-                    .map(|args| json!({ "path": args.path.value(), "scoped": args.scoped })));
+                return Some(
+                    attribute
+                        .parse_args::<StyleArgs>()
+                        .map(|args| json!({ "path": args.path.value(), "scoped": args.scoped })),
+                );
             }
-            if !attribute.path().is_ident("doc") { return None; }
-            let text = attribute.meta.require_name_value().ok()
-                .and_then(|meta| match &meta.value {
-                    Expr::Lit(expression) => match &expression.lit {
-                        Lit::Str(value) => Some(value.value()),
+            if !attribute.path().is_ident("doc") {
+                return None;
+            }
+            let text =
+                attribute
+                    .meta
+                    .require_name_value()
+                    .ok()
+                    .and_then(|meta| match &meta.value {
+                        Expr::Lit(expression) => match &expression.lit {
+                            Lit::Str(value) => Some(value.value()),
+                            _ => None,
+                        },
                         _ => None,
-                    },
-                    _ => None,
-                })?;
+                    })?;
             let marker = text.strip_prefix("__voo_style:")?;
             let (path, scoped) = marker.rsplit_once(':')?;
             Some(Ok(json!({ "path": path, "scoped": scoped == "true" })))
@@ -565,7 +609,9 @@ impl Parse for RsxNode {
                 braced!(content in input);
                 RsxAttributeValue::Expression(content.parse()?)
             } else {
-                return Err(input.error("expected a string literal or braced RSX attribute expression"));
+                return Err(
+                    input.error("expected a string literal or braced RSX attribute expression")
+                );
             };
             attributes.push((name, value));
         }
@@ -638,13 +684,19 @@ impl Parse for RsxIf {
             braced!(content in input);
             let body: RsxNode = content.parse()?;
             if !content.is_empty() {
-                return Err(content.error("conditional RSX branches currently accept one root node"));
+                return Err(
+                    content.error("conditional RSX branches currently accept one root node")
+                );
             }
             Some(body)
         } else {
             None
         };
-        Ok(Self { condition, then_body, else_body })
+        Ok(Self {
+            condition,
+            then_body,
+            else_body,
+        })
     }
 }
 
@@ -715,7 +767,10 @@ fn expand_rsx_if(branch: &RsxIf, view: &Expr) -> proc_macro2::TokenStream {
     let condition = &branch.condition;
     let branch_view: Expr = syn::parse_quote! { __voo_branch_view };
     let then_body = expand_rsx_node(&branch.then_body, &branch_view);
-    let else_body = branch.else_body.as_ref().map(|body| expand_rsx_node(body, &branch_view));
+    let else_body = branch
+        .else_body
+        .as_ref()
+        .map(|body| expand_rsx_node(body, &branch_view));
     let render = if let Some(else_body) = else_body {
         quote! {
             if __voo_branch_condition {
@@ -1025,7 +1080,9 @@ fn snake_case_ident(value: &str) -> String {
     let mut output = String::new();
     for (index, character) in value.chars().enumerate() {
         if character.is_ascii_uppercase() {
-            if index > 0 { output.push('_'); }
+            if index > 0 {
+                output.push('_');
+            }
             output.push(character.to_ascii_lowercase());
         } else if character.is_ascii_alphanumeric() || character == '_' {
             output.push(character);
@@ -1033,7 +1090,11 @@ fn snake_case_ident(value: &str) -> String {
             output.push('_');
         }
     }
-    if output.is_empty() { "store".to_owned() } else { output }
+    if output.is_empty() {
+        "store".to_owned()
+    } else {
+        output
+    }
 }
 
 struct SchemaMetadata {
@@ -1041,33 +1102,140 @@ struct SchemaMetadata {
     group: Option<String>,
 }
 
-fn schema_metadata(attribute: TokenStream, fallback: &str, source_file: String) -> syn::Result<SchemaMetadata> {
+struct ComponentMetadata {
+    id: String,
+    group: Option<String>,
+    update: Option<syn::Path>,
+}
+
+fn component_metadata(
+    attribute: TokenStream,
+    fallback: &str,
+    source_file: String,
+) -> syn::Result<ComponentMetadata> {
     if attribute.is_empty() {
-        return Ok(SchemaMetadata { id: fallback.to_owned(), group: Some(source_file) });
+        return Ok(ComponentMetadata {
+            id: fallback.to_owned(),
+            group: Some(source_file),
+            update: None,
+        });
     }
-    let values = Punctuated::<MetaNameValue, Token![,]>::parse_terminated.parse(attribute.into())?;
+    let values =
+        Punctuated::<MetaNameValue, Token![,]>::parse_terminated.parse(attribute.into())?;
     let mut id = None;
     let mut group = None;
+    let mut update = None;
     for value in values {
         let path = value.path.clone();
-        let key = path.get_ident().map(|ident| ident.to_string()).ok_or_else(|| {
-            syn::Error::new_spanned(&path, "schema metadata keys must be identifiers")
-        })?;
+        let key = path
+            .get_ident()
+            .map(|ident| ident.to_string())
+            .ok_or_else(|| {
+                syn::Error::new_spanned(&path, "component metadata keys must be identifiers")
+            })?;
         let Expr::Lit(expression) = value.value else {
-            return Err(syn::Error::new_spanned(path, "schema metadata values must be string literals"));
+            return Err(syn::Error::new_spanned(
+                path,
+                "component metadata values must be string literals",
+            ));
         };
         let Lit::Str(literal) = expression.lit else {
-            return Err(syn::Error::new_spanned(expression, "schema metadata values must be string literals"));
+            return Err(syn::Error::new_spanned(
+                expression,
+                "component metadata values must be string literals",
+            ));
         };
         if literal.value().is_empty() {
-            return Err(syn::Error::new_spanned(literal, "schema metadata values must not be empty"));
+            return Err(syn::Error::new_spanned(
+                literal,
+                "component metadata values must not be empty",
+            ));
         }
         match key.as_str() {
             "id" if id.is_none() => id = Some(literal.value()),
             "group" if group.is_none() => group = Some(literal.value()),
-            "id" | "group" => return Err(syn::Error::new_spanned(path, "schema metadata key is duplicated")),
-            _ => return Err(syn::Error::new_spanned(path, "expected `id = \"...\"` and optional `group = \"...\"`")),
+            "update" if update.is_none() => update = Some(literal.parse::<syn::Path>()?),
+            "id" | "group" | "update" => {
+                return Err(syn::Error::new_spanned(
+                    path,
+                    "component metadata key is duplicated",
+                ));
+            }
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    path,
+                    "expected `id = \"...\"`, optional `group = \"...\"`, and optional `update = \"path::to::handler\"`",
+                ));
+            }
         }
     }
-    Ok(SchemaMetadata { id: id.unwrap_or_else(|| fallback.to_owned()), group: Some(group.unwrap_or(source_file)) })
+    Ok(ComponentMetadata {
+        id: id.unwrap_or_else(|| fallback.to_owned()),
+        group: Some(group.unwrap_or(source_file)),
+        update,
+    })
+}
+
+fn schema_metadata(
+    attribute: TokenStream,
+    fallback: &str,
+    source_file: String,
+) -> syn::Result<SchemaMetadata> {
+    if attribute.is_empty() {
+        return Ok(SchemaMetadata {
+            id: fallback.to_owned(),
+            group: Some(source_file),
+        });
+    }
+    let values =
+        Punctuated::<MetaNameValue, Token![,]>::parse_terminated.parse(attribute.into())?;
+    let mut id = None;
+    let mut group = None;
+    for value in values {
+        let path = value.path.clone();
+        let key = path
+            .get_ident()
+            .map(|ident| ident.to_string())
+            .ok_or_else(|| {
+                syn::Error::new_spanned(&path, "schema metadata keys must be identifiers")
+            })?;
+        let Expr::Lit(expression) = value.value else {
+            return Err(syn::Error::new_spanned(
+                path,
+                "schema metadata values must be string literals",
+            ));
+        };
+        let Lit::Str(literal) = expression.lit else {
+            return Err(syn::Error::new_spanned(
+                expression,
+                "schema metadata values must be string literals",
+            ));
+        };
+        if literal.value().is_empty() {
+            return Err(syn::Error::new_spanned(
+                literal,
+                "schema metadata values must not be empty",
+            ));
+        }
+        match key.as_str() {
+            "id" if id.is_none() => id = Some(literal.value()),
+            "group" if group.is_none() => group = Some(literal.value()),
+            "id" | "group" => {
+                return Err(syn::Error::new_spanned(
+                    path,
+                    "schema metadata key is duplicated",
+                ));
+            }
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    path,
+                    "expected `id = \"...\"` and optional `group = \"...\"`",
+                ));
+            }
+        }
+    }
+    Ok(SchemaMetadata {
+        id: id.unwrap_or_else(|| fallback.to_owned()),
+        group: Some(group.unwrap_or(source_file)),
+    })
 }
