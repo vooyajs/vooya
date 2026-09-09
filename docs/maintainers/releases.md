@@ -1,6 +1,6 @@
 # Releases
 
-Semifold is Vooya's only version planner. The nine release packages form one
+Semifold is Vooya's only version planner. The ten release packages form one
 fixed release group; never edit their versions or internal exact dependencies by
 hand. Semifold is a maintainer tool, not a dependency of published Vooya
 packages.
@@ -29,8 +29,14 @@ npm run release:alpha
 ```
 
 Review the version, lockfile, exact internal dependencies, tarballs, and npm
-dist-tags before the last command. `release:alpha` is the only command in this
-sequence that publishes to npm.
+dist-tags before the last command. `release:alpha` is the only local command in
+this sequence that publishes to npm.
+
+After the version commit reaches `main`, maintainers can instead run the
+`Publish alpha` workflow manually. It applies the same release gate, publishes
+the fixed package group with the repository's `NPM_TOKEN` Actions secret, and
+verifies the resulting `alpha` dist-tags. Keep the workflow manual: merging a
+pull request must never publish packages by itself.
 
 ## First stable release
 

@@ -1,0 +1,73 @@
+name: Publish alpha
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vooya-npm-alpha
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and publish fixed package group
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rust-analyzer
+
+      - name: Restore wasm-bindgen CLI cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.115-${{ runner.os }}
+
+      - name: Install wasm-bindgen CLI
+        run: |
+          if ! wasm-bindgen --version 2>/dev/null | grep -Fx 'wasm-bindgen 0.2.115'; then
+            cargo install wasm-bindgen-cli --version 0.2.115 --locked --force
+          fi
+          wasm-bindgen --version | grep -Fx 'wasm-bindgen 0.2.115'
+
+      - name: Install Semifold
+        env:
+          SEMIFOLD_BIN: ${{ github.workspace }}/.vooya-tools/semifold/semifold-linux-x86_64
+        run: |
+          mkdir -p "$(dirname "$SEMIFOLD_BIN")"
+          curl --fail --location --retry 3 https://github.com/noctisynth/semifold/releases/download/semifold-v0.3.0/semifold-linux-x86_64 -o "$SEMIFOLD_BIN"
+          echo '5800bc9389e230bead6cf23ca528928b872a719c90034a940a52270c57424324  '"$SEMIFOLD_BIN" | sha256sum --check --strict
+          chmod +x "$SEMIFOLD_BIN"
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run release gate
+        run: npm run verify:release
+
+      - name: Build publishable packages
+        run: npm run build:packages
+
+      - name: Publish alpha and verify dist-tags
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm run build:scripts
+          node scripts/generated/semifold.js publish
+          node scripts/generated/sync-alpha-dist-tags.js
+          node scripts/generated/sync-alpha-dist-tags.js --check
