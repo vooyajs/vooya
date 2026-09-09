@@ -26,5 +26,4 @@ idempotent per plugin instance and ignores its generated `.vooya` workspace in
 HMR. The release proof deliberately runs dev mounting and then `astro check`
 followed by `astro build` in a clean consumer.
 
-See the complete [Math Plot Astro example](../../examples/math-plot-astro).
-
+See the complete [Math Plot Astro example](https://github.com/vooyajs/vooya/tree/main/examples/math-plot-astro).

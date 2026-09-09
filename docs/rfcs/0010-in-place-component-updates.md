@@ -20,4 +20,3 @@ This opt-in exists for stateful surfaces such as Canvas, editors, and media
 players whose DOM identity and browser resources must survive a prop update.
 The default remains replace-root for compatibility. The alpha does not add an
 async update hook, diff individual Rust fields, or expose arbitrary JS objects.
-
