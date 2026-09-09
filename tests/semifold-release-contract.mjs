@@ -17,8 +17,10 @@ try {
     },
   });
   writeFileSync(resolve(fixture, "package.json"), JSON.stringify({ private: true, workspaces: ["packages/*"] }));
-  const currentVersion = JSON.parse(readFileSync(resolve(fixture, "packages/core/package.json"), "utf8")).version;
-  const expectedVersion = nextAlphaVersion(currentVersion);
+  const unchangedVersion = JSON.parse(readFileSync(resolve(fixture, "packages/core/package.json"), "utf8")).version;
+  const changedVersion = JSON.parse(readFileSync(resolve(fixture, "packages/build-core/package.json"), "utf8")).version;
+  const expectedVersion = nextAlphaVersion(changedVersion);
+  writeFileSync(resolve(fixture, ".changes", "package-scoped.md"), `---\nvooya-build-core: "patch:fix"\nvooya-vite: "patch:fix"\n---\n\nVerify package-scoped changes and dependency propagation.\n`);
   const pushEvent = resolve(fixture, "push-event.json");
   writeFileSync(pushEvent, JSON.stringify({ repository: { name: "vooya" } }));
   for (const args of [["init", "--quiet"], ["add", "."], ["-c", "user.name=Vooya test", "-c", "user.email=tests@vooya.dev", "commit", "--quiet", "-m", "fixture"]]) {
@@ -69,10 +71,10 @@ try {
     assert.equal(lockfile.packages[`packages/${directory}`].version, expectedVersion);
   }
   for (const directory of ["compiler", "core", "vue", "react", "solid", "svelte"]) {
-    assert.equal(lockfile.packages[`packages/${directory}`].version, currentVersion);
+    assert.equal(lockfile.packages[`packages/${directory}`].version, unchangedVersion);
   }
-  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/core"], currentVersion);
-  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/compiler"], currentVersion);
+  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/core"], unchangedVersion);
+  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/compiler"], unchangedVersion);
   assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/build-core"], expectedVersion);
   assert.equal(lockfile.packages["packages/rspack"].dependencies["@vooya/build-core"], expectedVersion);
   assert.equal(lockfile.packages["packages/webpack"].dependencies["@vooya/build-core"], expectedVersion);
