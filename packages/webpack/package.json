@@ -1,6 +1,6 @@
 {
   "name": "@vooya/webpack",
-  "version": "0.1.0-alpha.12",
+  "version": "0.1.0-alpha.13",
   "description": "Experimental Webpack 5 integration for Vooya source components.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
@@ -42,7 +42,7 @@
     "test": "npm run build && node --test test/*.test.js"
   },
   "dependencies": {
-    "@vooya/build-core": "0.1.0-alpha.12",
+    "@vooya/build-core": "0.1.0-alpha.13",
     "@vooya/compiler": "0.1.0-alpha.12"
   },
   "peerDependencies": {

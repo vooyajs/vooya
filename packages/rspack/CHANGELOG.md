@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.0-alpha.13
+
+### Dependencies
+
+- Update vooya-build-core to 0.1.0-alpha.13.
+
 ## v0.1.0-alpha.12
 
 ### Features
