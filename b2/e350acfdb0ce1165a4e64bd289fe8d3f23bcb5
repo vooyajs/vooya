@@ -1,0 +1,35 @@
+tests/astro-math-consumer.mjs
+  s_eb4a03454f9b6b::t_3da48d0e0c0fbe 99,101
+  s_eb4a03454f9b6b::t_6e76219cb52acd 90
+  s_eb4a03454f9b6b::t_fa8d19866c11dd 98,100,102-108
+examples/math-plot-astro/src/components/MathPlotIsland.vue
+  s_eb4a03454f9b6b::t_fa8d19866c11dd 12,23
+  s_eb4a03454f9b6b::t_bf4ec41ceefadc 39
+examples/math-plot-astro/src/MathPlot.rs
+  s_eb4a03454f9b6b::t_6e76219cb52acd 6,181-185,192-194,202-208,279-281,299,315-325
+  s_eb4a03454f9b6b::t_fa8d19866c11dd 77,91-97,159,164,167-180,186-191,195-201,266-269,271,275-278,282-284,460-462,492,586-601
+docs/guide/astro.md
+  s_eb4a03454f9b6b::t_fa8d19866c11dd 29
+packages/build-core/source/index.ts
+  s_eb4a03454f9b6b::t_fa8d19866c11dd 35-42,117
+  s_eb4a03454f9b6b::t_6e76219cb52acd 32-34,118
+packages/build-core/test/index.test.js
+  s_eb4a03454f9b6b::t_fa8d19866c11dd 169-171,173-176,179-180
+  s_eb4a03454f9b6b::t_6e76219cb52acd 172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "b2e350acfdb0ce1165a4e64bd289fe8d3f23bcb5",
+  "prompts": {},
+  "sessions": {
+    "s_eb4a03454f9b6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a083d6-81cb-7372-a632-f244ba6a681e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "亚亥yahai <shenyuyou@xiaohongshu.com>"
+    }
+  }
+}
