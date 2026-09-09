@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import { buildApplication, discoverRustSourceFiles, findNearestCargoManifest, generateRustCrateRoot, generatedCargoManifest, remapRustDiagnostic, resolveRustBuildOptions, resolveRustDependencyRoots, resolveRuntimeCrateRoot, resolveVooyaCrateRoot, rustModuleIdentifier, selectRustRootModules } from "../dist/index.js";
+import { buildApplication, discoverRustSourceFiles, findNearestCargoManifest, generateRustCrateRoot, generateRustSourceRoot, generatedCargoManifest, remapRustDiagnostic, resolveRustBuildOptions, resolveRustDependencyRoots, resolveRuntimeCrateRoot, resolveVooyaCrateRoot, rustModuleIdentifier, selectRustRootModules } from "../dist/index.js";
 
 test("exposes a bundler-neutral runtime and dependency watch roots", () => {
   assert.equal(existsSync(`${resolveRuntimeCrateRoot()}/Cargo.toml`), true);
@@ -162,6 +162,20 @@ test("maps Cargo diagnostics using compiler source location metadata", () => {
   assert.match(diagnostic, /12 \| missing/);
 });
 
+test("maps diagnostics from copied multi-file modules back to authored files", () => {
+  const generatedRoot = resolve("/project/.vooya/build");
+  const generated = resolve(generatedRoot, "src/rust/src/MathPlot/series.rs");
+  const authored = resolve("/project/src/MathPlot/series.rs");
+  const diagnostic = remapRustDiagnostic({
+    level: "error",
+    message: "missing method",
+    rendered: "error\n --> src/rust/src/MathPlot/series.rs:2:15\n  |\n2 | missing\n",
+    spans: [{ file_name: "src/rust/src/MathPlot/series.rs", line_start: 2, column_start: 15 }],
+  }, new Map([[generated, { id: authored, startLine: 1, generatedLineOffset: 0 }]]), generatedRoot);
+  assert.match(diagnostic, /\/project\/src\/MathPlot\/series\.rs:2:15/);
+  assert.doesNotMatch(diagnostic, /src\/rust\/src\/MathPlot\/series\.rs:2:15/);
+});
+
 test("generates deterministic Rust module declarations", () => {
   assert.equal(rustModuleIdentifier("widgets/cart-item.rs"), "cart_item");
   assert.equal(rustModuleIdentifier("widgets/MathPlot.rs"), "math_plot");
@@ -183,6 +197,18 @@ test("generates deterministic Rust module declarations", () => {
     selectRustRootModules(["rust/src/domain/cart.rs", "rust/src/domain/mod.rs", "rust/src/main.rs"], "rust/src"),
     ["rust/src/domain/mod.rs", "rust/src/main.rs"],
   );
+});
+
+test("generates a conventional authored root for multi-file Rust modules", () => {
+  const root = generateRustSourceRoot([
+    "rust/src/MathPlot.rs",
+    "rust/src/MathPlot/spec.rs",
+    "rust/src/components/mod.rs",
+    "rust/src/components/math/MathLab.rs",
+  ], ["rust/src/MathPlot.rs"], "rust/src");
+  assert.match(root, /#\[allow\(non_snake_case\)\]\npub mod MathPlot;/);
+  assert.match(root, /#\[allow\(non_snake_case\)\]\nmod components;/);
+  assert.doesNotMatch(root, /spec|MathLab/);
 });
 
 test("discovers ordinary Rust modules while excluding crate roots", () => {

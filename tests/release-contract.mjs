@@ -25,13 +25,13 @@ try {
     const packageMetadata = readJson(resolve(fixture, "packages/vite/package.json"));
     packageMetadata.dependencies["@vooya/core"] = "^0.1.0-alpha.4";
     writeJson(resolve(fixture, "packages/vite/package.json"), packageMetadata);
-  }, /must depend on the exact fixed @vooya\/core version/);
-  assertSemifoldFailure("incomplete fixed release group", (fixture) => {
-    writeFileSync(resolve(fixture, ".changes", "incomplete.md"), `---\nvooya-core: "patch:fix"\n---\n\nIncomplete release.\n`);
-  }, /must name every fixed Vooya package/);
-  assertSemifoldFailure("mixed fixed release bump levels", (fixture) => {
-    writeFileSync(resolve(fixture, ".changes", "mixed.md"), `---\nvooya-compiler: "patch:fix"\nvooya-core: "minor:fix"\nvooya-build-core: "patch:fix"\nvooya-vite: "patch:fix"\nvooya-vue: "patch:fix"\nvooya-react: "patch:fix"\nvooya-solid: "patch:fix"\nvooya-svelte: "patch:fix"\nvooya-rspack: "patch:fix"\nvooya-webpack: "patch:fix"\n---\n\nMixed release.\n`);
-  }, /must use one bump level/);
+  }, /must depend on exact @vooya\/core@/);
+  assertSemifoldFailure("empty package-scoped changeset", (fixture) => {
+    writeFileSync(resolve(fixture, ".changes", "empty.md"), `---\nnote: "no package"\n---\n\nEmpty release.\n`);
+  }, /must name at least one Vooya package/);
+  assertSemifoldFailure("unknown package in changeset", (fixture) => {
+    writeFileSync(resolve(fixture, ".changes", "unknown.md"), `---\nvooya-unknown: "patch:fix"\n---\n\nUnknown release.\n`);
+  }, /names unknown Vooya package/);
   console.log("Release contract regression checks passed.");
 } finally {
   rmSync(temporaryRoot, { force: true, recursive: true });

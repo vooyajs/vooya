@@ -19,7 +19,6 @@ try {
   writeFileSync(resolve(fixture, "package.json"), JSON.stringify({ private: true, workspaces: ["packages/*"] }));
   const currentVersion = JSON.parse(readFileSync(resolve(fixture, "packages/core/package.json"), "utf8")).version;
   const expectedVersion = nextAlphaVersion(currentVersion);
-  writeFileSync(resolve(fixture, ".changes", "fixed-group.md"), `---\nvooya-compiler: "patch:chore"\nvooya-core: "patch:chore"\nvooya-build-core: "patch:chore"\nvooya-vite: "patch:chore"\nvooya-vue: "patch:chore"\nvooya-react: "patch:chore"\nvooya-solid: "patch:chore"\nvooya-svelte: "patch:chore"\nvooya-rspack: "patch:chore"\nvooya-webpack: "patch:chore"\n---\n\nVerify Vooya's coordinated release group.\n`);
   const pushEvent = resolve(fixture, "push-event.json");
   writeFileSync(pushEvent, JSON.stringify({ repository: { name: "vooya" } }));
   for (const args of [["init", "--quiet"], ["add", "."], ["-c", "user.name=Vooya test", "-c", "user.email=tests@vooya.dev", "commit", "--quiet", "-m", "fixture"]]) {
@@ -39,9 +38,12 @@ try {
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const output = `${result.stdout}\n${result.stderr}`;
-  assert.match(output, /已规划 10 个包|planned 10 package/i);
-  for (const id of ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-solid", "vooya-svelte", "vooya-rspack", "vooya-webpack"]) {
+  assert.match(output, /已规划 4 个包|planned 4 package/i);
+  for (const id of ["vooya-build-core", "vooya-vite", "vooya-rspack", "vooya-webpack"]) {
     assert.match(output, new RegExp(id));
+  }
+  for (const id of ["vooya-compiler", "vooya-core", "vooya-vue", "vooya-react", "vooya-solid", "vooya-svelte"]) {
+    assert.doesNotMatch(output, new RegExp(`\\b${id}\\b[^\\n]*(patch|minor|major)`, "i"));
   }
 
   const version = spawnSync(process.execPath, [resolve(root, "scripts/generated/semifold.js"), "version", "--dry-run"], {
@@ -51,7 +53,7 @@ try {
   });
   assert.equal(version.status, 0, version.stderr || version.stdout);
   const versionOutput = `${version.stdout}\n${version.stderr}`;
-  for (const id of ["vooya-compiler", "vooya-core", "vooya-build-core", "vooya-vite", "vooya-vue", "vooya-react", "vooya-solid", "vooya-svelte", "vooya-rspack", "vooya-webpack"]) {
+  for (const id of ["vooya-build-core", "vooya-vite", "vooya-rspack", "vooya-webpack"]) {
     assert.match(versionOutput, new RegExp(id));
   }
   assert.match(versionOutput, new RegExp(escapeRegExp(expectedVersion)));
@@ -63,13 +65,18 @@ try {
   });
   assert.equal(apply.status, 0, apply.stderr || apply.stdout);
   const lockfile = JSON.parse(readFileSync(resolve(fixture, "package-lock.json"), "utf8"));
-  for (const directory of ["compiler", "core", "build-core", "vite", "vue", "react", "solid", "svelte", "rspack", "webpack"]) {
+  for (const directory of ["build-core", "vite", "rspack", "webpack"]) {
     assert.equal(lockfile.packages[`packages/${directory}`].version, expectedVersion);
   }
-  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/core"], expectedVersion);
-  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/compiler"], expectedVersion);
+  for (const directory of ["compiler", "core", "vue", "react", "solid", "svelte"]) {
+    assert.equal(lockfile.packages[`packages/${directory}`].version, currentVersion);
+  }
+  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/core"], currentVersion);
+  assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/compiler"], currentVersion);
   assert.equal(lockfile.packages["packages/vite"].dependencies["@vooya/build-core"], expectedVersion);
-  console.log("Semifold fixed-group status, version dry-run, and lockfile synchronization passed.");
+  assert.equal(lockfile.packages["packages/rspack"].dependencies["@vooya/build-core"], expectedVersion);
+  assert.equal(lockfile.packages["packages/webpack"].dependencies["@vooya/build-core"], expectedVersion);
+  console.log("Semifold package-scoped status, version dry-run, and lockfile synchronization passed.");
 } finally {
   rmSync(fixture, { force: true, recursive: true });
 }

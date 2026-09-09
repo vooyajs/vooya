@@ -17,12 +17,13 @@ for (const changeset of changesets) {
   if (!match) throw new Error(`${changeset} must start with Semifold front matter.`);
   const entries = [...match[1].matchAll(/^([a-z0-9-]+):\s*["'](major|minor|patch):[a-z]+["']\s*$/gm)];
   const requested = new Map(entries.map(([, name, bump]) => [name, bump]));
-  if (requested.size !== packages.length || packages.some((name) => !requested.has(name))) {
-    throw new Error(`${changeset} must name every fixed Vooya package: ${packages.join(", ")}.`);
+  if (requested.size === 0) {
+    throw new Error(`${changeset} must name at least one Vooya package.`);
   }
-  if (new Set(requested.values()).size !== 1) {
-    throw new Error(`${changeset} must use one bump level for the fixed Vooya release group.`);
+  const unknown = [...requested.keys()].filter((name) => !packages.includes(name));
+  if (unknown.length > 0) {
+    throw new Error(`${changeset} names unknown Vooya package(s): ${unknown.join(", ")}.`);
   }
 }
 
-console.log(`Verified ${changesets.length} Semifold changeset(s) against Vooya's fixed release group.`);
+console.log(`Verified ${changesets.length} package-scoped Semifold changeset(s).`);

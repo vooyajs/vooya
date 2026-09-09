@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, sep } from "node:path";
@@ -36,11 +36,18 @@ try {
   await waitForServer(devPort);
   await verifyBrowser(devPort);
   await new Promise((resolveWait) => setTimeout(resolveWait, 500));
-  const logs = astro(["dev", "logs"], true);
-  const builds = logs.match(/Vooya: building Rust\/WASM source/g)?.length ?? 0;
+  let logs = astro(["dev", "logs"], true);
+  let builds = logs.match(/Vooya: building Rust\/WASM source/g)?.length ?? 0;
   if (builds !== 1) throw new Error(`expected one stable dev build, observed ${builds}\n${logs}`);
+  await verifyDependencyHmr(devPort);
+  await new Promise((resolveWait) => setTimeout(resolveWait, 500));
+  logs = astro(["dev", "logs"], true);
+  builds = logs.match(/Vooya: building Rust\/WASM source/g)?.length ?? 0;
+  if (builds !== 2) throw new Error(`expected one dependency HMR rebuild without a loop, observed ${builds}\n${logs}`);
   astro(["dev", "stop"]);
   runningAstro = undefined;
+
+  verifyMappedDependencyDiagnostic();
 
   // This exact order reproduces the Astro multi-environment alpha.11 failure:
   // check builds the Rust artifact once; build must not race a second cleanup.
@@ -53,6 +60,7 @@ try {
   const assets = readdirSync(resolve(temporary, "dist/_astro"));
   if (!assets.some((file) => file.endsWith(".wasm"))) throw new Error("Astro build did not emit WASM");
   if (!existsSync(resolve(temporary, ".vooya/types/src/MathPlot.d.rs.ts"))) throw new Error("missing generated Math Plot declaration");
+  if (!existsSync(resolve(temporary, ".vooya/types/src/components/math/NestedProof.d.rs.ts"))) throw new Error("missing generated nested component declaration");
   const previewPort = await availablePort();
   runningAstro = { command: "preview", port: previewPort };
   astro(["preview", "--background", "--host", "127.0.0.1", "--port", String(previewPort)]);
@@ -69,6 +77,25 @@ try {
   else rmSync(temporary, { recursive: true, force: true });
 }
 
+function verifyMappedDependencyDiagnostic() {
+  const dependency = resolve(temporary, "src/MathPlot/series.rs");
+  const source = readFileSync(dependency, "utf8");
+  writeFileSync(dependency, source.replace("requested.clamp(16, 4096)", "requested.not_a_real_method(16, 4096)"));
+  const result = spawnSync(process.execPath, [resolve(temporary, "node_modules/astro/bin/astro.mjs"), "check"], {
+    cwd: temporary,
+    encoding: "utf8",
+  });
+  writeFileSync(dependency, source);
+  if (result.status === 0) throw new Error("invalid dependency module unexpectedly passed astro check");
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  if (!output.includes(`${dependency}:2:15`)) {
+    throw new Error(`dependency diagnostic did not map to authored source:\n${output}`);
+  }
+  if (output.includes(".vooya/build/src/rust/src/MathPlot/series.rs:2:15")) {
+    throw new Error(`dependency diagnostic leaked generated source path:\n${output}`);
+  }
+}
+
 function astro(args, capture = false) {
   return run(process.execPath, [resolve(temporary, "node_modules/astro/bin/astro.mjs"), ...args], temporary, capture);
 }
@@ -83,6 +110,7 @@ async function verifyBrowser(port) {
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
     const plot = page.locator("[data-math-plot]");
     await plot.waitFor();
+    await page.locator("[data-nested-proof]", { hasText: "Nested Rust module ready" }).waitFor();
     const canvas = page.locator("canvas");
     await canvas.evaluate((node) => { window.__vooyaMathCanvas = node; });
     await page.locator("[data-weight]").press("ArrowRight");
@@ -121,6 +149,21 @@ async function verifyBrowser(port) {
     const nextDisposes = Number(await page.evaluate(() => sessionStorage.getItem("__vooyaMathDisposes") ?? 0));
     if (nextDisposes !== disposes + 1 || mounts < 1) throw new Error("component dispose lifecycle did not run");
     if (errors.length) throw new Error(`browser errors:\n${errors.join("\n")}`);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function verifyDependencyHmr(port) {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
+    await page.locator("[data-math-plot]").waitFor();
+    const dependency = resolve(temporary, "src/MathPlot/spec.rs");
+    const source = readFileSync(dependency, "utf8");
+    writeFileSync(dependency, source.replace("spec v1", "spec v1 dependency-hmr"));
+    await page.waitForFunction(() => document.querySelector(".vooya-math-status")?.textContent?.includes("dependency-hmr"));
   } finally {
     await browser.close();
   }

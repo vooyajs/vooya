@@ -39,6 +39,15 @@ The selected Vue, React, Solid, or Svelte adapter supplies native lifecycle and
 reactivity semantics; the bridge is generated output, not a stable IR for
 applications to author directly.
 
+Multi-file components keep one importable, schema-owning Rust root such as
+`src/MathLab.rs`. That file may use normal `mod` declarations backed by
+`src/MathLab/spec.rs`, `src/MathLab/axes.rs`, or deeper module directories.
+Vooya copies and watches the complete source tree, maps Cargo diagnostics back
+to those authored helpers, and exposes only files containing a Component or
+Store schema to JavaScript. Nested public components are also supported when a
+conventional `mod.rs` chain makes them reachable from the configured source
+root. Use `rust.entry` when the application already owns a crate root.
+
 Use `npx vooya clean` to remove generated state.
 
 Format components with `npx voo-format src` or check them with

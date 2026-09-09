@@ -95,17 +95,17 @@ test("reconciles the generated Rust root after source topology changes", () => {
     writeFileSync(join(root, "src/alpha.rs"), "pub struct Alpha;\n");
     writeFileSync(join(root, "src/beta.rs"), "pub struct Beta;\n");
     build();
-    let generatedRoot = readFileSync(join(workspaceRoot, "build/src/lib.rs"), "utf8");
-    assert.match(generatedRoot, /rust\/src\/alpha\.rs/);
-    assert.match(generatedRoot, /rust\/src\/beta\.rs/);
+    let generatedRoot = readFileSync(join(workspaceRoot, "build/src/rust/src/__vooya_root.rs"), "utf8");
+    assert.match(generatedRoot, /mod alpha;/);
+    assert.match(generatedRoot, /mod beta;/);
 
     unlinkSync(join(root, "src/beta.rs"));
     writeFileSync(join(root, "src/gamma.rs"), "pub struct Gamma;\n");
     build();
-    generatedRoot = readFileSync(join(workspaceRoot, "build/src/lib.rs"), "utf8");
-    assert.match(generatedRoot, /rust\/src\/alpha\.rs/);
-    assert.match(generatedRoot, /rust\/src\/gamma\.rs/);
-    assert.doesNotMatch(generatedRoot, /rust\/src\/beta\.rs/);
+    generatedRoot = readFileSync(join(workspaceRoot, "build/src/rust/src/__vooya_root.rs"), "utf8");
+    assert.match(generatedRoot, /mod alpha;/);
+    assert.match(generatedRoot, /mod gamma;/);
+    assert.doesNotMatch(generatedRoot, /mod beta;/);
     assert.equal(existsSync(join(workspaceRoot, "build/src/rust/src/beta.rs")), false);
   } finally {
     rmSync(root, { force: true, recursive: true });

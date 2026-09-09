@@ -1,8 +1,35 @@
 # Math Plot template
 
 `examples/math-plot-astro` is a source template for textbook visualizations,
-not a hidden chart runtime. Copy `MathPlot.rs` and `MathPlot.css` into the
-consumer so the Rust/WASM boundary remains visible and editable.
+not a hidden chart runtime. Copy `MathPlot.rs`, its `MathPlot/` module directory,
+and `MathPlot.css` into the consumer so the Rust/WASM boundary remains visible
+and editable.
+
+The example is also the maintained multi-file authoring proof. JavaScript
+imports only the thin schema-owning root:
+
+```text
+src/
+├── MathPlot.rs
+├── MathPlot.css
+└── MathPlot/
+    ├── axes.rs
+    ├── interaction.rs
+    ├── series.rs
+    ├── spec.rs
+    └── render/
+        ├── mod.rs
+        └── canvas2d.rs
+```
+
+`MathPlot.rs` uses ordinary `mod axes;`, `mod spec;`, and `mod render;`
+declarations. Vooya mirrors the whole tree into its generated crate while
+preserving Rust's normal module lookup. Helper files are not JS components;
+they participate in Cargo diagnostics and trigger one dev rebuild when edited.
+For deeper public paths, provide a conventional `mod.rs` chain from `src/` or
+configure `rust.entry` for an authored crate root. Do not import a helper file
+from JavaScript: import the `.rs` file containing `#[voo::component]` or
+`#[voo::store]`.
 
 The component accepts two primitive props:
 

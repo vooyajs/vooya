@@ -13,37 +13,19 @@ const packageEntries = directories.map((directory) => ({
 }));
 const packages = packageEntries.map((entry) => entry.package);
 const expectedNames = packages.map((package_) => package_.name).sort();
-const versions = new Set(packages.map((package_) => package_.version));
-
-if (versions.size !== 1) {
-  throw new Error(
-    `@vooya packages must use one version, found: ${packages
-      .map((package_) => `${package_.name}@${package_.version}`)
-      .join(", ")}`,
-  );
-}
+const versionsByName = new Map(packages.map((package_) => [package_.name, package_.version]));
 
 const plugin = packages.find((package_) => package_.name === "@vooya/vite");
 const buildCore = packages.find((package_) => package_.name === "@vooya/build-core");
 const rspack = packages.find((package_) => package_.name === "@vooya/rspack");
 const webpack = packages.find((package_) => package_.name === "@vooya/webpack");
-if (buildCore.dependencies["@vooya/core"] !== buildCore.version || buildCore.dependencies["@vooya/compiler"] !== buildCore.version) {
-  throw new Error("@vooya/build-core must depend on exact fixed @vooya/core and @vooya/compiler versions.");
-}
-if (plugin.dependencies["@vooya/core"] !== plugin.version) {
-  throw new Error("@vooya/vite must depend on the exact fixed @vooya/core version.");
-}
-if (plugin.dependencies["@vooya/compiler"] !== plugin.version) {
-  throw new Error("@vooya/vite must depend on the exact fixed @vooya/compiler version.");
-}
-if (plugin.dependencies["@vooya/build-core"] !== plugin.version) {
-  throw new Error("@vooya/vite must depend on the exact fixed @vooya/build-core version.");
-}
-if (rspack.dependencies["@vooya/build-core"] !== rspack.version || rspack.dependencies["@vooya/compiler"] !== rspack.version) {
-  throw new Error("@vooya/rspack must depend on exact fixed @vooya/build-core and @vooya/compiler versions.");
-}
-if (webpack.dependencies["@vooya/build-core"] !== webpack.version || webpack.dependencies["@vooya/compiler"] !== webpack.version) {
-  throw new Error("@vooya/webpack must depend on exact fixed @vooya/build-core and @vooya/compiler versions.");
+for (const package_ of [buildCore, plugin, rspack, webpack]) {
+  for (const [dependency, range] of Object.entries(package_.dependencies ?? {})) {
+    const expected = versionsByName.get(dependency);
+    if (expected !== undefined && range !== expected) {
+      throw new Error(`${package_.name} must depend on exact ${dependency}@${expected}, found ${range}.`);
+    }
+  }
 }
 
 const lockfile = JSON.parse(readFileSync(resolve(root, "package-lock.json"), "utf8"));
@@ -57,9 +39,10 @@ for (const { directory, path, package: package_ } of packageEntries) {
   }
   for (const [dependency, range] of Object.entries(package_.dependencies ?? {})) {
     if (!expectedNames.includes(dependency)) continue;
-    if (range !== package_.version) {
+    const expected = versionsByName.get(dependency);
+    if (range !== expected) {
       throw new Error(
-        `${package_.name} must depend on the exact fixed ${dependency} version ${package_.version}, found ${range}.`,
+        `${package_.name} must depend on exact ${dependency}@${expected}, found ${range}.`,
       );
     }
     if (lockEntry.dependencies?.[dependency] !== range) {
@@ -74,8 +57,8 @@ const semifoldConfig = readFileSync(resolve(root, ".changes/config.toml"), "utf8
 for (const package_ of packages) {
   const id = package_.name.replace("@vooya/", "vooya-");
   if (!new RegExp(`\\[packages\\.${id.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\]`).test(semifoldConfig)) {
-    throw new Error(`Semifold must configure ${package_.name} as a fixed Vooya release package.`);
+    throw new Error(`Semifold must configure ${package_.name} as a publishable Vooya package.`);
   }
 }
 
-console.log(`Verified fixed @vooya package release contract at version ${packages[0].version}.`);
+console.log(`Verified independent @vooya package versions and exact internal dependencies.`);

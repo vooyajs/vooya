@@ -12,6 +12,12 @@ use web_sys::{
     PointerEvent, WheelEvent,
 };
 
+mod axes;
+mod interaction;
+mod render;
+mod series;
+mod spec;
+
 thread_local! { static MOUNT_SEQUENCE: Cell<u32> = const { Cell::new(0) }; }
 
 #[voo::props]
@@ -112,7 +118,7 @@ pub fn MathPlot(view: &voo::View, props: MathPlotProps) -> Result<voo::ViewEleme
     let status = view
         .element("span")?
         .class("vooya-math-status")
-        .text("Rust/WASM · spec v1");
+        .text(spec::ENGINE_LABEL);
     let reset = view
         .element("button")?
         .class("vooya-math-reset")
@@ -349,7 +355,7 @@ fn attach_pointer_handlers(
         let rect = wheel_canvas.get_bounding_client_rect();
         zoom_at(
             &mut wheel_state.borrow_mut(),
-            if event.delta_y() < 0.0 { 0.86 } else { 1.16 },
+            interaction::wheel_zoom_factor(event.delta_y()),
             event.client_x() as f64 - rect.left(),
             event.client_y() as f64 - rect.top(),
             rect.width(),
@@ -460,10 +466,9 @@ fn draw(
     let geometry = canvas_geometry(rect.width(), rect.height());
     let width = geometry.width;
     let height = geometry.height;
-    let ratio = web_sys::window()
+    let ratio = render::canvas2d::backing_scale(web_sys::window()
         .map(|window| window.device_pixel_ratio())
-        .unwrap_or(1.0)
-        .clamp(1.0, 3.0);
+        .unwrap_or(1.0));
     canvas.set_width((width * ratio).round() as u32);
     canvas.set_height((height * ratio).round() as u32);
     let context: CanvasRenderingContext2d = canvas
@@ -492,8 +497,8 @@ fn draw(
     let plot = geometry.plot;
     context.set_font("11px ui-monospace, monospace");
     context.set_line_width(1.0);
-    for index in 0..=8 {
-        let t = index as f64 / 8.0;
+    for index in 0..=axes::GRID_STEPS {
+        let t = index as f64 / axes::GRID_STEPS as f64;
         let x = plot[0] + plot[2] * t;
         let y = plot[1] + plot[3] * t;
         context.set_stroke_style_str(&grid);
@@ -520,7 +525,7 @@ fn draw(
                 context.set_stroke_style_str(&accent);
                 context.set_line_width(2.25);
                 context.begin_path();
-                let count = (*samples).clamp(16, 4096);
+                let count = series::sample_count(*samples);
                 for index in 0..count {
                     let x = mix(
                         state.viewport.x[0],
