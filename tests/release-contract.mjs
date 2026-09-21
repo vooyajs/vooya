@@ -32,6 +32,7 @@ try {
   assertSemifoldFailure("unknown package in changeset", (fixture) => {
     writeFileSync(resolve(fixture, ".changes", "unknown.md"), `---\nvooya-unknown: "patch:fix"\n---\n\nUnknown release.\n`);
   }, /names unknown Vooya package/);
+  assertDistTagFailure("beta channel rejects alpha package versions", /Refusing to tag non-beta version/, ["--dry-run", "--channel=beta"]);
   console.log("Release contract regression checks passed.");
 } finally {
   rmSync(temporaryRoot, { force: true, recursive: true });
@@ -73,6 +74,13 @@ function assertFailure(description, change, expected) {
     }
   } finally {
     rmSync(fixture, { force: true, recursive: true });
+  }
+}
+
+function assertDistTagFailure(description, expected, args) {
+  const result = spawnSync(process.execPath, [resolve(root, "scripts/generated/sync-alpha-dist-tags.js"), ...args], { encoding: "utf8" });
+  if (result.status === 0 || !expected.test(`${result.stdout}\n${result.stderr}`)) {
+    throw new Error(`Expected ${description} to fail with ${expected}, got:\n${result.stdout}\n${result.stderr}`);
   }
 }
 

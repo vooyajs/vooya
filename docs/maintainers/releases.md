@@ -57,3 +57,25 @@ Before a stable release, change `channel = "alpha"` to `channel = "stable"` in
 `.changes/config.toml`, review `npm run release:status`, then run the commands
 above. Semifold consumes applied changesets during `version`; that is expected
 release bookkeeping, not cleanup.
+
+## Beta release candidate
+
+The first beta is a coordinated prerelease, not a stable release. Before
+changing the Semifold channel, run the full release gate from a clean `main`
+checkout, including the published Vue Rust Store consumer check. A beta must
+use the `beta` npm dist-tag; it must not move `latest`, and the existing `alpha`
+tag remains available until maintainers deliberately retire it.
+
+The dist-tag verifier is channel-aware and can rehearse the transition without
+publishing:
+
+```sh
+npm run build:scripts
+node scripts/generated/sync-alpha-dist-tags.js --dry-run --channel=beta
+node scripts/generated/sync-alpha-dist-tags.js --check-published --channel=beta
+```
+
+The second command is expected to fail before the first beta is published. It
+becomes a release-candidate check after publication. A partial publication must
+be recovered by publishing the missing exact package versions, then rerunning
+the channel check; never point `latest` at a partial prerelease set.
