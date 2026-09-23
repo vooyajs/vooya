@@ -15,6 +15,7 @@ import type { ParsedComponent } from "@vooya/compiler";
 import { generateRustSchemaDeclaration, generateRustStoreDeclaration } from "./schema-declarations.js";
 import type { RustComponentContract } from "./schema.js";
 import type { RustStoreSchema } from "./schema.js";
+import type { RustTypeSchema } from "./schema.js";
 
 export const VOOYA_WORKSPACE_SCHEMA_VERSION = 1;
 
@@ -55,6 +56,7 @@ export interface WriteRustSchemaDeclarationsOptions {
   applicationRoot: string;
   contracts: RustComponentContract[];
   stores?: RustStoreSchema[];
+  types?: RustTypeSchema[];
   framework: "vue" | "react" | "solid" | "svelte";
   workspaceRoot?: string;
 }
@@ -187,6 +189,7 @@ export function writeRustSchemaDeclarations({
   applicationRoot,
   contracts,
   stores,
+  types,
   framework,
   workspaceRoot,
 }: WriteRustSchemaDeclarationsOptions): WrittenVooDeclarations {
@@ -206,7 +209,7 @@ export function writeRustSchemaDeclarations({
     const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
     assertPathInside(declarationPath, paths.types);
     expected.add(declarationPath);
-    writeIfChanged(declarationPath, generateRustSchemaDeclaration({ contract, framework }));
+    writeIfChanged(declarationPath, generateRustSchemaDeclaration({ contract, framework, types }));
   }
   for (const store of stores ?? []) {
     if (!store.group) throw new Error(`Rust store ${store.name} is missing its source group.`);

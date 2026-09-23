@@ -116,6 +116,7 @@ export function vooya({
           applicationRoot,
           contracts: rustContracts,
           stores: schemaIndex.stores,
+          types: schemaIndex.types,
           framework,
           workspaceRoot: workspaceOptions.root,
         });

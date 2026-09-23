@@ -62,11 +62,22 @@ export interface RustStoreSchema {
   snapshot?: string | null;
 }
 
+export interface RustTypeSchema {
+  version: number;
+  kind: "type";
+  id: string;
+  name: string;
+  group?: string | null;
+  direction: "from" | "to";
+  shape: { kind: "struct"; fields: RustSchemaField[] } | { kind: "enum"; variants: string[] };
+}
+
 export type RustSchemaRecord =
   | RustPropsSchema
   | RustEventsSchema
   | RustComponentSchema
-  | RustStoreSchema;
+  | RustStoreSchema
+  | RustTypeSchema;
 
 export interface RustSchemaDocument {
   version: typeof VOO_SCHEMA_VERSION;
@@ -78,6 +89,7 @@ export interface RustSchemaIndex {
   props: RustPropsSchema[];
   events: RustEventsSchema[];
   stores: RustStoreSchema[];
+  types: RustTypeSchema[];
   byId: ReadonlyMap<string, RustSchemaRecord>;
 }
 
@@ -147,6 +159,7 @@ export function indexVooyaSchema(document: RustSchemaDocument): RustSchemaIndex 
     props: document.records.filter((record): record is RustPropsSchema => record.kind === "props"),
     events: document.records.filter((record): record is RustEventsSchema => record.kind === "events"),
     stores: document.records.filter((record): record is RustStoreSchema => record.kind === "store"),
+    types: document.records.filter((record): record is RustTypeSchema => record.kind === "type"),
     byId,
   };
 }
@@ -269,7 +282,15 @@ function isRecord(value: unknown): value is RustSchemaRecord {
   if (record.kind === "events") return isMethods(record.methods);
   if (record.kind === "component") return isParameters(record.params);
   if (record.kind === "store") return isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
+  if (record.kind === "type") return (record.direction === "from" || record.direction === "to") && isTypeShape(record.shape);
   return false;
+}
+
+function isTypeShape(value: unknown): value is RustTypeSchema["shape"] {
+  if (!value || typeof value !== "object") return false;
+  const shape = value as Record<string, unknown>;
+  if (shape.kind === "struct") return isParameters(shape.fields);
+  return shape.kind === "enum" && Array.isArray(shape.variants) && shape.variants.every((variant) => typeof variant === "string");
 }
 
 function isStyles(value: unknown): value is RustStyleDependency[] {

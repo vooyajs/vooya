@@ -87,6 +87,60 @@ test("generates React declarations exposing the four-stage error union", () => {
   assert.match(code, /onError\?: \(error: \{ stage: "load" \| "mount" \| "update" \| "dispose"; cause: unknown \}\) => void/);
 });
 
+test("generates named struct and enum declarations for ABI schema types", () => {
+  const contract = {
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", fields: [{ name: "selection", type: "Selection" }] },
+    events: { version: 1, kind: "events", id: "cart::Events", name: "Events", methods: [{ name: "changed", params: [{ name: "limit", type: "Limit" }] }] },
+  };
+  const types = [
+    { version: 1, kind: "type", id: "Selection:from", name: "Selection", direction: "from", shape: { kind: "struct", fields: [{ name: "id", type: "i32" }, { name: "tags", type: "Vec<String>" }] } },
+    { version: 1, kind: "type", id: "Selection:to", name: "Selection", direction: "to", shape: { kind: "struct", fields: [{ name: "id", type: "i32" }, { name: "tags", type: "Vec<String>" }] } },
+    { version: 1, kind: "type", id: "Limit:to", name: "Limit", direction: "to", shape: { kind: "enum", variants: ["Reached", "Rejected"] } },
+  ];
+  const vue = generateRustSchemaDeclaration({ framework: "vue", contract, types });
+  const react = generateRustSchemaDeclaration({ framework: "react", contract, types });
+  for (const code of [vue, react]) {
+    assert.match(code, /export interface Selection/);
+    assert.match(code, /id: number/);
+    assert.match(code, /tags: Array<string>/);
+    assert.match(code, /export type Limit = \{ type: "Reached" \} \| \{ type: "Rejected" \}/);
+    assert.match(code, /selection: Selection/);
+  }
+  assert.match(react, /onChanged\?: \(limit: Limit\) => void/);
+});
+
+test("emits only types reachable from a component contract", () => {
+  const code = generateRustSchemaDeclaration({
+    framework: "vue",
+    contract: {
+      component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", params: [] },
+      props: { version: 1, kind: "props", id: "cart::Props", name: "Props", fields: [{ name: "selection", type: "Selection" }] },
+    },
+    types: [
+      { version: 1, kind: "type", id: "Selection:from", name: "Selection", direction: "from", shape: { kind: "struct", fields: [{ name: "id", type: "i32" }] } },
+      { version: 1, kind: "type", id: "Unused:to", name: "Unused", direction: "to", shape: { kind: "struct", fields: [{ name: "ignored", type: "String" }] } },
+    ],
+  });
+  assert.match(code, /export interface Selection/);
+  assert.doesNotMatch(code, /export interface Unused/);
+});
+
+test("rejects same-named reachable types from different source groups", () => {
+  const contract = {
+    component: { version: 1, kind: "component", id: "cart::Cart", name: "Cart", params: [] },
+    props: { version: 1, kind: "props", id: "cart::Props", name: "Props", fields: [{ name: "selection", type: "Selection" }] },
+  };
+  assert.throws(() => generateRustSchemaDeclaration({
+    framework: "vue",
+    contract,
+    types: [
+      { version: 1, kind: "type", id: "models:Selection:from", name: "Selection", group: "src/models.rs", direction: "from", shape: { kind: "struct", fields: [{ name: "id", type: "i32" }] } },
+      { version: 1, kind: "type", id: "filters:Selection:from", name: "Selection", group: "src/filters.rs", direction: "from", shape: { kind: "struct", fields: [{ name: "query", type: "String" }] } },
+    ],
+  }), /Candidates are declared in: src\/models\.rs, src\/filters\.rs/);
+});
+
 test("generates Solid declarations from the same Rust component contract", () => {
   const code = generateRustSchemaDeclaration({
     framework: "solid",

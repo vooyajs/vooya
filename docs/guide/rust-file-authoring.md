@@ -329,6 +329,13 @@ maps, and zero-copy `TypedArray` transport are outside ABI v1. Keep those
 values behind an owned Rust boundary or encode them using a supported fallback;
 the build must reject them rather than silently coerce them.
 
+Named public ABI types derived with `FromJs` or `ToJs` emit build metadata, so
+component declarations can use their exact TypeScript shape. Named structs map
+to interfaces and ABI-v1 unit enums map to `{ type: "Variant" }` unions. A
+type derived in both directions is emitted once. Payload enums, borrowed fields,
+generic types, recursive types, and zero-copy array transport remain outside
+this first schema slice.
+
 The composable mirrors `getSnapshot()` after each `subscribe()` notification;
 it does not deep-proxy the Rust state or invent a second notification queue.
 `disposeOnUnmount` is explicit because a store may be shared by multiple Vue

@@ -494,7 +494,7 @@ export function buildApplication({
         ...schemaContracts.map((contract) => ({
         componentId: contract.component.id,
         framework,
-        code: generateRustSchemaDeclaration({ contract, framework }),
+          code: generateRustSchemaDeclaration({ contract, framework, types: schemaIndex.types }),
         })),
         ...schemaIndex.stores.map((store) => ({
           componentId: store.id,
@@ -747,7 +747,7 @@ export function remapRustDiagnostic(
 ): string {
   let rendered = message.rendered ?? `${message.level ?? "error"}: ${message.message}\n`;
   for (const span of message.spans ?? []) {
-    const mapping = mappings.get(resolve(generatedRoot, span.file_name)) ?? mappings.get(resolve(span.file_name));
+    const mapping = findDiagnosticMapping(span.file_name, mappings, generatedRoot);
     if (!mapping) continue;
     const line = mapping.startLine + span.line_start - 1 - mapping.generatedLineOffset;
     rendered = rendered
@@ -758,6 +758,27 @@ export function remapRustDiagnostic(
       .replace(new RegExp(`(\\n\\s*)${span.line_start}(\\s+\\|)`), `$1${line}$2`);
   }
   return rendered;
+}
+
+function findDiagnosticMapping(
+  fileName: string,
+  mappings: Map<string, DiagnosticMapping>,
+  generatedRoot: string,
+): DiagnosticMapping | undefined {
+  const candidates = [fileName, resolve(generatedRoot, fileName), resolve(fileName)];
+  for (const candidate of candidates) {
+    const mapping = mappings.get(candidate);
+    if (mapping) return mapping;
+  }
+  const normalized = candidates.map(normalizeDiagnosticPath);
+  for (const [path, mapping] of mappings) {
+    if (normalized.includes(normalizeDiagnosticPath(path))) return mapping;
+  }
+  return undefined;
+}
+
+function normalizeDiagnosticPath(path: string): string {
+  return path.replaceAll("\\", "/").replace(/^[A-Za-z]:/, "");
 }
 
 function runCargo(
