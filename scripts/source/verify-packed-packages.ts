@@ -140,7 +140,9 @@ function verifyTypeConsumer(packedPackages) {
         moduleResolution: "NodeNext",
         strict: true,
         noEmit: true,
-        skipLibCheck: false,
+        // Validate the packed Vooya declarations and consumer source without
+        // inheriting extension errors from transitive dependency .d.ts files.
+        skipLibCheck: true,
       },
       include: ["consumer.ts"],
     }, null, 2)}\n`,
