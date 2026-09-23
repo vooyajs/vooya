@@ -16,6 +16,7 @@ try {
   verifyFixedRelease(versions, tag);
   verifyConsumer("vue", versions);
   verifyConsumer("react", versions);
+  verifyVueStoreConsumer(versions);
 } finally {
   if (!process.env.VOOYA_KEEP_REGISTRY_FIXTURE) {
     rmSync(temporaryRoot, { force: true, recursive: true });
@@ -58,6 +59,26 @@ function verifyConsumer(framework, versions) {
     throw new Error(`${framework} registry consumer build did not emit the application WASM asset.`);
   }
   console.log(`Verified published ${version} ${framework} consumer from npm registry: ${project}`);
+}
+
+function verifyVueStoreConsumer(versions) {
+  const project = resolve(temporaryRoot, "vue-rust-store");
+  cpSync(resolve(repositoryRoot, "tests/fixtures/rust-vue"), project, { recursive: true });
+  run("npm", [
+    "install", "--ignore-scripts", "--no-audit", "--no-fund", "--save-exact",
+    `@vooya/vue@${versions.vue}`, `@vooya/vite@${versions.vite}`,
+  ], project);
+  verifyRegistryLockfile(project, "vue", versions);
+  run("npm", ["exec", "--no", "--", "vooya", "doctor"], project);
+  // This import is intentionally the generated named Store hook. It proves the
+  // declaration and Vite runtime module expose the same public surface.
+  run("npm", ["run", "typecheck"], project);
+  run("npm", ["run", "build"], project);
+  const assets = readdirSync(resolve(project, "dist/assets"));
+  if (!assets.some((asset) => /^vooya_app_bg-.*\.wasm$/.test(asset))) {
+    throw new Error("Vue Rust Store registry consumer build did not emit the application WASM asset.");
+  }
+  console.log(`Verified published ${versions.vue} Vue Rust Store consumer from npm registry: ${project}`);
 }
 
 function verifyRegistryLockfile(project, framework, versions) {
