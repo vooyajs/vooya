@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "allowArbitraryExtensions": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDirs": [".", ".vooya/types"],
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2020",
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.vue", ".vooya/types/**/*.ts"]
+}

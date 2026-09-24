@@ -5,6 +5,7 @@ import { useCart } from "./Store.rs";
 import { ref } from "vue";
 
 const { state, add } = useCart();
+const cartDetails = () => state.value?.totals.item_count ?? 0;
 const selected = ref(null);
 const abiPayload = ref("none");
 const abiProps = {
@@ -33,5 +34,5 @@ function handleAbiPayload(value) {
   <span class="abi-output">ABI payload {{ abiPayload }}</span>
   <Counter :count="state?.count ?? 0" @selected="handleSelected" />
   <span class="selected">Selected {{ selected }}</span>
-  <button class="store-add" @click="addItem">Store {{ state?.count ?? 0 }}</button>
+  <button class="store-add" @click="addItem">Store {{ state?.count ?? 0 }} / {{ cartDetails() }}</button>
 </template>

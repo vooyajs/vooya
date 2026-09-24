@@ -104,17 +104,17 @@ warning rather than an error. If a later Cargo candidate is selected because
 the first one is incomplete, doctor also warns that this may differ from the
 user's PATH preference.
 
-### Toolchain modes
+### Source and system toolchain modes
 
 | Mode | Cargo selection | Best for | What Vooya guarantees |
 | --- | --- | --- | --- |
-| Discovered | First coherent Cargo on `PATH` | A normal rustup installation | The build uses the `rustc` selected by that Cargo |
-| Explicit | `toolchain.cargoPath` / `--cargo-path` | Multiple Rust installations or Tauri toolchains | An incomplete explicit toolchain fails instead of switching silently |
+| Source author | First coherent Cargo on `PATH` | A normal rustup installation | The application author installs Rust tools; the build uses the `rustc` selected by Cargo. |
+| System toolchain | `toolchain.cargoPath` / `--cargo-path` | Multiple Rust installations, CI images, or host-owned toolchains | An incomplete explicit toolchain fails instead of switching silently. |
 
 A project may choose and share its own Cargo policy across native and WASM
 builds, but that is project configuration, not a third Vooya-managed toolchain
-mode. Managed toolchains and Rust-free precompiled consumers are not current
-guarantees.
+mode. Managed installation and Rust-free precompiled consumers are not beta
+guarantees; see the [beta toolchain contract](../project/beta-boundary.md#beta-toolchain-contract).
 
 ## Generated application workspace
 

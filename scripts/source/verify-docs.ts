@@ -23,6 +23,7 @@ for (const file of files) {
 if (rustExamples === 0) {
   failures.push("Documentation must contain a Rust-file component example.");
 }
+verifyBetaToolchainContract();
 if (failures.length > 0) throw new Error(`Documentation verification failed:\n${failures.join("\n")}`);
 
 console.log(`Verified ${files.length} Markdown files, their links, and ${rustExamples} Rust-file examples.`);
@@ -54,4 +55,22 @@ function verifyLinks(file, source) {
 
 function relativePath(file) {
   return file.slice(root.length + 1);
+}
+
+function verifyBetaToolchainContract() {
+  const file = resolve(docsRoot, "project/beta-boundary.md");
+  const source = readFileSync(file, "utf8");
+  const required = [
+    "| Source author |",
+    "| System toolchain |",
+    "| Managed toolchain |",
+    "| Precompiled consumer |",
+    "Only source-author and system-toolchain modes are beta support claims.",
+  ];
+  for (const text of required) {
+    if (!source.includes(text)) failures.push(`docs/project/beta-boundary.md: missing beta toolchain contract text: ${text}`);
+  }
+  if (!/No user-facing documentation may claim that a source\s+author can use Vooya without a Rust installation\./.test(source)) {
+    failures.push("docs/project/beta-boundary.md: must prohibit Rust-free source-author claims.");
+  }
 }

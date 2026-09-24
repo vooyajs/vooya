@@ -172,7 +172,7 @@ test("maps diagnostics from copied multi-file modules back to authored files", (
     rendered: "error\n --> src/rust/src/MathPlot/series.rs:2:15\n  |\n2 | missing\n",
     spans: [{ file_name: "src/rust/src/MathPlot/series.rs", line_start: 2, column_start: 15 }],
   }, new Map([[generated, { id: authored, startLine: 1, generatedLineOffset: 0 }]]), generatedRoot);
-  assert.match(diagnostic, /\/project\/src\/MathPlot\/series\.rs:2:15/);
+  assert.match(diagnostic, new RegExp(`${authored.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:2:15`));
   assert.doesNotMatch(diagnostic, /src\/rust\/src\/MathPlot\/series\.rs:2:15/);
 });
 

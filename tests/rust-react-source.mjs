@@ -13,6 +13,7 @@ run("npm", ["run", "build", "--workspace", "@vooya/build-core"], repositoryRoot)
 run("npm", ["run", "build", "--workspace", "@vooya/vite"], repositoryRoot);
 run("npm", ["run", "build", "--workspace", "@vooya/react"], repositoryRoot);
 run(process.execPath, [resolve(repositoryRoot, "node_modules/vite/bin/vite.js"), "build", "--config", "vite.config.js"], fixture);
+run("npm", ["run", "typecheck"], fixture);
 
 await verifyBrowser();
 console.log("Verified Rust-file React component and store production behavior.");
@@ -48,8 +49,8 @@ async function verifyBrowser() {
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: "Store 0" }).click();
-    await page.getByRole("button", { name: "Store 1" }).waitFor();
+    await page.getByRole("button", { name: "Store 0 / 0" }).click();
+    await page.getByRole("button", { name: "Store 1 / 1" }).waitFor();
     await page.getByRole("button", { name: "Count: 1" }).waitFor();
     await page.getByText("Selected 1").waitFor();
     if (errors.length > 0) throw new Error(`Rust-file React fixture had browser errors:\n${errors.join("\n")}`);

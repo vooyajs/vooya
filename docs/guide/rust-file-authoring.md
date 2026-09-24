@@ -283,15 +283,21 @@ the error, and async actions are outside ABI v1.
 
 The generated `.d.rs.ts` declaration mirrors both sides of the module. It
 includes the factory, default export, snapshot/store types, and the generated
-hook for the selected framework. In the current ABI-v1 alpha, a snapshot that refers to a
-user-defined `ToJs` struct is declared as an object-shaped fallback until
-standalone schema records for those structs are added:
+hook for the selected framework. Store snapshots use the same standalone type
+schema as component props and events. A named `ToJs` snapshot struct therefore
+generates a concrete TypeScript interface, reused by the store factory and every
+framework hook. The declaration remains framework-neutral; Vue wraps it in a
+`Ref`, Solid in an `Accessor`, and Svelte in a `Readable`.
 
-`#[derive(FromJs)]` and `#[derive(ToJs)]` already make named structs and enums
-usable at runtime. The fallback affects generated TypeScript only: precise
-object/union declarations require the standalone type-schema work tracked by
-Issue #54, so callers must not treat `Record<string, unknown>` as a complete
-compile-time description of the Rust value.
+`#[derive(FromJs)]` and `#[derive(ToJs)]` make named structs and ABI-v1 unit
+enums available both at runtime and in generated declarations. When a referenced
+named type has no schema record, declarations use `unknown` because a hand-written
+conversion may emit any JavaScript value. A derived struct whose fields cannot
+be described falls back to `Record<string, unknown>` because its object shape is
+known. Supported surrounding fields and containers remain precise. Snapshot types must remain
+owned, non-generic, and non-recursive; ambiguous same-named types from different
+source groups fail declaration generation rather than selecting an arbitrary
+shape.
 
 ```ts
 import type { Ref } from "vue";
@@ -322,12 +328,19 @@ Props, event payloads, action arguments, and snapshots use one shared mapping:
 | `Option<T>` | `T \| null` | `undefined` and `null` input decode as `None`; output is `null`. |
 | `(A, B, ...)` | `[A, B, ...]` | Fixed-length tuples. |
 | `HashMap<String, T>` / `BTreeMap<String, T>` | `Record<string, T>` | Only string keys are supported. |
-| Named struct/enum with `FromJs`/`ToJs` | Runtime object/union | Generated declarations use `Record<string, unknown>` until #54 adds type schema records. |
+| Named struct/enum with `FromJs`/`ToJs` | Generated interface/unit union | Fields must remain owned ABI-v1 values; ambiguous source groups are rejected. |
 
 Borrowed values, recursive public types, arbitrary generics, non-string-key
 maps, and zero-copy `TypedArray` transport are outside ABI v1. Keep those
 values behind an owned Rust boundary or encode them using a supported fallback;
 the build must reject them rather than silently coerce them.
+
+Named public ABI types derived with `FromJs` or `ToJs` emit build metadata, so
+component declarations can use their exact TypeScript shape. Named structs map
+to interfaces and ABI-v1 unit enums map to `{ type: "Variant" }` unions. A
+type derived in both directions is emitted once. Payload enums, borrowed fields,
+generic types, recursive types, and zero-copy array transport remain outside
+this first schema slice.
 
 The composable mirrors `getSnapshot()` after each `subscribe()` notification;
 it does not deep-proxy the Rust state or invent a second notification queue.

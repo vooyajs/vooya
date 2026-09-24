@@ -9,6 +9,8 @@ passing fixture is not mistaken for a broad support promise.
 - [Status](./status.md): what the current alpha can do and where it is limited.
 - [Compatibility matrix](./compatibility.md): framework, bundler, browser, and
   toolchain evidence.
+- [Turbopack research](./turbopack-research.md): the current documented API
+  boundary and reproducible blocker for a future Next.js integration.
 - [Roadmap](../rfcs/0008-layer-boundary-and-roadmap.md): version-level direction
   from the integration foundation toward a stable layer contract.
 - [Releases](../maintainers/releases.md): coordinated package release rules.

@@ -56,8 +56,9 @@ toolchain; a production smoke does not imply development-server or HMR support.
 - No precompiled component product is currently published; the Vue fixture is
   build-contract evidence only.
 - Webpack 4, Rspack versions below 2.1.10, Rollup, Turbopack, and other unlisted
-  bundlers have no compatibility claim. Exact Rspack evidence is limited to the
-  versions named in the row above.
+  bundlers have no compatibility claim. The documented Turbopack API blocker is
+  recorded in [Turbopack research](turbopack-research.md); exact Rspack evidence
+  is limited to the versions named in the row above.
 - Vite+ adds a CLI, runtime/package-manager management, and a Vite core alias;
   it does not remove the need for the normal `vooya()` Vite plugin. Its smoke
   path is intentionally tracked separately from the Vite support promise.

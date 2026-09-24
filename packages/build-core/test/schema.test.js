@@ -72,6 +72,18 @@ test("reads versioned records from repeated Vooya custom sections", () => {
   validateVooyaSchemaGroups(index);
 });
 
+test("indexes directional named type schema records", () => {
+  const bytes = wasm(customSectionRecords("__voo_schema", [
+    { version: 1, kind: "type", id: "Selection:from", name: "Selection", direction: "from", shape: { kind: "struct", fields: [{ name: "id", type: "i32" }] } },
+    { version: 1, kind: "type", id: "Selection:to", name: "Selection", direction: "to", shape: { kind: "struct", fields: [{ name: "id", type: "i32" }] } },
+    { version: 1, kind: "type", id: "Limit:to", name: "Limit", direction: "to", shape: { kind: "enum", variants: ["Reached", "Rejected"] } },
+  ]));
+  const index = indexVooyaSchema(readVooyaSchema(bytes));
+  assert.equal(index.types.length, 3);
+  assert.equal(index.types[0].shape.kind, "struct");
+  assert.deepEqual(index.types[2].shape.variants, ["Reached", "Rejected"]);
+});
+
 test("reads multiple newline-delimited records merged into one custom section", () => {
   const bytes = wasm(customSectionRecords("__voo_schema", [
     { version: 1, kind: "props", id: "cart::Props", name: "Props", fields: [] },

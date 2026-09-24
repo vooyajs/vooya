@@ -866,6 +866,7 @@ pub fn derive_to_js(input: TokenStream) -> TokenStream {
     derive_abi(parse_macro_input!(input as DeriveInput), AbiDirection::To)
 }
 
+#[derive(Clone, Copy)]
 enum AbiDirection {
     From,
     To,
@@ -880,6 +881,7 @@ fn derive_abi(input: DeriveInput, direction: AbiDirection) -> TokenStream {
         .into_compile_error()
         .into();
     }
+    let schema = abi_type_schema(&input, &direction, input.span().file());
     let name = input.ident;
     let generated = match (input.data, direction) {
         (Data::Struct(data), AbiDirection::From) => derive_struct_from(&name, data.fields),
@@ -895,9 +897,41 @@ fn derive_abi(input: DeriveInput, direction: AbiDirection) -> TokenStream {
             "unions are not a public ABI type",
         )),
     };
-    generated
-        .unwrap_or_else(|error| error.into_compile_error())
-        .into()
+    match generated {
+        Ok(generated) => emit_schema(generated, schema, match direction { AbiDirection::From => "type_from", AbiDirection::To => "type_to" }),
+        Err(error) => error.into_compile_error().into(),
+    }
+}
+
+fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String) -> Value {
+    let direction = match direction { AbiDirection::From => "from", AbiDirection::To => "to" };
+    let name = input.ident.to_string();
+    let shape = match &input.data {
+        Data::Struct(data) => json!({
+            "kind": "struct",
+            "fields": match &data.fields {
+                Fields::Named(fields) => fields.named.iter().map(|field| json!({
+                    "name": field.ident.as_ref().expect("named field").to_string(),
+                    "type": type_name(&field.ty),
+                })).collect::<Vec<_>>(),
+                _ => Vec::new(),
+            },
+        }),
+        Data::Enum(data) => json!({
+            "kind": "enum",
+            "variants": data.variants.iter().map(|variant| variant.ident.to_string()).collect::<Vec<_>>(),
+        }),
+        Data::Union(_) => json!({ "kind": "union" }),
+    };
+    json!({
+        "version": SCHEMA_VERSION,
+        "kind": "type",
+        "id": format!("{}:{}:{}", group, name, direction),
+        "name": name,
+        "group": group,
+        "direction": direction,
+        "shape": shape,
+    })
 }
 
 fn derive_struct_from(name: &syn::Ident, fields: Fields) -> syn::Result<proc_macro2::TokenStream> {
@@ -1008,7 +1042,7 @@ fn emit_schema<T: quote::ToTokens>(item: T, record: Value, role: &str) -> TokenS
     let encoded = format!("{}\n", serde_json::to_string(&record).expect("schema JSON"));
     let bytes = syn::LitByteStr::new(encoded.as_bytes(), proc_macro2::Span::call_site());
     let length = encoded.len();
-    let item_name = match &record["name"] {
+    let item_name = match &record["id"] {
         Value::String(value) => value,
         _ => "item",
     };

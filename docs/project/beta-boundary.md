@@ -66,22 +66,25 @@ support claim beyond its row.
 Vooya's core product is the authoring and build experience, not a catalog of
 business components.
 
-### Toolchain modes
+### Beta toolchain contract
 
-The intended progression is:
+These modes deliberately separate who writes Rust from who only installs a
+published component. They are product boundaries, not interchangeable setup
+instructions.
 
-- **Managed preset:** the default path for a new project. Vooya prepares a
-  compatible Rust/WASM toolchain, target, and `wasm-bindgen` version so the
-  first component can build without manual Rust setup.
-- **System toolchain:** an explicit escape hatch for experienced Rust users,
-  CI images, and repositories that already control Cargo and `rustc`.
-- **Precompiled consumer:** a project that consumes a published artifact and
-  does not compile Rust at all.
+| Mode | Toolchain owner | Beta status | Contract |
+| --- | --- | --- | --- |
+| Source author | Application author | Supported | The author supplies Cargo, a compatible Rust toolchain with `wasm32-unknown-unknown`, and pinned `wasm-bindgen-cli`. Vooya compiles ordinary `.rs` components and stores through the documented source integration paths. |
+| System toolchain | Application author or host application | Supported | `toolchain.cargoPath` selects Cargo explicitly. `vooya doctor --cargo-path` and the build resolve Cargo's own `rustc`, target, and `wasm-bindgen` chain together; an incomplete explicit selection fails without falling back to another Cargo. |
+| Managed toolchain | Vooya | Not promised | Vooya does not download, install, update, or cache Rust/WASM tools in beta. A future design must define platform binaries, checksums, cache location, offline behavior, upgrades, custom dependencies, and security review. |
+| Precompiled consumer | Artifact publisher | Not promised | A supported package format with framework entry points, JavaScript, WASM, declarations, CSS, ABI policy, and publishing conventions does not exist yet. The Vue fixture is internal build-contract evidence, not a public artifact product. |
 
-The current alpha implements the source-authoring path and explicit system
-toolchain diagnostics. Managed installation and a complete precompiled consumer
-workflow are future work; they must remain configuration-compatible with the
-same `vooya()` entry point.
+Only source-author and system-toolchain modes are beta support claims. They
+both require Rust; system-toolchain mode changes selection and ownership, not
+the Rust requirement. No user-facing documentation may claim that a source
+author can use Vooya without a Rust installation. A future precompiled consumer
+may truthfully make that claim only after its package contract is published and
+supported.
 
 ### Artifact boundary
 

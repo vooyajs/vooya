@@ -13,6 +13,7 @@ run("npm", ["run", "build", "--workspace", "@vooya/build-core"], repositoryRoot)
 run("npm", ["run", "build", "--workspace", "@vooya/vite"], repositoryRoot);
 run("npm", ["run", "build", "--workspace", "@vooya/vue"], repositoryRoot);
 run(process.execPath, [resolve(repositoryRoot, "node_modules/vite/bin/vite.js"), "build", "--config", "vite.config.js"], fixture);
+run("npm", ["run", "typecheck"], fixture);
 
 await verifyBrowser();
 console.log("Verified Rust-file Vue component and store production behavior.");
@@ -57,8 +58,8 @@ async function verifyBrowser() {
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: "Store 0" }).click();
-    await page.getByRole("button", { name: "Store 1" }).waitFor();
+    await page.getByRole("button", { name: "Store 0 / 0" }).click();
+    await page.getByRole("button", { name: "Store 1 / 1" }).waitFor();
     await page.getByRole("button", { name: /ABI 3 9007199254740993 none 7 2/ }).waitFor();
     await page.getByText("ABI payload 9007199254740993").waitFor();
     const counter = page.getByRole("button", { name: "Count: 1" });
