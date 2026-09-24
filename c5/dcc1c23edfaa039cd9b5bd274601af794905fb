@@ -1,0 +1,30 @@
+docs/guide/rust-file-authoring.md
+  s_2b868769501a96::t_c29dab5cf610bf 293,298-300
+  s_2b868769501a96::t_0c95c49a69ed73 294-297
+packages/build-core/source/schema-declarations.ts
+  s_2b868769501a96::t_fdacdb53cf4d40 19-21,26,31,35,41,64,70,72
+  s_2b868769501a96::t_3f0d7cae4563e2 119-123,131,134,156,159-161,169,174-176,182-183,186,188,191-192,195-196
+  s_2b868769501a96::t_26eddbe760f49d 127-129
+  s_2b868769501a96::t_c0b496196b92fc 71,75-86,124-126,157,163,165,170,173,177
+  s_2b868769501a96::t_0b0cb10bfd65b4 73-74
+packages/build-core/test/schema-declarations.test.js
+  s_2b868769501a96::t_3f0d497423b620 167-181,267,273
+  s_2b868769501a96::t_75b13a86f4f956 129-166,266,268-272,274-282
+  s_2b868769501a96::t_131314edd5caeb 283-294
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c5dcc1c23edfaa039cd9b5bd274601af794905fb",
+  "prompts": {},
+  "sessions": {
+    "s_2b868769501a96": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0d114-d61b-7920-aa18-fdb5e576678b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
