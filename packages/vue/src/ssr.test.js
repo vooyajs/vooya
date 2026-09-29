@@ -24,7 +24,7 @@ test("SSR renders a stable host without starting component or Store WASM", async
   });
   const html = await Promise.all([renderToString(page()), renderToString(page())]);
   assert.equal(html[0], html[1]);
-  assert.match(html[0], /data-vooya-host=""/);
+  assert.match(html[0], / data-vooya-host(?:="")?(?=[ >])/);
   assert.match(html[0], /data-voo-scope="counter"/);
   assert.equal(loads, 0);
 });

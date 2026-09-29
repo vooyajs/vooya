@@ -26,6 +26,6 @@ test("server render does not load WASM or create an instance-scoped Store", () =
     return createElement(Island, { className: "island" });
   }
   assert.equal(renderToString(createElement(Page)), renderToString(createElement(Page)));
-  assert.match(renderToString(createElement(Page)), /data-vooya-host=""/);
+  assert.match(renderToString(createElement(Page)), / data-vooya-host(?:="")?(?=[ >])/);
   assert.equal(loads, 0);
 });
