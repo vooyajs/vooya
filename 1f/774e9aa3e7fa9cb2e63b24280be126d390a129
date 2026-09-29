@@ -1,0 +1,43 @@
+.github/workflows/docs.yml
+  s_c62ad37d7b32b3::t_6c155f047c1239 33
+.github/workflows/release-alpha.yml
+  s_c62ad37d7b32b3::t_7428a8bd030353 35,102
+.github/workflows/verify.yml
+  s_c62ad37d7b32b3::t_c9859aedf490e6 26,75,119,165
+.npmrc
+  s_c62ad37d7b32b3::t_ed2d41a7e62aae 1-2
+docs/maintainers/releases.md
+  s_c62ad37d7b32b3::t_845d9a02eb18ac 42-45
+package-lock.json
+  s_769b5a1d8ec8ed::t_b0171cc1ccc775 845,865-866,878,895-896,908,921,960,970-971,983,993,1010,1020,1034,1044,1058-1059,1071,1088,1098,1112,1127,1142,1155,1165,1180,1194,1998,2011,2025,2113,5735,5742,5768,6253,6285-6286,6497-6498,6762-6763,7680,7839,8642,8797-8798,11226
+package.json
+  s_c62ad37d7b32b3::t_0bce586c211e1c 80-81
+scripts/verify-lockfile-registry.mjs
+  s_c62ad37d7b32b3::t_fe19a761fdd624 1-24
+tests/release-contract.mjs
+  s_c62ad37d7b32b3::t_d437ff0fc7819f 14-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "1f774e9aa3e7fa9cb2e63b24280be126d390a129",
+  "prompts": {},
+  "sessions": {
+    "s_769b5a1d8ec8ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0d11b-f5d7-7e13-b5d0-8559324cf656",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    },
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
