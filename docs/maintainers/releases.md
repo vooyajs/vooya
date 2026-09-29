@@ -59,6 +59,53 @@ approve pull requests**. The version job explicitly grants `contents: write`,
 `pull-requests: write`, and `actions: write`; it uses the repository token and
 does not require a separate personal access token.
 
+An organization owner must first permit this setting under **Organization
+Settings → Actions → General → Workflow permissions**. A repository admin then
+enables it under **Repository Settings → Actions → General → Workflow
+permissions**. Repository job permissions cannot override an organization-level
+prohibition. If GitHub reports that the organization does not allow Actions to
+create or approve pull requests, changing the workflow's `permissions` alone
+will not fix it.
+
+The **Create or update release PR** step fails with GitHub's API error when PR
+creation is denied. That failure is not ignored: the version job fails, the
+candidate step is skipped, and the dependent publish job does not run. A pushed
+version branch alone is not a successfully prepared release PR.
+
+While an owner resolves the policy, a maintainer with normal push and PR rights
+can prepare the same version PR manually. Start from a fresh worktree, confirm
+its Git author/committer use your public-project identity, and run:
+
+```sh
+git fetch origin main
+git worktree add -b codex/release-packages ../vooya-release-preview origin/main
+cd ../vooya-release-preview
+npm ci
+npm run release:status
+npm run version:packages
+npm run verify:changes -- --base origin/main
+npm run test:release-contract
+git diff --stat
+git diff -- .changeset packages package-lock.json
+```
+
+Review the exact candidate versions, dependency pins, changelog entries, and
+archived changesets before committing. If the version command reports no pending
+changes, stop instead of opening an empty version PR. Once the diff is correct:
+
+```sh
+git add .changeset packages/*/package.json packages/*/CHANGELOG.md package-lock.json
+git commit -m 'chore: release packages'
+git push -u origin codex/release-packages
+gh pr create --base main --head codex/release-packages --title 'chore: release packages' --body 'Consume pending changesets into reviewed package versions, dependency pins, and per-package changelogs.'
+```
+
+A PR created with the maintainer's normal GitHub credentials triggers ordinary
+PR checks. Wait for those checks and review before merging. These commands do
+not publish; merging this version PR still enters the normal alpha publishing
+job and its complete release gate. The manual route does not grant permission
+to skip verification or publish stable versions.
+
 For a local preview of the same version operation, use an isolated checkout:
 
 ```sh
