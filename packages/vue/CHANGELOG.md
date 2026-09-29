@@ -48,7 +48,7 @@ snapshots; see [release history evidence](../../docs/maintainers/release-history
 
 ## 0.1.0-alpha.2
 
-- Rename public adapter APIs and types from Voya to Vooya.
+- Unify public adapter API and type names under Vooya.
 
 ## 0.1.0-alpha.1
 
