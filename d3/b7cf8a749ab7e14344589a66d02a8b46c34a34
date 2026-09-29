@@ -1,0 +1,22 @@
+packages/build-core/source/index.ts
+  s_c62ad37d7b32b3::t_0c51b25211d900 181-183,304
+packages/build-core/test/index.test.js
+  s_c62ad37d7b32b3::t_0c51b25211d900 80-96,416-422
+  s_c62ad37d7b32b3::t_aaa314ef989f7f 423
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "d3b7cf8a749ab7e14344589a66d02a8b46c34a34",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
