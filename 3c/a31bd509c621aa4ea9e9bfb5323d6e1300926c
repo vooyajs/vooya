@@ -1,0 +1,37 @@
+packages/build-core/CHANGELOG.md
+  s_c62ad37d7b32b3::t_873189be5bcd29 1
+packages/compiler/CHANGELOG.md
+  s_c62ad37d7b32b3::t_407a9c84837350 1
+packages/core/CHANGELOG.md
+  s_c62ad37d7b32b3::t_c206254c6a73ed 1
+packages/react/CHANGELOG.md
+  s_c62ad37d7b32b3::t_8a8996c855e032 1
+packages/rspack/CHANGELOG.md
+  s_c62ad37d7b32b3::t_01369c9529d665 1
+packages/solid/CHANGELOG.md
+  s_c62ad37d7b32b3::t_73a789a28716db 1
+packages/svelte/CHANGELOG.md
+  s_c62ad37d7b32b3::t_621050295c9c5d 1
+packages/vite/CHANGELOG.md
+  s_c62ad37d7b32b3::t_214c3cb7d7e5f5 1
+packages/vue/CHANGELOG.md
+  s_c62ad37d7b32b3::t_6839ac924655b1 1
+packages/webpack/CHANGELOG.md
+  s_c62ad37d7b32b3::t_ec6e290fd05072 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "3ca31bd509c621aa4ea9e9bfb5323d6e1300926c",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
