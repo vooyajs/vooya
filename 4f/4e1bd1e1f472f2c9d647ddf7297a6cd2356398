@@ -1,0 +1,19 @@
+docs/maintainers/releases.md
+  s_c62ad37d7b32b3::t_85129c2a53a9c8 62-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "4f4e1bd1e1f472f2c9d647ddf7297a6cd2356398",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
