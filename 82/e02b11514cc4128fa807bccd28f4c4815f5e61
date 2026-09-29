@@ -1,0 +1,29 @@
+tests/beta-release-contract.mjs
+  s_c62ad37d7b32b3::t_0eb7b7dda3c49f 61-64
+package.json
+  s_c62ad37d7b32b3::t_604343607e0201 39
+scripts/source/release-plan.ts
+  s_c62ad37d7b32b3::t_1f692f8dc88deb 1-32
+scripts/source/release-status.ts
+  s_c62ad37d7b32b3::t_c1519f0bf89945 1-8
+scripts/source/version-packages.ts
+  s_c62ad37d7b32b3::t_702c1f0115ce78 23,25-26
+tests/release-pipeline-contract.mjs
+  s_c62ad37d7b32b3::t_d6591ab94cf1b5 99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "82e02b11514cc4128fa807bccd28f4c4815f5e61",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
