@@ -1,0 +1,34 @@
+packages/build-core/test/index.test.js
+  s_c62ad37d7b32b3::t_83111ed51505d3 2-3,7,185-298
+  s_c62ad37d7b32b3::t_0c36b0fbd57746 299
+tests/rust-hmr.mjs
+  s_c62ad37d7b32b3::t_7e258d970a14d9 45-54
+packages/build-core/test/build-lock.test.js
+  s_c62ad37d7b32b3::t_4a28241dbf467d 1-175
+  s_c62ad37d7b32b3::t_47ef00b1e34e28 176-201
+packages/build-core/source/build-lock.ts
+  s_c62ad37d7b32b3::t_e361972e6377a5 1-109
+packages/build-core/source/index.ts
+  s_c62ad37d7b32b3::t_6af647225e26cf 4-5,9,343,439,450-451,456,468-471,474-490,492,494-516,518-528,530-541,543-544,852,858-867,869-876,878-885,887,890-897
+  s_c62ad37d7b32b3::t_f9260fc20f1d42 898
+.changes/workspace-rebuild-recovery.md
+  s_c62ad37d7b32b3::t_7cfa0e536f4fbe 1-8
+docs/guide/troubleshooting.md
+  s_c62ad37d7b32b3::t_b43384322ca9b6 78-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c467a52e2c8b4e4f52b62935bd6b08751223605b",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
