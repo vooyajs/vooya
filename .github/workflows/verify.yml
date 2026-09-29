@@ -5,11 +5,32 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  release-policy:
+    name: Release metadata and changeset policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run verify:release-metadata
+      - name: Check changed packages and preserve changelog history
+        env:
+          RELEASE_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+        run: node scripts/generated/verify-change-policy.js --base "$RELEASE_BASE"
+      - run: npm run test:release-contract
+
   source-compatibility:
     name: Source quickstart (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
@@ -96,15 +117,8 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Verify Semifold release contract
-        env:
-          SEMIFOLD_BIN: ${{ github.workspace }}/.vooya-tools/semifold/semifold-windows-x86_64.exe
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path (Split-Path $env:SEMIFOLD_BIN) | Out-Null
-          Invoke-WebRequest https://github.com/noctisynth/semifold/releases/download/semifold-v0.3.0/semifold-windows-x86_64.exe -OutFile $env:SEMIFOLD_BIN
-          if ((Get-FileHash $env:SEMIFOLD_BIN -Algorithm SHA256).Hash.ToLower() -ne 'e269d155fdd230f9341186cfcb156167b2fd2dcef2a4b617bf8cc78ae7d369c3') { throw 'Semifold checksum mismatch' }
-          npm run release:status
+      - name: Verify release metadata
+        run: npm run verify:release-metadata
 
       # This is intentionally a source-only contract: each fixture installs
       # packed local packages, runs the installed `vooya doctor`, and emits a
@@ -148,15 +162,8 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Verify Semifold release contract
-        env:
-          SEMIFOLD_BIN: ${{ github.workspace }}/.vooya-tools/semifold/semifold-linux-x86_64
-        run: |
-          mkdir -p "$(dirname "$SEMIFOLD_BIN")"
-          curl --fail --location --retry 3 https://github.com/noctisynth/semifold/releases/download/semifold-v0.3.0/semifold-linux-x86_64 -o "$SEMIFOLD_BIN"
-          echo '5800bc9389e230bead6cf23ca528928b872a719c90034a940a52270c57424324  '"$SEMIFOLD_BIN" | sha256sum --check --strict
-          chmod +x "$SEMIFOLD_BIN"
-          npm run release:status
+      - name: Verify release metadata
+        run: npm run verify:release-metadata
 
       # Browser E2E and bundler browser matrices remain part of the local
       # release gate (`npm run verify:release`), not routine pull-request CI.

@@ -1,83 +1,84 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readReleaseModel } from "./release-model.js";
 
-const root = fileURLToPath(new URL("../..", import.meta.url));
-const dryRun = process.argv.includes("--dry-run");
-const check = process.argv.includes("--check");
-const checkPublished = process.argv.includes("--check-published");
-if ([dryRun, check, checkPublished].filter(Boolean).length > 1) {
-  throw new Error("Use only one of --dry-run, --check, or --check-published.");
+const args = process.argv.slice(2);
+const flags = new Set<string>();
+const values = new Map<string, string>();
+for (let i = 0; i < args.length; i++) {
+  if (["--root", "--capture-latest", "--latest-before"].includes(args[i])) {
+    if (!args[i + 1] || args[i + 1].startsWith("--") || values.has(args[i])) throw new Error(`Missing or duplicate value for ${args[i]}.`);
+    values.set(args[i], args[++i]);
+  } else if (["--dry-run", "--check", "--check-published"].includes(args[i]) && !flags.has(args[i])) flags.add(args[i]);
+  else throw new Error(`Unknown or duplicate option ${args[i]}.`);
 }
-const directories = ["compiler", "core", "build-core", "vite", "vue", "react", "solid", "svelte", "rspack", "webpack"];
-const packages = directories.map((directory) =>
-  JSON.parse(readFileSync(resolve(root, `packages/${directory}/package.json`), "utf8")),
-);
-for (const package_ of packages) {
-  if (!/-alpha\.\d+$/.test(package_.version)) {
-    throw new Error(
-      `Refusing to tag non-alpha version ${package_.name}@${package_.version} as alpha.`,
-    );
-  }
-
-  const specifier = `${package_.name}@${package_.version}`;
-  if (dryRun) {
-    console.log(`Would set ${package_.name} alpha -> ${package_.version}`);
-    continue;
-  }
-  if (check || checkPublished) {
-    const tags = await readDistTags(package_.name);
-    if (!tags) {
-      if (checkPublished) {
-        console.log(`Verified ${package_.name} has no published alpha yet; the next release may create it.`);
-        continue;
+if (flags.size + Number(values.has("--capture-latest")) > 1) throw new Error("Choose only one release verification mode.");
+if (values.has("--latest-before") && !flags.has("--check")) throw new Error("--latest-before requires --check.");
+const root = values.has("--root") ? resolve(values.get("--root")) : fileURLToPath(new URL("../..", import.meta.url));
+const { packages, byName } = readReleaseModel(root);
+for (const { manifest } of packages) {
+  if (!/-alpha\.\d+$/.test(manifest.version)) throw new Error(`Refusing to tag non-alpha version ${manifest.name}@${manifest.version} as alpha.`);
+}
+if (flags.has("--dry-run")) {
+  for (const { manifest } of packages) console.log(`Would verify ${manifest.name}@${manifest.version}, then set alpha -> ${manifest.version}`);
+} else {
+  // Read every package before mutating any tag. Preflight permits new packages;
+  // exact post-publish verification never treats an absent version as success.
+  const metadata = new Map<string, any>();
+  for (const { manifest } of packages) metadata.set(manifest.name, await readMetadata(manifest.name));
+  if (values.has("--capture-latest")) {
+    const latest = Object.fromEntries(packages.map(({ manifest }) => [manifest.name, metadata.get(manifest.name)?.["dist-tags"]?.latest ?? null]));
+    writeFileSync(resolve(values.get("--capture-latest")), `${JSON.stringify({ latest }, null, 2)}\n`);
+    console.log("Captured npm latest tags before publication.");
+  } else if (flags.has("--check-published")) {
+    for (const { manifest } of packages) {
+      const published = metadata.get(manifest.name);
+      const tag = published?.["dist-tags"]?.alpha;
+      if (published && (!/-alpha\.\d+$/.test(String(tag)) || !published.versions?.[tag])) throw new Error(`Invalid published alpha tag for ${manifest.name}.`);
+    }
+    console.log("Preflight checked existing alpha metadata; this does not verify a new publication.");
+  } else {
+    for (const { manifest } of packages) {
+      const published = metadata.get(manifest.name);
+      const exact = published?.versions?.[manifest.version];
+      if (!exact || exact.name !== manifest.name || exact.version !== manifest.version) throw new Error(`npm registry is missing exact ${manifest.name}@${manifest.version}.`);
+      for (const field of ["dependencies", "optionalDependencies"]) {
+        const names = new Set([...Object.keys(manifest[field] ?? {}), ...Object.keys(exact[field] ?? {})]);
+        for (const name of names) {
+          if (byName.has(name) && exact[field]?.[name] !== manifest[field]?.[name]) throw new Error(`Published ${manifest.name} has incorrect ${field}.${name}.`);
+        }
       }
-      throw new Error(`npm registry has no metadata for ${package_.name}.`);
+      if (flags.has("--check") && published["dist-tags"]?.alpha !== manifest.version) throw new Error(`npm alpha dist-tag for ${manifest.name} must be ${manifest.version}, found ${published["dist-tags"]?.alpha}.`);
     }
-    if (check && tags.alpha !== package_.version) {
-      throw new Error(
-        `npm alpha dist-tag for ${package_.name} must be ${package_.version}, found ${String(tags.alpha)}.`,
-      );
+    if (values.has("--latest-before")) {
+      const before = JSON.parse(readFileSync(resolve(values.get("--latest-before")), "utf8"));
+      for (const { manifest } of packages) {
+        if (!Object.hasOwn(before.latest ?? {}, manifest.name)) throw new Error(`Latest snapshot is missing ${manifest.name}.`);
+        if (before.latest[manifest.name] !== (metadata.get(manifest.name)?.["dist-tags"]?.latest ?? null)) throw new Error(`npm latest changed during alpha publication for ${manifest.name}. Restore the recorded tag before completing the release.`);
+      }
     }
-    if (checkPublished && !/-alpha\.\d+$/.test(String(tags.alpha))) {
-      throw new Error(`npm alpha dist-tag for ${package_.name} must be an alpha prerelease, found ${String(tags.alpha)}.`);
+    if (!flags.has("--check")) {
+      for (const { manifest } of packages) {
+        const result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["dist-tag", "add", `${manifest.name}@${manifest.version}`, "alpha"], { cwd: root, stdio: "inherit" });
+        if (result.error) throw result.error;
+        if (result.status !== 0) throw new Error(`npm dist-tag add failed for ${manifest.name}; retry after fixing the cause.`);
+      }
     }
-    console.log(
-      check ? `Verified ${package_.name} alpha -> ${package_.version}` : `Verified published ${package_.name} alpha -> ${tags.alpha}`,
-    );
-    continue;
-  }
-
-  const result = spawnSync("npm", ["dist-tag", "add", specifier, "alpha"], {
-    cwd: root,
-    encoding: "utf8",
-    stdio: "inherit",
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(`npm dist-tag add ${specifier} alpha failed.`);
+    console.log(flags.has("--check") ? "Verified exact published versions, internal dependencies, and alpha tags." : "Synchronized alpha tags; run --check for final verification.");
   }
 }
 
-if (!dryRun && !check && !checkPublished) console.log("Synchronized alpha dist-tags for all @vooya packages.");
-
-async function readDistTags(name: string): Promise<Record<string, string> | undefined> {
+async function readMetadata(name: string) {
   const registry = process.env.NPM_CONFIG_REGISTRY ?? process.env.npm_config_registry ?? "https://registry.npmjs.org/";
   const url = new URL(encodeURIComponent(name), registry.endsWith("/") ? registry : `${registry}/`);
-  // npm/CDN metadata can lag immediately after a publish or dist-tag write.
-  // A unique query and no-cache headers prevent one runner-local response from
-  // poisoning every retry in the release workflow.
   url.searchParams.set("vooya_check", `${Date.now()}-${Math.random()}`);
   const response = await fetch(url, {
-    headers: {
-      accept: "application/vnd.npm.install-v1+json",
-      "cache-control": "no-cache, no-store",
-      pragma: "no-cache",
-    },
+    signal: AbortSignal.timeout(30_000),
+    headers: { accept: "application/vnd.npm.install-v1+json", "cache-control": "no-cache, no-store", pragma: "no-cache" },
   });
   if (response.status === 404) return undefined;
   if (!response.ok) throw new Error(`npm registry request for ${name} failed with HTTP ${response.status}.`);
-  const metadata = await response.json() as { "dist-tags"?: Record<string, string> };
-  return metadata["dist-tags"] ?? {};
+  return response.json();
 }

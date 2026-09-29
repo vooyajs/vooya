@@ -19,7 +19,8 @@
 
 ## Release note
 
-<!-- State whether this needs a Semifold entry. Maintainers can help decide. -->
+<!-- Published source, public API, and dependency changes require a .changeset entry using npm package names and patch/minor/major. Documentation and test-only changes need no entry. -->
 
-- [ ] Not user-visible.
-- [ ] User-visible; a Semifold entry is included or requested from a maintainer.
+- [ ] Documentation or test-only; no package release is needed.
+- [ ] Release-affecting; a package-scoped Changesets entry with a user-facing summary is included.
+- [ ] Generated release PR; versions, exact dependencies, lockfile, and changelogs were reviewed together.

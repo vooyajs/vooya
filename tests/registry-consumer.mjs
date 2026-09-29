@@ -3,42 +3,40 @@ import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseRegistryArguments, registryPackages, verifyRegistryLockfile, verifyRegistrySnapshot } from "./helpers/registry-release-contract.mjs";
 
 // This is deliberately separate from the local-tarball quickstart test. It
 // proves only what is already published under an npm dist-tag; uncommitted
 // workspace code must not be able to satisfy any dependency here.
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const tag = process.env.VOOYA_REGISTRY_TAG ?? "alpha";
+const { expectedRoot } = parseRegistryArguments(process.argv.slice(2), process.env);
 const temporaryRoot = mkdtempSync(resolve(tmpdir(), "vooya-registry-consumer-"));
 
 try {
-  const versions = publishedVersions(tag);
-  verifyFixedRelease(versions, tag);
-  verifyConsumer("vue", versions);
-  verifyConsumer("react", versions);
+  const snapshot = publishedSnapshot(tag);
+  const expected = expectedRoot ? Object.fromEntries(registryPackages.map((name) => [
+    `@vooya/${name}`, JSON.parse(readFileSync(resolve(expectedRoot, "packages", name, "package.json"), "utf8")),
+  ])) : undefined;
+  const versions = verifyRegistrySnapshot(snapshot, tag, expected);
+  verifyConsumer("vue", versions, snapshot);
+  verifyConsumer("react", versions, snapshot);
 } finally {
   if (!process.env.VOOYA_KEEP_REGISTRY_FIXTURE) {
     rmSync(temporaryRoot, { force: true, recursive: true });
   }
 }
 
-function publishedVersions(tag) {
+function publishedSnapshot(tag) {
   return Object.fromEntries(
-    ["compiler", "core", "build-core", "vite", "vue", "react"].map((name) => [
-      name,
-      npmView(`@vooya/${name}@${tag}`, "version"),
+    registryPackages.map((name) => [
+      `@vooya/${name}`,
+      npmView(`@vooya/${name}@${tag}`),
     ]),
   );
 }
 
-function verifyFixedRelease(versions, tag) {
-  const distinct = [...new Set(Object.values(versions))];
-  if (distinct.length !== 1) {
-    throw new Error(`npm dist-tag ${JSON.stringify(tag)} does not resolve Vooya's fixed release group: ${JSON.stringify(versions)}.`);
-  }
-}
-
-function verifyConsumer(framework, versions) {
+function verifyConsumer(framework, versions, snapshot) {
   const project = resolve(temporaryRoot, framework);
   cpSync(resolve(repositoryRoot, `tests/fixtures/quickstart-${framework}`), project, { recursive: true });
   const adapter = `@vooya/${framework}`;
@@ -49,7 +47,7 @@ function verifyConsumer(framework, versions) {
     "install", "--ignore-scripts", "--no-audit", "--no-fund", "--save-exact",
     `${adapter}@${version}`, `${plugin}@${versions["vite"]}`,
   ], project);
-  verifyRegistryLockfile(project, framework, versions);
+  verifyRegistryLockfile(JSON.parse(readFileSync(resolve(project, "package-lock.json"), "utf8")), framework, snapshot);
   run("npm", ["exec", "--no", "--", "vooya", "doctor"], project);
   run("npm", ["run", "build"], project);
 
@@ -57,32 +55,13 @@ function verifyConsumer(framework, versions) {
   if (!assets.some((asset) => /^vooya_app_bg-.*\.wasm$/.test(asset))) {
     throw new Error(`${framework} registry consumer build did not emit the application WASM asset.`);
   }
-  console.log(`Verified published ${version} ${framework} consumer from npm registry: ${project}`);
+  console.log(`Verified published ${adapter}@${version} with ${plugin}@${versions.vite} from npm registry: ${project}`);
 }
 
-function verifyRegistryLockfile(project, framework, versions) {
-  const lockfile = JSON.parse(readFileSync(resolve(project, "package-lock.json"), "utf8"));
-  const expected = {
-    "@vooya/compiler": versions.compiler,
-    "@vooya/core": versions.core,
-    "@vooya/vite": versions["vite"],
-    [`@vooya/${framework}`]: versions[framework],
-  };
-  for (const [name, version] of Object.entries(expected)) {
-    const entry = lockfile.packages?.[`node_modules/${name}`];
-    if (!entry || entry.version !== version) {
-      throw new Error(`Registry ${framework} consumer resolved ${name}@${entry?.version ?? "missing"}, expected published ${version}.`);
-    }
-    if (!entry.resolved?.startsWith("https://registry.npmjs.org/")) {
-      throw new Error(`Registry ${framework} consumer did not lock ${name} to npm registry: ${entry.resolved ?? "missing resolution"}.`);
-    }
-  }
-}
-
-function npmView(spec, field) {
-  const result = spawnSync("npm", ["view", spec, field, "--json"], { encoding: "utf8" });
+function npmView(spec) {
+  const result = spawnSync("npm", ["view", spec, "--json", "--registry=https://registry.npmjs.org/"], { encoding: "utf8" });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`npm view ${spec} ${field} failed:\n${result.stderr || result.stdout}`);
+  if (result.status !== 0) throw new Error(`npm view ${spec} failed:\n${result.stderr || result.stdout}`);
   return JSON.parse(result.stdout);
 }
 

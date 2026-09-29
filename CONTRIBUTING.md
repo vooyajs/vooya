@@ -25,8 +25,8 @@ or [`help wanted`](https://github.com/vooyajs/vooya/labels/help%20wanted).
 
 You need:
 
-- Node.js `^20.19.0` or `>=22.12.0`;
-- npm;
+- a supported Node.js LTS release, preferably Node.js 24;
+- npm `>=10.9.0`;
 - a stable Rust toolchain managed by [rustup](https://rustup.rs/);
 - the `wasm32-unknown-unknown` target; and
 - `wasm-bindgen-cli` `0.2.115` for the current alpha.
@@ -37,6 +37,11 @@ rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.115 --locked
 npm exec -- vooya doctor
 ```
+
+Repository release tooling uses Changesets 3.0.3, which requires Node.js
+`^22.11.0 || ^24.0.0 || >=26.0.0`. Use at least Node.js 22.12 when also running
+the Vite examples. This maintainer-tool requirement does not change the
+published packages' Node.js 20 consumer compatibility.
 
 Windows contributors using the MSVC Rust toolchain also need Visual Studio
 Build Tools with the **Desktop development with C++** workload, MSVC C++ build
@@ -146,9 +151,9 @@ Browser and bundler E2E remain an explicit, separately runnable gate:
 npm run verify:e2e
 ```
 
-Before a release, maintainers run the complete local gate. `verify:release`
-runs both `verify:ci` and `verify:e2e`, then performs the remaining published
-release checks:
+The **Release** workflow runs the complete gate on the release commit before
+publication. Maintainers can run the same checks locally. `verify:release`
+runs both `verify:ci` and `verify:e2e`, then performs registry preflight checks:
 
 ```sh
 npm run verify:release
@@ -180,14 +185,37 @@ tests, or an issue/RFC, and may decline changes that do not fit the current
 project direction or maintenance capacity. The project is responsible for
 applying its full review and CI requirements before merge.
 
-Vooya uses Semifold for coordinated package releases. Do not edit package
-versions, changelogs, or exact internal dependency versions by hand. A
-maintainer will confirm whether a user-visible change needs a Semifold entry;
-when requested, create it with:
+Vooya uses Changesets 3.0.3 for independently versioned packages. Every PR that
+changes published source, public APIs, or dependencies must include a
+package-scoped `.changeset/*.md` entry. Documentation and test-only changes
+need no release entry. Create one with:
 
 ```sh
 npm run changeset
 ```
+
+Use npm package names and standard Changesets bump types, for example:
+
+```md
+---
+"@vooya/build-core": patch
+---
+
+Resolve named Rust types within their source module when generating TypeScript
+declarations, so unrelated types with the same name cannot change the result.
+```
+
+Explain the user-visible behavior and migration impact. Name only directly
+changed packages; Changesets propagates exact internal dependency updates.
+CI checks entry coverage and valid, nonempty summaries. Reviewers check that
+the description and bump severity match the change.
+
+Do not hand-edit package versions, generated changelogs, or internal dependency
+versions. The **Release** workflow opens or updates a release PR on `main`;
+merging that PR publishes the reviewed alpha versions and creates a GitHub
+Release for each newly published package. Keep source changes separate from
+the generated version/changelog PR. See [the release workflow](docs/maintainers/releases.md)
+for the full gate, registry acceptance, and partial-publication recovery.
 
 ## Reporting security issues
 

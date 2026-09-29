@@ -445,7 +445,10 @@ npm run dev:trace     # trace-waterfall interaction case
 ```
 
 Repository development also requires the Rust target and pinned wasm-bindgen
-CLI shown in the quick start above.
+CLI shown in the quick start above. Maintainer release tooling uses Changesets
+3.0.3 and needs Node.js 22.11 or newer on a supported LTS line and npm 10.9 or
+newer; Node.js 24 is recommended for repository work. The consumer requirements
+in the quick start remain unchanged.
 
 ## Packages
 
@@ -462,8 +465,13 @@ CLI shown in the quick start above.
 | [`@vooya/solid`](packages/solid) | Experimental Solid owner, event, and reactive Store adapter |
 | [`@vooya/svelte`](packages/svelte) | Experimental Svelte 5 lifecycle, callback, and Readable Store adapter |
 
-All public packages use one coordinated alpha version. Install the framework
+Public packages are versioned independently with exact internal dependencies. Install the framework
 adapter and selected bundler integration from the same `alpha` channel.
+Changesets generates per-package changelogs through a release PR. The **Release**
+workflow publishes reviewed alpha versions and creates per-package
+[GitHub Releases](https://github.com/vooyajs/vooya/releases). See the
+[maintainer release guide](docs/maintainers/releases.md) for the complete gate
+and registry verification.
 
 ## Contributing
 

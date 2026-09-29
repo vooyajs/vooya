@@ -1,11 +1,10 @@
 # Project Status
 
 Vooya is a public alpha and an architecture-validation project. It is not a
-stable compiler or a production compatibility promise. The latest published
-coordinated release is `v0.1.0-alpha.11`; use the npm `alpha` tag to resolve the
-latest published set.
+stable compiler or a production compatibility promise. Use each package's npm `alpha` tag to resolve its latest published version.
+The main branch may include changes queued for a later prerelease.
 
-The nine packages form one coordinated release unit:
+The ten public packages share one release workflow:
 
 - `@vooya/compiler`
 - `@vooya/core`
@@ -14,12 +13,22 @@ The nine packages form one coordinated release unit:
 - `@vooya/vue`
 - `@vooya/react`
 - `@vooya/solid`
+- `@vooya/svelte`
 - `@vooya/rspack`
 - `@vooya/webpack`
 
-Use the same exact version for every package. The npm `alpha` dist-tag identifies
-the latest published set, while `main` can contain changes queued for the next
-prerelease.
+Package versions may differ. Build packages pin internal dependencies exactly;
+install the documented package tags instead of forcing every package to the
+same version. Release checks verify the complete dependency graph.
+
+Changesets 3.0.3 manages independent package versions and changelogs, with no
+fixed or linked version groups. Published source and dependency changes carry
+package-scoped release notes. The **Release** workflow prepares a release PR
+on `main`; merging that PR runs the full gate and publishes alpha packages,
+followed by exact registry checks and per-package GitHub Releases. The receipt
+records the tested commit and verified package set. This automation does not
+promote an alpha to a stable release or expand the compatibility claims below.
+See [the release guide](../maintainers/releases.md).
 
 ## Working today
 

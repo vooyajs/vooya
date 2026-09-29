@@ -1,23 +1,79 @@
-name: Publish alpha
+name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: vooya-npm-alpha
+  group: vooya-release
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Build and publish planned packages
+  version:
+    if: github.ref == 'refs/heads/main'
+    name: Prepare release pull request
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    outputs:
+      publish: ${{ steps.candidate.outputs.publish }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Create or update release PR
+        id: changesets
+        uses: changesets/action@66d7d1ddafddf1ef45f98ee51a7496f9cdadb2f4 # v2.1.2, Changesets CLI v3
+        with:
+          version-script: npm run version:packages
+          pr-title: 'chore: release packages'
+          commit-message: 'chore: release packages'
+      # PR checks created with GITHUB_TOKEN may wait for manual approval.
+      # Explicit dispatch runs checks on this trusted generated release branch.
+      - name: Run checks on the generated release PR
+        if: steps.changesets.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.changesets.outputs.pr-number }}
+        run: |
+          release_ref=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .head.ref)
+          gh workflow run verify.yml --ref "$release_ref"
+      - name: Identify a merged release commit
+        id: candidate
+        env:
+          HAS_CHANGESETS: ${{ steps.changesets.outputs.has-changesets }}
+        run: |
+          # The action may have checked out its version branch; inspect the event SHA.
+          if [ "$HAS_CHANGESETS" = "false" ] && ! git diff --quiet "$GITHUB_SHA^" "$GITHUB_SHA" -- .changeset/release.json; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
 
+  publish:
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    name: Validate and publish release commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -42,38 +98,55 @@ jobs:
           fi
           wasm-bindgen --version | grep -Fx 'wasm-bindgen 0.2.115'
 
-      - name: Install Semifold
-        env:
-          SEMIFOLD_BIN: ${{ github.workspace }}/.vooya-tools/semifold/semifold-linux-x86_64
-        run: |
-          mkdir -p "$(dirname "$SEMIFOLD_BIN")"
-          curl --fail --location --retry 3 https://github.com/noctisynth/semifold/releases/download/semifold-v0.3.0/semifold-linux-x86_64 -o "$SEMIFOLD_BIN"
-          echo '5800bc9389e230bead6cf23ca528928b872a719c90034a940a52270c57424324  '"$SEMIFOLD_BIN" | sha256sum --check --strict
-          chmod +x "$SEMIFOLD_BIN"
-
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Verify release metadata
+      - name: Install browser for release acceptance
+        run: npx playwright install --with-deps chromium
+
+      - name: Restore the original latest-tag baseline on retries
+        id: baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: .vooya-tools/release/${{ github.sha }}/latest-before.json
+          key: alpha-latest-${{ github.sha }}
+      - name: Capture latest tags before any publication
+        if: steps.baseline.outputs.cache-hit != 'true'
         run: |
-          test "${GITHUB_REF}" = "refs/heads/main"
-          npm run verify:versions
-
-      - name: Build publishable packages
-        run: npm run build:packages
-
-      - name: Publish alpha and verify dist-tags
+          if [ "$GITHUB_RUN_ATTEMPT" != "1" ]; then
+            echo 'Original baseline is missing. Restore latest-before.json from the first attempt artifact before retrying.' >&2
+            exit 1
+          fi
+          npm run build:scripts
+          mkdir -p ".vooya-tools/release/$GITHUB_SHA"
+          node scripts/generated/sync-alpha-dist-tags.js --capture-latest ".vooya-tools/release/$GITHUB_SHA/latest-before.json"
+      - name: Persist baseline before any publication
+        if: steps.baseline.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .vooya-tools/release/${{ github.sha }}/latest-before.json
+          key: alpha-latest-${{ github.sha }}
+      - name: Preserve the baseline before publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-baseline-${{ github.sha }}-${{ github.run_attempt }}
+          path: .vooya-tools/release/${{ github.sha }}/latest-before.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Validate, publish, and verify the same commit
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          npm run build:scripts
-          node scripts/generated/semifold.js publish
-          node scripts/generated/sync-alpha-dist-tags.js
-          for delay in 0 5 10 20 40 80; do
-            if node scripts/generated/sync-alpha-dist-tags.js --check; then
-              exit 0
-            fi
-            sleep "$delay"
-          done
-          echo "npm registry did not expose the published versions and dist-tags in time" >&2
-          exit 1
+        run: npm run release:alpha
+      - name: Create missing package GitHub Releases after acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/generated/create-github-releases.js
+      - name: Preserve release evidence and recovery baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-release-${{ github.sha }}-${{ github.run_attempt }}
+          path: .vooya-tools/release/${{ github.sha }}/
+          if-no-files-found: ignore
+          retention-days: 90

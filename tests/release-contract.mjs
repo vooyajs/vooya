@@ -26,11 +26,11 @@ try {
     packageMetadata.dependencies["@vooya/core"] = "^0.1.0-alpha.4";
     writeJson(resolve(fixture, "packages/vite/package.json"), packageMetadata);
   }, /must depend on exact @vooya\/core@/);
-  assertSemifoldFailure("empty package-scoped changeset", (fixture) => {
-    writeFileSync(resolve(fixture, ".changes", "empty.md"), `---\nnote: "no package"\n---\n\nEmpty release.\n`);
-  }, /must name at least one Vooya package/);
-  assertSemifoldFailure("unknown package in changeset", (fixture) => {
-    writeFileSync(resolve(fixture, ".changes", "unknown.md"), `---\nvooya-unknown: "patch:fix"\n---\n\nUnknown release.\n`);
+  assertChangesetsFailure("empty package-scoped changeset", (fixture) => {
+    writeFileSync(resolve(fixture, ".changeset", "empty.md"), `---\n\n---\n\nEmpty release.\n`);
+  }, /must name at least one Vooya package|invalid changeset entry/);
+  assertChangesetsFailure("unknown package in changeset", (fixture) => {
+    writeFileSync(resolve(fixture, ".changeset", "unknown.md"), `---\n"@vooya/unknown": patch\n---\n\nUnknown release.\n`);
   }, /names unknown Vooya package/);
   console.log("Release contract regression checks passed.");
 } finally {
@@ -39,7 +39,7 @@ try {
 
 function createFixture() {
   cpSync(resolve(root, "package-lock.json"), resolve(temporaryRoot, "package-lock.json"));
-  cpSync(resolve(root, ".changes/config.toml"), resolve(temporaryRoot, ".changes/config.toml"), { recursive: true });
+  cpSync(resolve(root, ".changeset/config.json"), resolve(temporaryRoot, ".changeset/config.json"), { recursive: true });
   cpSync(resolve(root, "packages"), resolve(temporaryRoot, "packages"), {
     recursive: true,
     filter(source) {
@@ -48,12 +48,12 @@ function createFixture() {
   });
 }
 
-function assertSemifoldFailure(description, change, expected) {
-  const fixture = mkdtempSync(resolve(tmpdir(), "vooya-semifold-contract-case-"));
+function assertChangesetsFailure(description, change, expected) {
+  const fixture = mkdtempSync(resolve(tmpdir(), "vooya-changesets-contract-case-"));
   try {
     cpSync(temporaryRoot, fixture, { recursive: true });
     change(fixture);
-    const output = spawnSync(process.execPath, [resolve(root, "scripts/generated/verify-semifold-release-contract.js"), "--root", fixture], { encoding: "utf8" });
+    const output = spawnSync(process.execPath, [resolve(root, "scripts/generated/verify-changesets.js"), "--root", fixture], { encoding: "utf8" });
     if (output.status === 0 || !expected.test(`${output.stdout}\n${output.stderr}`)) {
       throw new Error(`Expected ${description} to fail with ${expected}, got:\n${output.stdout}\n${output.stderr}`);
     }
