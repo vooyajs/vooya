@@ -1,0 +1,87 @@
+scripts/source/release-model.ts
+  s_c62ad37d7b32b3::t_65b0c9e4fa2fe8 1-45,51
+  s_c62ad37d7b32b3::t_f3bccf6410d77d 46-50
+  s_c62ad37d7b32b3::t_b6a0cae84d070e 52-54
+tests/published-release-contract.mjs
+  s_c62ad37d7b32b3::t_2b54ce9a6544d1 1-152
+scripts/source/create-github-releases.ts
+  s_c62ad37d7b32b3::t_00eaa153884243 1-89
+tests/release-pipeline-contract.mjs
+  s_c62ad37d7b32b3::t_96ded2f7aa07e0 7,58-59
+  s_c62ad37d7b32b3::t_6d92a709b631f0 93-96
+  s_c62ad37d7b32b3::t_6a968074ca99e9 1,4-6,9,11-19,21-26,28-38,40-43,45-57,60-72,75-91,97-99,102-106,108-122
+  s_c62ad37d7b32b3::t_bb7c9018aef521 2-3
+  s_c62ad37d7b32b3::t_ec1648b4ab8c6e 8
+  s_c62ad37d7b32b3::t_873cf4641760e9 10
+  s_c62ad37d7b32b3::t_7c38e2b2027f5d 20
+  s_c62ad37d7b32b3::t_75385628101587 27
+  s_c62ad37d7b32b3::t_ae8386c0c2006f 39
+  s_c62ad37d7b32b3::t_bce4579747a0e8 44
+  s_c62ad37d7b32b3::t_d261829edca9e2 73-74
+  s_c62ad37d7b32b3::t_0eca6ef340c890 92
+  s_c62ad37d7b32b3::t_2ef85e68a2eaf9 100-101
+  s_c62ad37d7b32b3::t_1d99ec03fe06d3 107
+  s_c62ad37d7b32b3::t_c83102357e1edf 123
+tests/helpers/registry-release-contract.mjs
+  s_c62ad37d7b32b3::t_49fe9655e16104 1-96
+tests/registry-release-contract.mjs
+  s_c62ad37d7b32b3::t_8216d0429e0079 1-110
+tests/registry-consumer.mjs
+  s_c62ad37d7b32b3::t_49fe9655e16104 6,13,17-23,30,32-34,39,50,58,61-62,64
+tests/change-policy-contract.mjs
+  s_c62ad37d7b32b3::t_b06e2c499d9de6 1-131
+  s_c62ad37d7b32b3::t_dd814c4fb4dc86 132-134
+tests/changesets-release-contract.mjs
+  s_c62ad37d7b32b3::t_19220c545b4871 1-210
+tests/changelog-contract.mjs
+  s_c62ad37d7b32b3::t_5cfd9face5e8fe 74
+  s_c62ad37d7b32b3::t_b94a30536a7f03 3,9-11,13-36,50-51,54-55,57-73,76,78-83,85-86,89-90,93-95
+  s_c62ad37d7b32b3::t_815c8858f1dd80 37-40,45-49
+  s_c62ad37d7b32b3::t_064c9c307ce7c9 41-44,53,56
+docs/maintainers/releases.md
+  s_c62ad37d7b32b3::t_e912d41bdbab21 3-6,8-18,21,25,27-30,32-33,36-42,44-48,50-54,56,59,63-148
+tests/github-release-contract.mjs
+  s_c62ad37d7b32b3::t_67c82cc18cd9a9 96
+  s_c62ad37d7b32b3::t_3f3dbbd2cc7c9d 1-95,97-150
+scripts/source/verify-changelogs.ts
+  s_c62ad37d7b32b3::t_815c8858f1dd80 47-48,53-59
+  s_c62ad37d7b32b3::t_b94a30536a7f03 1-46,49-52,60-138
+.github/PULL_REQUEST_TEMPLATE.md
+  s_c62ad37d7b32b3::t_48725ddd387231 22,24-26
+.github/workflows/release-alpha.yml
+  s_c62ad37d7b32b3::t_97bfaeca003434 1,4-5,12,16-18,20-26,29-62,64-76,104-105,107-114,116-119,121-152
+.github/workflows/verify.yml
+  s_c62ad37d7b32b3::t_576c144825522a 8,14-33,120-121,165-166
+CONTRIBUTING.md
+  s_c62ad37d7b32b3::t_3a76433472742b 28-29,41-45,154-156,188-191,197-219
+README.md
+  s_c62ad37d7b32b3::t_dbe0a78c3f3ad5 448-451,468,470-474
+docs/project/status.md
+  s_c62ad37d7b32b3::t_e31991af312832 4-5,7,16,20-31
+package-lock.json
+  s_c62ad37d7b32b3::t_200989a2c4ac9b 12-13,843-1207,1940-1981,2055-2067,5668-5684,5701-5710,6186-6195,6218-6228,6430-6436,6695-6705,7598-7604,7758-7760,8560-8572,8715-8721,11144-11159
+package.json
+  s_c62ad37d7b32b3::t_d89aee32e39711 38-40,42,72,75,77-80,83,85-86,103,108
+scripts/source/sync-alpha-dist-tags.ts
+  s_c62ad37d7b32b3::t_12a7a0c870d539 2,5,7-15,17-51,53,55-60,62-67,69,73,78-79,83
+scripts/source/verify-package-versions.ts
+  s_c62ad37d7b32b3::t_817f87ff795fb3 1,4,6-9,11-14,16-20,24
+tests/release-contract.mjs
+  s_c62ad37d7b32b3::t_5762249aa9b376 29-33,42,51-52,56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "7c8e126110e29545e2d54827688d24f0f6a0d72a",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
