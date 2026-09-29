@@ -1,0 +1,19 @@
+package-lock.json
+  s_c62ad37d7b32b3::t_677cdb8aaa0524 1399-1454,3333-3341,6900-6914
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "0d4e12bafa640984bab70a303a1da6f465dc6535",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
