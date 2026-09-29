@@ -20,3 +20,5 @@ Vooya 是一个公开 alpha 项目，正在验证“传统 Web 应用与 WASM �
 - [Vooya Lab](https://vooyajs.github.io/vooya-lab/)：Rust、WASM、ABI、内存与宿主运行时决策的可运行实验和证据。
 
 这些项目共享设计原则，但不共享兼容矩阵；本仓库的浏览器兼容结论不能外推为 Node 文件系统兼容结论，反之亦然。
+
+- [SSR 与 0.2 provider 计划](./ssr-roadmap.md)

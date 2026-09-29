@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --dts --external react --tsconfig tsconfig.json --clean",
+    "build": "tsup",
     "test": "npm run build && node --test test/*.test.js"
   },
   "peerDependencies": {
