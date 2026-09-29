@@ -1,4 +1,4 @@
-# @vooya/rspack
+# Changelog
 
 Historical entries were reconstructed from published package metadata and release
 snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
