@@ -11,6 +11,16 @@ const releaseVersion = readJson(resolve(root, "packages/core/package.json")).ver
 try {
   createFixture();
   runVerifier();
+  const publicRegistry = spawnSync(process.execPath, [resolve(root, "scripts/verify-lockfile-registry.mjs"), "--root", temporaryRoot], { encoding: "utf8" });
+  if (publicRegistry.status !== 0) throw new Error(publicRegistry.stderr);
+  for (const resolved of ["https://registry.internal.invalid/example.tgz", "https://registry.npmjs.org.evil.invalid/example.tgz", "file:../example.tgz", "https://user:secret@registry.npmjs.org/example.tgz"]) {
+    const fixture = mkdtempSync(resolve(tmpdir(), "vooya-registry-origin-"));
+    try {
+      writeJson(resolve(fixture, "package-lock.json"), { packages: { "node_modules/example": { version: "1.0.0", resolved, integrity: "sha512-YQ==" } } });
+      const rejected = spawnSync(process.execPath, [resolve(root, "scripts/verify-lockfile-registry.mjs"), "--root", fixture], { encoding: "utf8" });
+      if (rejected.status === 0) throw new Error(`Non-public tarball was accepted: ${resolved}`);
+    } finally { rmSync(fixture, { force: true, recursive: true }); }
+  }
   assertFailure("lockfile workspace version drift", (fixture) => {
     const lockfile = readJson(resolve(fixture, "package-lock.json"));
     lockfile.packages["packages/core"].version = "0.1.0-alpha.3";

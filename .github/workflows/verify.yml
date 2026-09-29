@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: node scripts/verify-lockfile-registry.mjs
       - run: npm ci --ignore-scripts
       - run: npm run verify:release-metadata
       - name: Check changed packages and preserve changelog history
@@ -71,6 +72,7 @@ jobs:
           fi
           wasm-bindgen --version | grep -Fx 'wasm-bindgen 0.2.115'
 
+      - run: node scripts/verify-lockfile-registry.mjs
       - name: Install JavaScript dependencies
         run: npm ci
 
@@ -114,6 +116,7 @@ jobs:
             throw "Expected $expected"
           }
 
+      - run: node scripts/verify-lockfile-registry.mjs
       - name: Install JavaScript dependencies
         run: npm ci
 
@@ -159,6 +162,7 @@ jobs:
           fi
           wasm-bindgen --version | grep -Fx 'wasm-bindgen 0.2.115'
 
+      - run: node scripts/verify-lockfile-registry.mjs
       - name: Install JavaScript dependencies
         run: npm ci
 

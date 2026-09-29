@@ -77,7 +77,8 @@
     "pack:check": "npm run build:packages && npm run build:scripts && node scripts/generated/verify-packed-packages.js",
     "verify:changelogs": "npm run build:scripts && node scripts/generated/verify-changelogs.js",
     "verify:changes": "npm run build:scripts && node scripts/generated/verify-change-policy.js",
-    "verify:release-metadata": "npm run build:scripts && node scripts/generated/verify-changesets.js && node scripts/generated/verify-package-versions.js && node scripts/generated/verify-changelogs.js"
+    "verify:release-metadata": "npm run verify:lockfile && npm run build:scripts && node scripts/generated/verify-changesets.js && node scripts/generated/verify-package-versions.js && node scripts/generated/verify-changelogs.js",
+    "verify:lockfile": "node scripts/verify-lockfile-registry.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",

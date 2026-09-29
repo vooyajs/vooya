@@ -39,6 +39,10 @@ report. Name directly changed packages only; Changesets handles dependency
 propagation. CI checks coverage, structure, and nonempty content. Reviewers
 remain responsible for the accuracy of the summary and bump severity.
 
+The project `.npmrc` fixes the public npm registry and enables normal peer
+dependency resolution. CI checks every lockfile tarball URL and integrity before
+installing, so a maintainer’s private registry cannot leak into the public lockfile.
+
 ## Release pull request
 
 When changesets reach `main`, the **Release** workflow creates or updates a
