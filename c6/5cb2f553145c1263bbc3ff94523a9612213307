@@ -1,0 +1,21 @@
+packages/react/CHANGELOG.md
+  s_c62ad37d7b32b3::t_19b3f17d7c0a23 50
+packages/vue/CHANGELOG.md
+  s_c62ad37d7b32b3::t_c402845b63e6fe 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c65cb2f553145c1263bbc3ff94523a9612213307",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
