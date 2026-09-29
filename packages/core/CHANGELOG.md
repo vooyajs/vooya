@@ -1,52 +1,58 @@
-# Changelog
+# @vooya/core
 
-## v0.1.0-alpha.12
+Historical entries were reconstructed from published package metadata and release
+snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
-### Features
+## 0.1.0-alpha.12
 
-- Add an Astro 7.3 client-island release proof and a reusable ordinary-Rust Math Plot template. Prevent repeated Astro environment builds from racing generated WASM cleanup, ignore generated workspace changes in dev HMR, use selector-safe virtual CSS IDs, and normalize queried Rust module IDs. Add an opt-in in-place component update hook for Canvas and other stateful browser surfaces.
-- Add Solid and Svelte adapters for Rust-file components and instance-scoped stores, and move generated framework integration behind a shared bridge definition that each host adapter wraps with its native reactive and lifecycle primitives. Rust dependency defaults now follow explicit plugin options, then the nearest Cargo manifest, then Vooya defaults. Routine CI no longer installs a browser or runs E2E matrices; those remain in the local release gate.
+- The packaged authoring macros support an opt-in in-place component update hook for Canvas and other stateful browser surfaces.
 
-## v0.1.0-alpha.11
+## 0.1.0-alpha.11
 
-### Features
+- Coordinated alpha release; Rust runtime implementation is unchanged from alpha.10.
 
-- Unify generated instance-scoped store hooks across the Vue and React adapters, document the Rust-file authoring and attribute-marker contracts, and harden late lifecycle callback handling and release verification for clean-machine quickstarts.
+## 0.1.0-alpha.10
 
-## v0.1.0-alpha.10
+- Ship Rust authoring and macro crates alongside the browser runtime for installed source consumers.
+- Add disposable signal subscriptions, batched transactions, reentrancy protection, tracked reactive effects, and keyed child reconciliation.
+- Add signal-backed text/attributes, owned event bindings, host event emission, conditionals, and keyed loops to Rust `rsx!` authoring.
 
-### Fixes
+## 0.1.0-alpha.9
 
-- Compile functional :host selectors in scoped styles and reject unsupported forms with a source-oriented error.
+- Coordinated alpha release; browser runtime implementation is unchanged from alpha.8.
 
-## v0.1.0-alpha.9
+## 0.1.0-alpha.8
 
-### Features
+- Ship complete package metadata for the shared build-core integration; browser runtime behavior is unchanged from alpha.7.
 
-- Move generated application state into a disposable `.vooya/` workspace and mirror component declarations under `.vooya/types` instead of writing them beside source `.voo` files.
-- Add the first experimental Webpack 5 source `.voo` integration for Vue and React, including production output, browser lifecycle coverage, Rust failure recovery, watched path dependencies, and documented compatibility bounds.
+## 0.1.0-alpha.7
 
-### Fixes
+- Adopt Semifold for coordinated alpha releases; browser runtime behavior is unchanged from alpha.6.
 
-- Apply declared .voo prop defaults in the React adapter before mount, matching the Vue adapter.
+## 0.1.0-alpha.6
 
-### Maintenance
+- Coordinated alpha release; browser runtime implementation is unchanged from alpha.5.
 
-- Rename @vooya/vite-plugin to @vooya/vite.
+## 0.1.0-alpha.5
 
-## v0.1.0-alpha.8
+- Ship MIT and Apache-2.0 license texts in the package.
 
-### Features
+## 0.1.0-alpha.4
 
-- Add the first experimental Rspack 2.1 source `.voo` integration for Vue and React, backed by the shared Rust/WASM build core, strict packed fixtures, browser lifecycle checks, mapped diagnostics, and configured Rust path dependencies.
+- Add mount cleanup callbacks that execute once in reverse order, including cleanup after a failed mount.
 
-### Fixes
+## 0.1.0-alpha.3
 
-- Publish complete TypeScript declarations for the compiler and Vite plugin, remove duplicated generated JavaScript from source control, and add the first public contribution and issue-reporting workflow.
-- Verify Vite 8 source authoring, keep the runtime ABI entry browser-light, and record the Vite+ compatibility smoke path without presenting it as a separate bundler adapter.
+- Coordinated alpha release alongside adapter teardown and Vite HMR fixes; runtime source is unchanged from alpha.2.
 
-## v0.1.0-alpha.7
+## 0.1.0-alpha.2
 
-### Maintenance
+- Unify public runtime branding and Rust crate references under Vooya.
 
-- Adopt Semifold for coordinated alpha releases and migrate repository-owned tooling implementation to TypeScript while retaining JavaScript consumer outputs.
+## 0.1.0-alpha.1
+
+- Ship Rust runtime sources and the `./rust/Cargo.toml` export for application-specific `.voo` compilation, with the structured Rust view API.
+
+## 0.1.0-alpha.0
+
+- Initial npm publication of the browser WASM runtime and generated JavaScript entry.

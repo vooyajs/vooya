@@ -1,100 +1,90 @@
-# Changelog
+# @vooya/vite
 
-## v0.1.0-alpha.13
+Historical entries were reconstructed from published package metadata and release
+snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
-### Fixes
+Versions before alpha.9 were published as `@vooya/vite-plugin`, not `@vooya/vite`.
 
-- Preserve conventional Rust module lookup for multi-file `.rs` components and stores. Thin component roots can now use ordinary nested `mod` trees, helper edits participate in Vite HMR, and Cargo diagnostics from copied helper modules map back to authored source paths. The clean Astro Math Plot consumer now verifies dependency HMR and production output from a packed multi-file example.
+## 0.1.0-alpha.13
 
-### Dependencies
+- Preserve authored helper modules in dependency HMR for multi-file Rust components and stores.
+- The clean Astro Math Plot consumer verifies dependency HMR and production output from a packed multi-file example.
+- Published internal dependencies: `@vooya/build-core@0.1.0-alpha.13`, `@vooya/compiler@0.1.0-alpha.12`, `@vooya/core@0.1.0-alpha.12`.
 
-- Update vooya-build-core to 0.1.0-alpha.13.
+## 0.1.0-alpha.12
 
-## v0.1.0-alpha.12
+- Support Solid and Svelte Rust-file components and stores through the shared generated bridge contract.
+- Prevent repeated Astro environment builds from racing generated WASM cleanup; ignore generated workspace changes during development HMR.
+- Use selector-safe virtual CSS IDs and normalize queried Rust module IDs. Add the Astro 7.3 client-island and ordinary-Rust Math Plot consumer proof.
+- Published internal dependencies: `@vooya/build-core@0.1.0-alpha.12`, `@vooya/compiler@0.1.0-alpha.12`, `@vooya/core@0.1.0-alpha.12`.
 
-### Features
+## 0.1.0-alpha.11
 
-- Add Solid and Svelte adapters for Rust-file components and instance-scoped stores, and move generated framework integration behind a shared bridge definition that each host adapter wraps with its native reactive and lifecycle primitives. Rust dependency defaults now follow explicit plugin options, then the nearest Cargo manifest, then Vooya defaults. Routine CI no longer installs a browser or runs E2E matrices; those remain in the local release gate.
+- Generate Vue and React instance-scoped store hooks with the same `state`-plus-actions shape.
+- Published internal dependencies: `@vooya/build-core@0.1.0-alpha.11`, `@vooya/compiler@0.1.0-alpha.11`, `@vooya/core@0.1.0-alpha.11`.
 
-### Fixes
+## 0.1.0-alpha.10
 
-- Add an Astro 7.3 client-island release proof and a reusable ordinary-Rust Math Plot template. Prevent repeated Astro environment builds from racing generated WASM cleanup, ignore generated workspace changes in dev HMR, use selector-safe virtual CSS IDs, and normalize queried Rust module IDs. Add an opt-in in-place component update hook for Canvas and other stateful browser surfaces.
+- Support ordinary Rust-file components and stores for Vue and React, including Rust stylesheet dependencies.
+- Delegate `.voo` imports to Vite resolution so aliases and package imports retain Vite semantics.
+- Published internal dependencies: `@vooya/build-core@0.1.0-alpha.10`, `@vooya/compiler@0.1.0-alpha.10`, `@vooya/core@0.1.0-alpha.10`.
 
-### Dependencies
+## 0.1.0-alpha.9
 
-- Update vooya-build-core to 0.1.0-alpha.12.
-- Update vooya-compiler to 0.1.0-alpha.12.
-- Update vooya-core to 0.1.0-alpha.12.
+- Rename `@vooya/vite-plugin` to `@vooya/vite`; update imports and dependency names when upgrading.
+- Move generated state and declarations into `.vooya/`, add workspace cleanup, and resolve toolchains consistently with explicit Cargo-path support.
+- Published internal dependencies: `@vooya/build-core@0.1.0-alpha.9`, `@vooya/compiler@0.1.0-alpha.9`, `@vooya/core@0.1.0-alpha.9`.
 
-## v0.1.0-alpha.11
+## 0.1.0-alpha.8
 
-### Features
+- Published under the former name `@vooya/vite-plugin`.
+- Publish complete TypeScript declarations, use the shared build core, and keep the runtime ABI entry browser-light.
+- Verify Vite 8 source authoring and the Vite+ compatibility smoke path; diagnose a missing Windows MSVC linker.
+- Published internal dependencies: `@vooya/build-core@0.1.0-alpha.8`, `@vooya/compiler@0.1.0-alpha.8`, `@vooya/core@0.1.0-alpha.8`.
 
-- Unify generated instance-scoped store hooks across the Vue and React adapters, document the Rust-file authoring and attribute-marker contracts, and harden late lifecycle callback handling and release verification for clean-machine quickstarts.
+## 0.1.0-alpha.7
 
-### Dependencies
+- Published under the former name `@vooya/vite-plugin`.
+- Migrate repository-owned tooling implementation to TypeScript while retaining executable JavaScript outputs; adopt Semifold release coordination.
+- Published internal dependencies: `@vooya/compiler@0.1.0-alpha.7`, `@vooya/core@0.1.0-alpha.7`.
 
-- Update vooya-build-core to 0.1.0-alpha.11.
-- Update vooya-compiler to 0.1.0-alpha.11.
-- Update vooya-core to 0.1.0-alpha.11.
+## 0.1.0-alpha.6
 
-## v0.1.0-alpha.10
+- Published under the former name `@vooya/vite-plugin`.
+- Expose the precompiled Vue artifact build contract, report source Rust build progress, and make doctor executable-path checks portable.
+- Published internal dependencies: `@vooya/compiler@0.1.0-alpha.6`, `@vooya/core@0.1.0-alpha.6`.
 
-### Fixes
+## 0.1.0-alpha.5
 
-- Compile functional :host selectors in scoped styles and reject unsupported forms with a source-oriented error.
+- Published under the former name `@vooya/vite-plugin`.
+- Consume the TypeScript-authored compiler and ship MIT/Apache-2.0 license texts.
+- Published internal dependencies: `@vooya/compiler@0.1.0-alpha.5`, `@vooya/core@0.1.0-alpha.5`.
 
-### Dependencies
+## 0.1.0-alpha.4
 
-- Update vooya-build-core to 0.1.0-alpha.10.
-- Update vooya-compiler to 0.1.0-alpha.10.
-- Update vooya-core to 0.1.0-alpha.10.
+- Published under the former name `@vooya/vite-plugin`.
+- Extract the standalone compiler, add `vooya doctor` toolchain diagnostics, and build portable precompiled component artifacts.
+- Harden WASM initialization and ABI checks for generated consumers.
+- Published internal dependencies: `@vooya/compiler@0.1.0-alpha.4`, `@vooya/core@0.1.0-alpha.4`.
 
-## v0.1.0-alpha.9
+## 0.1.0-alpha.3
 
-### Features
+- Published under the former name `@vooya/vite-plugin`.
+- Suppress framework HMR before the WASM reload and stabilize generated component-handle teardown.
+- Published internal dependencies: `@vooya/core@0.1.0-alpha.3`.
 
-- Move generated application state into a disposable `.vooya/` workspace and mirror component declarations under `.vooya/types` instead of writing them beside source `.voo` files.
-- Add the first experimental Webpack 5 source `.voo` integration for Vue and React, including production output, browser lifecycle coverage, Rust failure recovery, watched path dependencies, and documented compatibility bounds.
+## 0.1.0-alpha.2
 
-### Fixes
+- Published under the former name `@vooya/vite-plugin`.
+- Unify generated bindings, runtime ABI naming, and adapter imports under Vooya.
+- Published internal dependencies: `@vooya/core@0.1.0-alpha.2`.
 
-- Apply declared .voo prop defaults in the React adapter before mount, matching the Vue adapter.
+## 0.1.0-alpha.1
 
-### Maintenance
+- Published under the former name `@vooya/vite-plugin`.
+- Ship source `.voo` compilation, generated Vue/React modules and declarations, scoped CSS, Rust diagnostic mapping, application dependencies, queued development rebuilds, and the formatter.
+- Published internal dependencies: `@vooya/core@0.1.0-alpha.1`.
 
-- Rename @vooya/vite-plugin to @vooya/vite.
+## 0.1.0-alpha.0
 
-### Dependencies
-
-- Update vooya-build-core to 0.1.0-alpha.9.
-- Update vooya-compiler to 0.1.0-alpha.9.
-- Update vooya-core to 0.1.0-alpha.9.
-
-## v0.1.0-alpha.8
-
-### Features
-
-- Add the first experimental Rspack 2.1 source `.voo` integration for Vue and React, backed by the shared Rust/WASM build core, strict packed fixtures, browser lifecycle checks, mapped diagnostics, and configured Rust path dependencies.
-
-### Fixes
-
-- Publish complete TypeScript declarations for the compiler and Vite plugin, remove duplicated generated JavaScript from source control, and add the first public contribution and issue-reporting workflow.
-- Verify Vite 8 source authoring, keep the runtime ABI entry browser-light, and record the Vite+ compatibility smoke path without presenting it as a separate bundler adapter.
-
-### Dependencies
-
-- Update vooya-build-core to 0.1.0-alpha.8.
-- Update vooya-compiler to 0.1.0-alpha.8.
-- Update vooya-core to 0.1.0-alpha.8.
-
-## v0.1.0-alpha.7
-
-### Maintenance
-
-- Adopt Semifold for coordinated alpha releases and migrate repository-owned tooling implementation to TypeScript while retaining JavaScript consumer outputs.
-
-### Dependencies
-
-- Update vooya-compiler to 0.1.0-alpha.7.
-- Update vooya-core to 0.1.0-alpha.7.
+- Initial npm publication under the former name `@vooya/vite-plugin`, providing the Vite 7 integration entry.

@@ -1,55 +1,58 @@
-# Changelog
+# @vooya/react
 
-## v0.1.0-alpha.12
+Historical entries were reconstructed from published package metadata and release
+snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
-### Features
+## 0.1.0-alpha.12
 
-- Add Solid and Svelte adapters for Rust-file components and instance-scoped stores, and move generated framework integration behind a shared bridge definition that each host adapter wraps with its native reactive and lifecycle primitives. Rust dependency defaults now follow explicit plugin options, then the nearest Cargo manifest, then Vooya defaults. Routine CI no longer installs a browser or runs E2E matrices; those remain in the local release gate.
+- Accept the shared `{ contract, loadBindings }` component bridge while retaining the previous two-argument call.
+- Add `defineVooyaStore` to wrap generated store bridges in React hooks with `state` and actions.
 
-### Fixes
+## 0.1.0-alpha.11
 
-- Add an Astro 7.3 client-island release proof and a reusable ordinary-Rust Math Plot template. Prevent repeated Astro environment builds from racing generated WASM cleanup, ignore generated workspace changes in dev HMR, use selector-safe virtual CSS IDs, and normalize queried Rust module IDs. Add an opt-in in-place component update hook for Canvas and other stateful browser surfaces.
+- Coordinated alpha release with the shared generated store-hook shape; React adapter implementation is unchanged from alpha.10.
 
-## v0.1.0-alpha.11
+## 0.1.0-alpha.10
 
-### Features
+- Add Rust-file component and instance-scoped store integration using React external-store subscriptions.
+- Surface component update and disposal failures through the adapter error callback.
 
-- Unify generated instance-scoped store hooks across the Vue and React adapters, document the Rust-file authoring and attribute-marker contracts, and harden late lifecycle callback handling and release verification for clean-machine quickstarts.
+## 0.1.0-alpha.9
 
-## v0.1.0-alpha.10
+- Apply declared `.voo` prop defaults before mount, matching the Vue adapter.
 
-### Fixes
+## 0.1.0-alpha.8
 
-- Compile functional :host selectors in scoped styles and reject unsupported forms with a source-oriented error.
+- Coordinated alpha release; React adapter implementation is unchanged from alpha.7.
 
-## v0.1.0-alpha.9
+## 0.1.0-alpha.7
 
-### Features
+- Adopt Semifold for coordinated alpha releases; React adapter implementation is unchanged from alpha.6.
 
-- Move generated application state into a disposable `.vooya/` workspace and mirror component declarations under `.vooya/types` instead of writing them beside source `.voo` files.
-- Add the first experimental Webpack 5 source `.voo` integration for Vue and React, including production output, browser lifecycle coverage, Rust failure recovery, watched path dependencies, and documented compatibility bounds.
+## 0.1.0-alpha.6
 
-### Fixes
+- Coordinated alpha release; React adapter implementation is unchanged from alpha.5.
 
-- Apply declared .voo prop defaults in the React adapter before mount, matching the Vue adapter.
+## 0.1.0-alpha.5
 
-### Maintenance
+- Ship MIT and Apache-2.0 license texts in the package.
 
-- Rename @vooya/vite-plugin to @vooya/vite.
+## 0.1.0-alpha.4
 
-## v0.1.0-alpha.8
+- Emit development lifecycle diagnostics for load, mount, update, and disposal; clean up event listeners after mount failures.
 
-### Features
+## 0.1.0-alpha.3
 
-- Add the first experimental Rspack 2.1 source `.voo` integration for Vue and React, backed by the shared Rust/WASM build core, strict packed fixtures, browser lifecycle checks, mapped diagnostics, and configured Rust path dependencies.
+- Coordinated alpha release alongside generated-handle teardown fixes in the Vite plugin; the React adapter runtime is unchanged from alpha.2.
 
-### Fixes
+## 0.1.0-alpha.2
 
-- Publish complete TypeScript declarations for the compiler and Vite plugin, remove duplicated generated JavaScript from source control, and add the first public contribution and issue-reporting workflow.
-- Verify Vite 8 source authoring, keep the runtime ABI entry browser-light, and record the Vite+ compatibility smoke path without presenting it as a separate bundler adapter.
+- Rename public adapter APIs and types from Voya to Vooya.
 
-## v0.1.0-alpha.7
+## 0.1.0-alpha.1
 
-### Maintenance
+- Ship generated `.voo` component integration with prop updates, callback events, async bindings, disposal, and load/mount error callbacks.
 
-- Adopt Semifold for coordinated alpha releases and migrate repository-owned tooling implementation to TypeScript while retaining JavaScript consumer outputs.
+## 0.1.0-alpha.0
+
+- Initial npm publication of the React 19 host adapter with JavaScript and TypeScript declarations.
