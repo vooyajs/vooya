@@ -48,10 +48,12 @@ package versions in `.changeset/release.json`. Review these files together.
 Source changes and their release version changes belong in separate PRs.
 
 The version job uses the official Changesets action to maintain the PR. Because
-PR checks created with `GITHUB_TOKEN` may wait for manual approval,
-it explicitly dispatches **Verify** for the generated release branch. Repository
-Actions settings must allow GitHub Actions to create pull requests; the workflow
-uses the repository token and does not require a separate personal access token.
+pull requests created with `GITHUB_TOKEN` do not trigger normal pull-request
+workflows, it explicitly dispatches **Verify** for the generated release branch.
+Repository Actions settings must enable **Allow GitHub Actions to create and
+approve pull requests**. The version job explicitly grants `contents: write`,
+`pull-requests: write`, and `actions: write`; it uses the repository token and
+does not require a separate personal access token.
 
 For a local preview of the same version operation, use an isolated checkout:
 
@@ -71,8 +73,9 @@ version. Release checks reject downgrades, rewritten or reordered historical
 sections, and fabricated past releases. Existing `v`-prefixed headings are
 preserved. The migration to Changesets records the still-unpublished ABI and
 declaration fixes from [#122](https://github.com/vooyajs/vooya/pull/122) and
-[#125](https://github.com/vooyajs/vooya/pull/125); it does not invent changesets
-for already published history.
+[#125](https://github.com/vooyajs/vooya/pull/125), plus workspace rebuild recovery
+from [#108](https://github.com/vooyajs/vooya/pull/108); it does not invent
+changesets for already published history.
 
 ## Publish alpha
 
@@ -121,6 +124,10 @@ registry package does not by itself prove browser behavior.
 Keep the same release commit and exact versions. Inspect the failed step; do
 not bump versions again, unpublish successful packages, or move `latest` to
 hide a partial release. Fix the failed prerequisite and rerun the workflow.
+If the original `latest-before.json` baseline is missing and any candidate version
+already exists on npm, fresh baseline capture fails closed, even in a new manual
+workflow run. Restore the baseline from that release SHA’s uploaded artifact
+before retrying; an existing baseline is never overwritten.
 Changesets skips already published npm versions and publishes the missing set.
 
 A local retry retains its original `latest-before.json`. CI restores the

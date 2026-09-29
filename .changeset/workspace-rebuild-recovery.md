@@ -1,5 +1,5 @@
 ---
-vooya-build-core: "patch:fix"
+"@vooya/build-core": patch
 ---
 
 Serialize builds sharing one generated workspace without letting stale-lock

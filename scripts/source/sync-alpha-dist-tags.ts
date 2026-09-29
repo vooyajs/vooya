@@ -29,8 +29,17 @@ if (flags.has("--dry-run")) {
   const metadata = new Map<string, any>();
   for (const { manifest } of packages) metadata.set(manifest.name, await readMetadata(manifest.name));
   if (values.has("--capture-latest")) {
+    // A missing baseline after a partial publication cannot be reconstructed:
+    // latest may already have moved. Only a wholly unpublished candidate set
+    // can establish a fresh baseline, including in a new workflow run.
+    const candidates = JSON.parse(readFileSync(resolve(root, ".changeset/release.json"), "utf8")).packages;
+    if (!Array.isArray(candidates) || !candidates.length || new Set(candidates.map((entry: any) => entry.name)).size !== candidates.length) throw new Error("Missing or duplicate release candidates for latest capture.");
+    for (const entry of candidates) {
+      if (byName.get(entry.name)?.manifest.version !== entry.version) throw new Error(`Invalid latest capture candidate ${entry.name}@${entry.version}.`);
+      if (metadata.get(entry.name)?.versions?.[entry.version]) throw new Error(`Cannot capture a new latest baseline: ${entry.name}@${entry.version} is already published. Restore the original latest-before.json artifact for this release SHA.`);
+    }
     const latest = Object.fromEntries(packages.map(({ manifest }) => [manifest.name, metadata.get(manifest.name)?.["dist-tags"]?.latest ?? null]));
-    writeFileSync(resolve(values.get("--capture-latest")), `${JSON.stringify({ latest }, null, 2)}\n`);
+    writeFileSync(resolve(values.get("--capture-latest")), `${JSON.stringify({ latest }, null, 2)}\n`, { flag: "wx" });
     console.log("Captured npm latest tags before publication.");
   } else if (flags.has("--check-published")) {
     for (const { manifest } of packages) {

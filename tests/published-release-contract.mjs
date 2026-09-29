@@ -41,6 +41,7 @@ try {
     writeFileSync(resolve(fixture, "packages", directory, "package.json"), JSON.stringify(manifest));
   }
   writeFileSync(resolve(fixture, ".changeset/config.json"), JSON.stringify({ access: "public", changelog: "@changesets/cli/changelog", fixed: [], linked: [], ignore: [] }));
+  writeFileSync(resolve(fixture, ".changeset/release.json"), JSON.stringify({ packages: [manifests[0]] }));
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
 
@@ -87,7 +88,11 @@ try {
 
   resetRegistry();
   const snapshot = resolve(fixture, "latest-before.json");
-  await succeeds("capture latest before publishing", ["--capture-latest", snapshot], /Captured npm latest tags/);
+  await fails("missing baseline after partial publication fails closed", ["--capture-latest", snapshot], /already published.*Restore the original latest-before/);
+  delete metadata.get("@vooya/core").versions[manifests[0].version];
+  await succeeds("capture before candidates publish despite unchanged published packages", ["--capture-latest", snapshot], /Captured npm latest tags/);
+  await fails("an existing baseline cannot be overwritten", ["--capture-latest", snapshot], /EEXIST/);
+  resetRegistry();
   assert.deepEqual(JSON.parse(readFileSync(snapshot, "utf8")), {
     latest: { "@vooya/build-core": "0.0.1", "@vooya/core": "0.0.1", "@vooya/vite": "0.0.1" },
   });
