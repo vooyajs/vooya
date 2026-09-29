@@ -1,0 +1,25 @@
+.changeset/workspace-rebuild-recovery.md
+  s_c62ad37d7b32b3::t_3db28a33f5a5c2 2
+docs/maintainers/releases.md
+  s_c62ad37d7b32b3::t_d03d104cafb41f 51-56,76-78,127-130
+scripts/source/sync-alpha-dist-tags.ts
+  s_c62ad37d7b32b3::t_7af4d5da566225 32-40,42
+tests/published-release-contract.mjs
+  s_c62ad37d7b32b3::t_879c3c7179792a 44,91-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "084d0392dabd7a365a4a626de38557af2b134a5f",
+  "prompts": {},
+  "sessions": {
+    "s_c62ad37d7b32b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0ebfd-d8f6-76b3-becb-75698d74b723",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
