@@ -14,3 +14,5 @@ Extract Rust build mechanics behind the existing buildApplication facade and an
 internal provider interface, preserving the public build result, locking, staged
 artifacts, diagnostics, and default Rust configuration. The initial interface
 still models Rust's single-WASM artifact; it is not a public multi-language API.
+
+Route synchronous React Store factory failures through onError, matching asynchronous initialization failures.

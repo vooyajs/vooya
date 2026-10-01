@@ -39,6 +39,30 @@ contract, state transfer, and ownership design. It is not accomplished by adding
   public options, result, locking, staged installation, diagnostics and helper
   exports remain compatible. Bundlers need no new `provider` option.
 
+## API behavior during SSR
+
+| API | Server rendering | Browser lifecycle |
+| --- | --- | --- |
+| `defineVooyaComponent` | Renders the empty host; does not call `loadBindings` | Mounts after hydration; forwards props/events; disposes on unmount |
+| Generated `use<Name>()` Store hooks | Snapshot is `undefined`; no Store is created | Creates one Store per hook call, subscribes, then unsubscribes/disposes on unmount |
+| Vue `useVooyaStore(() => createStore())` | Leaves the factory idle | Creates after mount; reports creation failures through `onError` |
+| React `useVooyaStore(factory, props, options)` | Leaves the factory idle | Creates in an effect; both synchronous throws and rejected promises reach `onError` |
+| Generated `create<Name>Store()` | Explicitly starts runtime loading when called; not automatically deferred | Caller manages subscriptions and disposal when used without a hook |
+| Bindings `mount(host, ...)` | Requires a browser DOM host; not a server renderer | Caller owns update/disposal when used without an adapter |
+
+Do not dispatch Store actions while the snapshot is `undefined`. Shared module-level
+Store instances are not request-scoped. Passing Vue an already-created Store or
+Promise cannot defer work that has already started.
+
+`npm run test:nuxt-ssr` builds and installs five packed Vooya packages in a fresh
+Nuxt 4.5.2 / Vite 8.3.1 / Vue 3.5.43 consumer. It checks production Node SSR,
+real WASM delivery, two independent Stores, props/events, scoped CSS, client route
+navigation, Rust component/Store disposal, and fresh state after returning.
+The dedicated PR CI job runs this fixture; it is also in `verify:e2e`.
+This fixture does not establish Next.js, Edge runtime, or Rust server HTML support.
+Nuxt sets Vite's root to `app` in this fixture, so Rust files live in `app/src`.
+The separate `sourceRoot: "."` schema matching issue remains open work.
+
 ## Next.js acceptance before claiming support
 
 Use an actual App Router fixture with a server-rendered parent and a client

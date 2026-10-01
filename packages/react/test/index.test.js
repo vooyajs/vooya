@@ -340,3 +340,27 @@ test("a null initial snapshot becomes ready and generated actions remain usable"
   assert.equal(listener, undefined);
   assert.equal(disposed, 1);
 });
+
+for (const asynchronous of [false, true]) {
+  test(`reports ${asynchronous ? "asynchronous" : "synchronous"} store creation failures through onError`, async () => {
+    const container = document.createElement("div");
+    const cause = new Error("Store could not initialize");
+    const errors = [];
+    const factory = () => {
+      if (asynchronous) return Promise.reject(cause);
+      throw cause;
+    };
+    function Consumer() {
+      const { state } = useVooyaStore(factory, undefined, { onError: (error) => errors.push(error) });
+      return createElement("span", null, state ?? "pending");
+    }
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(createElement(Consumer)));
+      assert.deepEqual(errors, [cause]);
+      assert.equal(container.textContent, "pending");
+    } finally {
+      await act(async () => root.unmount());
+    }
+  });
+}

@@ -35,3 +35,25 @@
 
 Next/Nuxt 的真实 fixture 和 CI 尚待完成，现在不能宣传已全面支持 SSR。
 详细实施边界、官方参考与发布验收见[英文计划](../../project/ssr-roadmap.md)。
+
+## 现有 API 的 SSR 行为
+
+| API | 服务端渲染 | 浏览器生命周期 |
+| --- | --- | --- |
+| `defineVooyaComponent` | 输出空容器，不调用 `loadBindings` | hydration 后挂载，转发 props/事件，卸载时 dispose |
+| 生成的 `use<Name>()` Store hook | state 为 `undefined`，不创建 Store | 每次 hook 调用创建独立实例，订阅并在卸载时取消订阅、dispose |
+| Vue `useVooyaStore(() => createStore())` | 不执行 factory | 挂载后创建，创建错误交给 `onError` |
+| React `useVooyaStore(factory, props, options)` | 不执行 factory | effect 中创建，同步抛错与 Promise 拒绝均交给 `onError` |
+| 生成的 `create<Name>Store()` | 调用即开始加载 runtime，不会自动延迟 | 脱离 hook 使用时，由调用方管理订阅和 dispose |
+| bindings 的 `mount(host, ...)` | 需要浏览器 DOM，不提供服务端 HTML 渲染 | 脱离适配器使用时，由调用方负责更新和 dispose |
+
+state 为 `undefined` 时不要派发 action。模块顶层共享 Store 不具备请求隔离；
+传给 Vue 的现成 Store 或已启动的 Promise，也无法撤销已经开始的工作。
+
+新增 `npm run test:nuxt-ssr`：在独立临时项目中安装五个打包后的 Vooya 包，
+使用 Nuxt 4.5.2、Vite 8.3.1、Vue 3.5.43，验证生产 Node SSR、真实 WASM、
+两个独立 Store、props/事件、scoped CSS、客户端路由切换、Rust 组件与 Store
+销毁以及返回页面后的全新状态。由独立 PR CI job 执行，也纳入 `verify:e2e`。
+这不代表 Next.js、Edge runtime 或 Rust 服务端 HTML 已经支持。
+此 fixture 中 Nuxt 传入的 Vite root 是 `app`，Rust 文件放在 `app/src`；
+另行发现的 `sourceRoot: "."` schema 路径匹配问题仍待处理。
