@@ -69,6 +69,12 @@ the primary Store API for Vue application code; `state` is a readonly reactive
 
 ### `useVooyaStore(source, options?)` (advanced)
 
+The Store contract requires `getSnapshot`, `subscribe`, and `dispose`; generated
+Store interfaces do not need a string index signature. Vue accepts the generated
+factory's Promise directly. React, Solid, and Svelte accept the factory plus props
+and infer the snapshot and declared actions from its Store type. Prefer generated
+`use<Name>` hooks for ordinary application code.
+
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
 | `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | Custom integration or shared-instance ownership | Vue `>=3.5.2 <4`; not the primary generated hook |

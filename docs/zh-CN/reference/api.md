@@ -54,6 +54,10 @@ Vue 应用消费 Store 的主入口，返回 `{ state, ...typedActions }`；`sta
 
 ### `useVooyaStore(source, options?)`（高级 API）
 
+Store 契约要求 `getSnapshot`、`subscribe` 和 `dispose`，不要求生成的接口声明任意字符串索引。
+Vue 可直接接收生成 factory 的 Promise；React、Solid 和 Svelte 接收 factory 与 props，
+并从 Store 类型推断 snapshot 和已声明 action 的类型。普通业务代码仍优先使用生成的 `use<Name>` hook。
+
 `useVooyaStore` 是 Vue 专用 composable，不是普通用户的主入口，也不是跨框架的
 Vooya 通用 API或 Vapor 专属 API；React 请使用生成的 `useName()` hook。使用 Vue
 Vapor 时，仍需由宿主自行配置 `createVaporApp` 和 `vaporInteropPlugin`。
