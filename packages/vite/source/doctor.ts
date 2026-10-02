@@ -164,6 +164,29 @@ export function inspectToolchain({
   };
 }
 
+/** Public, versioned diagnostics for CLI consumers; never serialize build internals. */
+export function createToolchainJsonReport(report: ReturnType<typeof inspectToolchain>) {
+  return {
+    schemaVersion: 1,
+    ok: report.ok,
+    results: report.results.map(({ name, status, detail }) => ({ name, status, detail })),
+    workspaceRoot: report.workspaceRoot,
+    cargo: {
+      path: report.cargoPath,
+      version: report.cargo,
+      candidates: report.cargoCandidates,
+      selection: report.cargoSelection,
+    },
+    rustc: {
+      path: report.rustcPath,
+      version: report.rustc,
+      sysroot: report.sysroot,
+    },
+    target: { triple: WASM_TARGET, libdir: report.targetLibdir },
+    wasmBindgen: { path: report.wasmBindgenPath, version: report.wasmBindgen },
+  };
+}
+
 export function formatToolchainReport(report) {
   const lines = ["Vooya doctor", ""];
   for (const result of report.results) {

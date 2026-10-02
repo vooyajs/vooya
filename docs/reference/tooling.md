@@ -90,8 +90,17 @@ by the Vite process:
 
 ```sh
 npx vooya doctor
+npx vooya doctor --json
 npx vooya doctor --cargo-path /opt/custom-rust/bin/cargo
 ```
+
+`--json` writes one JSON report with `schemaVersion: 1`, `ok`, `results`,
+`workspaceRoot`, and diagnostic records for `cargo`, `rustc`, `target`, and
+`wasmBindgen`. Records contain the available executable paths and versions;
+unavailable optional fields are omitted. This public report excludes internal
+build objects and the process environment. A failed check still exits with code
+1, so CI can parse stdout and check the exit status independently. Without the
+flag, the existing text report is unchanged. `--json` is only valid for `doctor`.
 
 It checks every `cargo` found on `PATH` in order unless `--cargo-path` explicitly
 selects one Cargo. An explicit path is authoritative: if it is incomplete,
