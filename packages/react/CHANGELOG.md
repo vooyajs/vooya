@@ -3,6 +3,15 @@
 Historical entries were reconstructed from published package metadata and release
 snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
+## 0.1.0-beta.1
+
+### Patch Changes
+
+- 83c2127: Report synchronous component binding loader failures through the existing
+  `onError` lifecycle callback in React, Solid, and Svelte, matching rejected
+  loader promises. Report synchronous Solid and Svelte Store factory failures
+  through their existing `onError` callback without losing owner context.
+
 ## 0.1.0-beta.0
 
 ### Patch Changes
