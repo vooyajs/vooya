@@ -90,9 +90,16 @@ by the Vite process:
 
 ```sh
 npx vooya doctor
+# main / next release only; not available in beta.0
 npx vooya doctor --json
 npx vooya doctor --cargo-path /opt/custom-rust/bin/cargo
 ```
+
+::: info Availability
+`doctor --json` is available on `main` for the next release. Published
+`@vooya/vite@0.1.0-beta.0` does not support this flag; use `vooya doctor`
+without it on beta.0.
+:::
 
 `--json` writes one JSON report with `schemaVersion: 1`, `ok`, `results`,
 `workspaceRoot`, and diagnostic records for `cargo`, `rustc`, `target`, and

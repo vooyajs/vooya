@@ -1,16 +1,18 @@
 # Getting Started
 
-Vooya currently targets existing Vite `>=7` applications using Vue `>=3.5.2 <4`
-or React `>=19`. Solid `>=1.9 <2` is an experimental first-party adapter with
-current evidence on the Vite 7 Rust-file path. Svelte `>=5 <6` is experimental
-with the same Vite 7 evidence boundary. Rust-file components and stores use
-ordinary `.rs` files and are compiled on the application author's machine, so
-both the JavaScript and Rust toolchains are required.
+Add one Rust component to an existing Vite application. Choose your framework:
 
-This guide covers the supported source-authoring path. Vooya does not currently
-publish a user-facing precompiled component product. The repository's test-only
-precompiled Vue consumer is build-contract evidence, so the Rust/WASM
-prerequisites below apply to source authoring.
+- [Vue 3](#vue): install the adapter and configure the Vue plugin.
+- [React 19](#react): install the adapter and configure the React plugin.
+
+Both paths use the same [Greeting component](#first-component), then
+[run and check the result](#verify-before-the-first-dev-run). This guide assumes
+Vite 7 or 8, Vue `>=3.5.2 <4` or React `>=19`, and working application entry points
+and `dev`/`build` scripts. If you do not have an application yet, [create a Vue or React Vite
+project](https://vite.dev/guide/#scaffolding-your-first-vite-project) first.
+
+[Solid, Svelte, Vite+, Rspack, and Webpack](./other-integrations.md) have separate
+setup notes. Check their support boundaries before choosing them.
 
 ## Prerequisites
 
@@ -28,11 +30,9 @@ C++** workload, including MSVC C++ build tools and a Windows SDK. Cargo needs th
 MSVC linker, `link.exe`, to compile the CLI. Reopen the terminal after installation
 so the linker is available on `PATH`.
 
-These are current source-authoring prerequisites for the beta. Vooya will continue
-to reduce manual Rust, WASM, and platform-linker setup and move toward a more
-out-of-the-box experience. Future work may use precompiled artifacts, better
-diagnostics, and managed toolchain flows to lower this barrier; the current
-version does not install Rust or Visual Studio for you.
+### Install the WASM tools
+
+On every platform, install the target and matching CLI:
 
 ```sh
 rustup target add wasm32-unknown-unknown
@@ -40,51 +40,12 @@ cargo install wasm-bindgen-cli --version 0.2.115 --locked
 wasm-bindgen --version
 ```
 
-After installing the Vite plugin, verify the exact toolchain that Vooya will
-select for Vite:
-
-```sh
-npm exec -- vooya doctor
-```
-
-The command checks a coherent Cargo-selected toolchain: `cargo`, the exact
-`rustc` that Cargo invokes, the `wasm32-unknown-unknown` target, and the pinned
-`wasm-bindgen` CLI. On Windows MSVC toolchains, it also checks for `link.exe`.
-It reports the selected executable paths, warns when the active Rust sysroot is
-not managed by rustup, and warns when it had to select a later Cargo than the
-first Cargo on `PATH`. To explicitly select Cargo in the Vite plugin, configure
-`toolchain.cargoPath`; to inspect that choice from the CLI, pass the same path
-with `vooya doctor --cargo-path <path>`.
-
-Install the adapter and bundler integration from the `beta` channel and retain
-your lockfile. The first beta publishes all ten packages at `0.1.0-beta.0`;
-later versions may differ by package, with exact internal dependencies managed
-by the release workflow. Do not mix unreleased `main` sources with npm adapters.
-See the [framework capability matrix](../project/compatibility.md#beta-framework-capabilities)
-for the distinction between supported Vue/React and experimental Solid/Svelte.
-
-## npm and pnpm
-
-The examples below show both npm and pnpm commands.
-
-pnpm 11 may block dependency install scripts until they are explicitly
-approved. If pnpm reports that the `esbuild` build was ignored, approve
-`esbuild` specifically:
-
-```sh
-pnpm approve-builds esbuild
-```
-
-Only do this when pnpm reports `esbuild` as blocked. The approval allows
-esbuild's install script to run. esbuild uses that script to verify or install
-the platform-specific native executable for the current system.
-Do not approve unrelated packages merely to remove the warning.
-
-You can inspect packages whose build scripts are currently blocked with:
-
-```sh
-pnpm ignored-builds
-```
+Install Vooya packages from `beta` and retain your lockfile. The first beta is
+`0.1.0-beta.0`; later packages may have different versions, with exact internal
+dependencies managed by the release workflow. Do not mix unreleased `main`
+sources with published adapters. This path compiles Rust locally; Vooya does
+not install Rust for you. See [compatibility](../project/compatibility.md) for
+the supported framework and bundler versions.
 
 ## Vue
 
@@ -98,7 +59,7 @@ npm install @vooya/vue@beta
 npm install --save-dev @vooya/vite@beta
 ```
 
-pnpm:
+pnpm (see [install-script help](#using-pnpm) if esbuild is blocked):
 
 ```sh
 pnpm add @vooya/vue@beta
@@ -117,12 +78,12 @@ export default defineConfig({
 });
 ```
 
-Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)
-before starting Vite.
+Next, [create the Greeting component](#first-component).
 
 ## React
 
-Install the React adapter and Vite plugin.
+Install the adapter and plugin in an existing React application with `react`,
+`react-dom`, `vite`, and `@vitejs/plugin-react` already installed.
 
 npm:
 
@@ -131,7 +92,7 @@ npm install @vooya/react@beta
 npm install --save-dev @vooya/vite@beta
 ```
 
-pnpm:
+pnpm (see [install-script help](#using-pnpm) if esbuild is blocked):
 
 ```sh
 pnpm add @vooya/react@beta
@@ -150,146 +111,7 @@ export default defineConfig({
 });
 ```
 
-Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)
-before starting Vite.
-
-## Solid
-
-Install the Solid adapter and Vite plugin in an existing Solid application:
-
-```sh
-npm install @vooya/solid@beta
-npm install --save-dev @vooya/vite@beta
-```
-
-Select the Solid adapter after `vite-plugin-solid`:
-
-```js
-import { vooya } from "@vooya/vite";
-import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
-
-export default defineConfig({
-  plugins: [solid(), vooya({ framework: "solid" })],
-});
-```
-
-Generated Store state follows Solid conventions and is read as an accessor:
-
-```tsx
-import Counter from "./Counter.rs";
-import { useCart } from "./Store.rs";
-
-export function App() {
-  const { state, add } = useCart();
-  return <Counter count={state()?.count ?? 0} onSelected={console.log} />;
-}
-```
-
-Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)
-before starting Vite.
-
-## Svelte
-
-Install the Svelte 5 adapter and Vite plugin in an existing Svelte application:
-
-```sh
-npm install @vooya/svelte@beta
-npm install --save-dev @vooya/vite@beta
-```
-
-Configure `@sveltejs/vite-plugin-svelte` before Vooya:
-
-```js
-import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { vooya } from "@vooya/vite";
-import { defineConfig } from "vite";
-
-export default defineConfig({
-  plugins: [svelte(), vooya({ framework: "svelte" })],
-});
-```
-
-Import ordinary Rust files from a `.svelte` component. Callback events use
-`onEventName` props, and generated Store state is a Svelte `Readable` consumed
-with `$state` in the template:
-
-```svelte
-<script>
-  import Counter from "./Counter.rs";
-  import { useCart } from "./Store.rs";
-
-  const { state, add } = useCart();
-  let selected;
-</script>
-
-<Counter count={$state?.count ?? 0} onSelected={(value) => selected = value} />
-<button onclick={() => add(1)}>Store {$state?.count ?? 0}</button>
-```
-
-Continue to [Verify before the first dev run](#verify-before-the-first-dev-run)
-before starting Vite.
-
-## Verify before the first dev run
-
-Before starting Vite for the first time, verify the exact toolchain Vooya will
-select.
-
-npm:
-
-```sh
-npm exec -- vooya doctor
-```
-
-pnpm:
-
-```sh
-pnpm exec vooya doctor
-```
-
-The command checks a coherent Cargo-selected toolchain: `cargo`, the exact
-`rustc` that Cargo invokes, the `wasm32-unknown-unknown` target, and the pinned
-`wasm-bindgen` CLI. On Windows MSVC toolchains, it also checks for `link.exe`.
-It reports the executable paths, warns when a later Cargo than the first PATH
-candidate is selected, and warns when the active Rust sysroot is not managed by
-rustup. To inspect an explicit plugin selection, pass the same path with
-`vooya doctor --cargo-path <path>`.
-
-If the doctor reports a Rust or WASM problem, return to
-[Prerequisites](#prerequisites) before starting the development server.
-
-For TypeScript projects, configure the tsconfig used by the application
-(normally `tsconfig.app.json` in a new Vite project):
-
-```json
-{
-  "compilerOptions": {
-    "allowArbitraryExtensions": true,
-    "rootDirs": [".", ".vooya/types"]
-  }
-}
-```
-
-Vooya mirrors declarations under `.vooya/types` so source directories remain
-clean. The plugin cannot silently change the configuration used by `tsc`,
-`vue-tsc`, or an editor language service; `vooya doctor` reports an actionable
-warning when it finds an incomplete TypeScript config.
-
-Run the application's normal Vite scripts after the doctor passes.
-
-npm:
-
-```sh
-npm run dev
-npm run build
-```
-
-pnpm:
-
-```sh
-pnpm run dev
-pnpm run build
-```
+Next, [create the Greeting component](#first-component).
 
 ## First component
 
@@ -330,7 +152,7 @@ The CSS file remains a normal bundler-owned asset.
 
 Import it like a framework component.
 
-Vue:
+Vue: replace `src/App.vue` with:
 
 ```vue
 <script setup lang="ts">
@@ -342,118 +164,118 @@ import Greeting from "./Greeting.rs";
 </template>
 ```
 
-React:
+React: replace `src/App.tsx` with:
 
 ```tsx
 import Greeting from "./Greeting.rs";
 
-export function App() {
+export default function App() {
   return <Greeting name="Rust" />;
 }
 ```
 
-Starting the Vite development server or running a production build generates
-the application-local Rust crate, WASM module, framework adapter, and mirrored
-TypeScript declaration under `.vooya/types`.
+## Verify before the first dev run
 
-All generated application state is disposable:
+For TypeScript, merge these options into the application's tsconfig (usually
+`tsconfig.app.json`):
+
+```json
+{
+  "compilerOptions": {
+    "allowArbitraryExtensions": true,
+    "rootDirs": [".", ".vooya/types"]
+  }
+}
+```
+
+Check the Rust tools before starting Vite:
+
+```sh
+npm exec -- vooya doctor
+# pnpm: pnpm exec vooya doctor
+```
+
+Resolve any errors before continuing. See the [toolchain reference](../reference/tooling.md#doctor)
+for Cargo selection and diagnostic details, or the [troubleshooting guide](./troubleshooting.md)
+if setup fails.
+
+Start the development server:
+
+```sh
+npm run dev
+# pnpm: pnpm run dev
+```
+
+Open the local URL printed by Vite. The page should show **Hello, world.** in
+Vue or **Hello, Rust.** in React, with bold text from `Greeting.css`. Change the
+`name` prop to confirm that your host application supplies the Rust component's input.
+The first run compiles Rust and may take longer than later runs.
+
+Wait for the page to render, then stop the server and check the production build:
+
+```sh
+npm run build
+# pnpm: pnpm run build
+```
+
+Run dev first: Vite templates may run `tsc` or `vue-tsc` before the build, and
+they need the declarations generated during that first dev run.
+
+Vite generates the Rust crate, WASM, adapters, and TypeScript declarations under
+`.vooya/`. After generation, run your application's existing typecheck script if
+it has one. To remove generated state and rebuild it later:
 
 ```sh
 npm exec -- vooya clean
 ```
 
+## Using pnpm
+
+The commands above include pnpm alternatives.
+
+pnpm 11 may block dependency install scripts until they are explicitly
+approved. If pnpm reports that the `esbuild` build was ignored, approve
+`esbuild` specifically:
+
+```sh
+pnpm approve-builds esbuild
+```
+
+Only do this when pnpm reports `esbuild` as blocked. The approval allows
+esbuild's install script to run. esbuild uses that script to verify or install
+the platform-specific native executable for the current system.
+Do not approve unrelated packages merely to remove the warning.
+
+You can inspect packages whose build scripts are currently blocked with:
+
+```sh
+pnpm ignored-builds
+```
+
+## Next steps
+
 See the working [Vue counter](https://github.com/vooyajs/vooya/tree/main/examples/vue-counter) and
-[React counter](https://github.com/vooyajs/vooya/tree/main/examples/react-counter) for complete applications. For a
-larger Rust-owned rendering surface, run the
-[150,000 point Vue scatter plot](https://github.com/vooyajs/vooya/tree/main/examples/scatter-plot) with
-`npm run dev:scatter`.
+[React counter](https://github.com/vooyajs/vooya/tree/main/examples/react-counter).
+Use a [Store](../concepts/store.md) when Rust should own the logic while Vue or
+React renders the interface. Continue with [Rust authoring](./rust-file-authoring.md)
+for props, events, and styles.
+
+## Solid
+
+See [Solid setup](./other-integrations.md#solid), an experimental Vite 7 path.
+
+## Svelte
+
+See [Svelte setup](./other-integrations.md#svelte), an experimental Vite 7 path.
 
 ## Vite+
 
-Vite+ is a unified CLI and toolchain around Vite, not a separate Vooya adapter.
-The tested Vite+ path uses Vite+ 0.2.9's Vite core alias and the same
-`vooya()` plugin configuration:
-
-```sh
-npm install --save-dev vite-plus@0.2.9
-npx vp build
-```
-
-For a project managed by Vite+, follow its installation and migration guide,
-including the documented `vite` alias to
-`@voidzero-dev/vite-plus-core`. Keep `vooya()` in the normal Vite plugin list;
-the current fixture needs npm's legacy peer resolver because the aliased core
-uses Vite+'s `0.x` version instead of Vite's peer version. This is a recorded
-Vite+ integration cost, not a requirement of the normal Vite path. The
-Vooya compatibility check is:
-
-```sh
-npm run test:vite-plus
-```
-
-This is a compatibility smoke path, not a claim that Vooya owns Vite+'s
-runtime, package manager, task runner, or every bundled tool.
+See [Vite+ setup](./other-integrations.md#vite).
 
 ## Experimental Rspack path
 
-For an existing Rsbuild Vue application, install the Vue adapter and Rspack
-integration from the same beta channel:
-
-```sh
-npm install @vooya/vue@beta
-npm install --save-dev @vooya/rspack@beta
-```
-
-Add the integration beside the normal Vue plugin:
-
-```ts
-import { defineConfig } from "@rsbuild/core";
-import { pluginVue } from "@rsbuild/plugin-vue";
-import { vooyaRsbuild } from "@vooya/rspack";
-
-export default defineConfig({
-  plugins: [pluginVue(), vooyaRsbuild()],
-});
-```
-
-React projects use `vooyaRsbuild({ framework: "react" })` with their normal
-Rsbuild React plugin. Direct Rspack configuration is documented in the
-[`@vooya/rspack` package README](https://github.com/vooyajs/vooya/blob/main/packages/rspack/README.md).
-
-This path currently requires Rspack `>=2.1.10` and the same local Rust/WASM
-tools as Vite. It is experimental; SSR, Module Federation, and earlier Rspack
-versions are not support claims. Exact fixture evidence currently uses 2.1.10.
+See [Rspack setup](./other-integrations.md#experimental-rspack-path).
 
 ## Experimental Webpack 5 path
 
-Install the framework adapter and Webpack integration from the same `beta`
-channel. The current experimental range is Webpack `>=5`.
-
-```sh
-npm install @vooya/vue@beta
-npm install --save-dev @vooya/webpack@beta
-```
-
-Add the plugin's loader rule alongside the application's normal framework and
-CSS rules:
-
-```js
-import { vooyaWebpack } from "@vooya/webpack";
-
-const vooya = vooyaWebpack({ framework: "vue" });
-
-export default {
-  experiments: { asyncWebAssembly: true },
-  module: {
-    rules: [
-      vooya.rule(),
-      { test: /\.css$/, use: ["style-loader", "css-loader"] },
-    ],
-  },
-  plugins: [vooya],
-};
-```
-
-React projects select `framework: "react"`. Webpack Dev Server uses full-page
-live reload after successful Rust rebuilds; component state is not preserved.
-Webpack 4, Module Federation, SSR, and hydration are outside the current claim.
+See [Webpack setup](./other-integrations.md#experimental-webpack-5-path).
