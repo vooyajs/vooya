@@ -3,6 +3,12 @@
 Historical entries were reconstructed from published package metadata and release
 snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
+## 0.1.0-beta.1
+
+### Patch Changes
+
+- 27048de: Accept generated Rust Store interfaces in the public low-level store adapters without requiring arbitrary string keys. Preserve inferred snapshot types and declared action signatures, including Promise-returning factories; existing explicit generic calls remain supported.
+
 ## 0.1.0-beta.0
 
 ### Patch Changes

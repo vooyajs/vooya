@@ -5,6 +5,12 @@ snapshots; see [release history evidence](../../docs/maintainers/release-history
 
 Versions before alpha.9 were published as `@vooya/vite-plugin`, not `@vooya/vite`.
 
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- 1515841: Preserve Vite's explicit `?raw` imports of Rust and Voo files as source strings, including eager source-preview globs, instead of compiling them into component or Store modules. Normal component and Store imports continue to compile.
+
 ## 0.1.0-beta.1
 
 ### Patch Changes
