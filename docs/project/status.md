@@ -2,9 +2,9 @@
 
 The first Vooya beta, `0.1.0-beta.0`, was published for all ten public packages.
 The current npm `beta` channel has `@vooya/vite`, `@vooya/react`, `@vooya/solid`,
-and `@vooya/svelte` at `0.1.0-beta.1`. The other six packages, including
-`@vooya/vue`, `@vooya/core`, `@vooya/compiler`, and `@vooya/build-core`, remain at
-`0.1.0-beta.0`. Use each package's npm `beta` tag. It remains a prerelease, not a stable compiler or a
+and `@vooya/svelte` at `0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`.
+The other five packages (`@vooya/core`, `@vooya/compiler`, `@vooya/build-core`,
+`@vooya/rspack`, and `@vooya/webpack`) remain at `0.1.0-beta.0`. Use each package's npm `beta` tag. It remains a prerelease, not a stable compiler or a
 production compatibility promise. The main branch may contain unreleased work.
 
 Vue and React are supported first-party adapters. Solid and Svelte are shipped
@@ -22,6 +22,12 @@ The [beta.1 release run](https://github.com/vooyajs/vooya/actions/runs/369971529
 passed the release gate, exact registry-consumer verification, and GitHub Release
 publication for the updated package set. This is release evidence for those
 versions; it does not expand the framework compatibility matrix.
+
+The current versions include two fixes found while integrating Vooya Lab:
+Vite preserves explicit [`?raw` Rust source imports](https://github.com/vooyajs/vooya/pull/142),
+and the four adapters accept [generated Store interfaces](https://github.com/vooyajs/vooya/pull/143)
+without an arbitrary string index signature. The Store type fix is available
+since Vue beta.1 and React/Solid/Svelte beta.2; the raw import fix requires Vite beta.2.
 
 The ten public packages share one release workflow:
 

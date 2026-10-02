@@ -62,6 +62,6 @@ workload 仍应与真实宿主基线测量。
 
 首个 Beta 的十个公开包均为 `0.1.0-beta.0`。当前 npm `beta` 渠道中，
 `@vooya/vite`、`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 已为
-`0.1.0-beta.1`，其余六个仍为 beta.0。请按包使用 `beta` 标签，不要强制同版。Vite Rust-file 路径是主要 source-authoring
+`0.1.0-beta.2`，`@vooya/vue` 为 `0.1.0-beta.1`，其余五个仍为 beta.0。请按包使用 `beta` 标签，不要强制同版。Vite Rust-file 路径是主要 source-authoring
 路径，Rspack 与 Webpack 仍是 experimental；预编译组件产品尚未正式发布。
 请从[快速开始](guide/getting-started.md)开始，再看[项目状态](project/status.md)。

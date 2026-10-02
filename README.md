@@ -43,8 +43,8 @@ event forwarding, and diagnostic mappings.
 
 The first beta, `0.1.0-beta.0`, was published for all ten public packages.
 The current npm `beta` channel has `@vooya/vite`, `@vooya/react`, `@vooya/solid`,
-and `@vooya/svelte` at `0.1.0-beta.1`; the other six packages, including
-`@vooya/vue`, remain at `0.1.0-beta.0`. Install each package from the `beta`
+and `@vooya/svelte` at `0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`;
+the other five packages remain at `0.1.0-beta.0`. Install each package from the `beta`
 channel rather than forcing a shared version. Vue and React are the
 supported paths; Solid and Svelte remain experimental, with Vite 7 + Chromium
 evidence. Publishing an adapter does not imply framework-wide compatibility.
