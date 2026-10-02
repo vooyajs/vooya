@@ -27,7 +27,8 @@ export interface VooyaStoreOptions {
 export type UseVooyaStoreOptions = VooyaStoreOptions;
 export type VooyaStoreSource<TSnapshot = unknown> =
   | VooyaStore<TSnapshot>
-  | PromiseLike<VooyaStore<TSnapshot>>;
+  | PromiseLike<VooyaStore<TSnapshot>>
+  | (() => VooyaStore<TSnapshot> | PromiseLike<VooyaStore<TSnapshot>>);
 
 export interface VooyaStoreBridge<TStore extends VooyaStore<unknown>> {
   name: string;
@@ -40,7 +41,7 @@ export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
   bridge: VooyaStoreBridge<TStore>,
 ) {
   return function useGeneratedVooyaStore(options: VooyaStoreOptions = {}) {
-    const consumed = useVooyaStore(bridge.create(), {
+    const consumed = useVooyaStore(() => bridge.create(), {
       ...options,
       disposeOnUnmount: true,
     });
@@ -62,9 +63,10 @@ export function useVooyaStore<TSnapshot>(
   source: VooyaStoreSource<TSnapshot>,
   options: VooyaStoreOptions = {},
 ) {
+  const lazy = typeof source === "function";
   const pending = source && typeof source === "object" && "then" in source;
   const snapshot = shallowRef<TSnapshot | undefined>(
-    pending ? undefined : (source as VooyaStore<TSnapshot>).getSnapshot(),
+    lazy || pending ? undefined : (source as VooyaStore<TSnapshot>).getSnapshot(),
   );
   let store: VooyaStore<TSnapshot> | undefined;
   let unsubscribe: (() => void) | undefined;
@@ -89,8 +91,13 @@ export function useVooyaStore<TSnapshot>(
   };
 
   onMounted(() => {
-    if (pending) {
-      Promise.resolve(source).then(attach).catch((cause) => {
+    if (lazy || pending) {
+      // Factories must not start WASM work during SSR setup. Resolve them only
+      // after hydration, with the same rejection and late-disposal path.
+      const resolved = typeof source === "function"
+        ? Promise.resolve().then(source)
+        : Promise.resolve(source);
+      resolved.then(attach).catch((cause) => {
         if (active) options.onError?.(cause);
       });
     } else {
