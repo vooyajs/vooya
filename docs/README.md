@@ -55,6 +55,8 @@ semantics instead of browser WebAssembly.
   the limits of their conclusions.
 - [Beta boundary](project/beta-boundary.md): the current product scope,
   authoring decision, and remaining contract gate.
+- [Lab self-hosting program](rfcs/0011-lab-self-hosting-program.md): the
+  ongoing evidence loop between Vooya Lab and the owning product layers.
 - [Language provider research](project/language-provider-research.md): the
   post-beta artifact/provider seam; it does not expand Rust-only beta support.
 - [Scatter-plot demo](guide/scatter-plot.md): a repeatable browser check for a
@@ -70,7 +72,7 @@ substitute for the current guides.
 Open a GitHub issue titled `RFC: <proposal>` first. The issue is where options,
 compatibility effects, acceptance gates, and the maintainer decision are
 recorded. After a decision, maintainers may add a numbered document here; bugs,
-chores, and implementation tasks do not consume RFC numbers. RFC 0009 is the
+chores, and implementation tasks do not consume RFC numbers. RFC 0012 is the
 next available number.
 
 - [RFC 0001: component islands](rfcs/0001-component-islands.md)
@@ -80,6 +82,8 @@ next available number.
 - [RFC 0006: precompiled Vue artifacts](rfcs/0006-precompiled-vue-artifacts.md)
 - [RFC 0007: Rust-file authoring and ABI v1](rfcs/0007-rust-file-authoring-and-abi-v1.md)
 - [RFC 0008: layer boundary and version roadmap](rfcs/0008-layer-boundary-and-roadmap.md)
+- [RFC 0010: opt-in in-place component updates](rfcs/0010-in-place-component-updates.md)
+- [RFC 0011: Vooya Lab alpha self-hosting program](rfcs/0011-lab-self-hosting-program.md)
 
 Performance work is recorded separately:
 

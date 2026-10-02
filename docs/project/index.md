@@ -9,6 +9,8 @@ passing fixture is not mistaken for a broad support promise.
 - [Status](./status.md): what the current beta can do and where it is limited.
 - [Compatibility matrix](./compatibility.md): framework, bundler, browser, and
   toolchain evidence.
+- [Lab self-hosting program](../rfcs/0011-lab-self-hosting-program.md): the
+  ongoing evidence and ownership loop between this repository and Vooya Lab.
 - [Turbopack research](./turbopack-research.md): loader API evidence and open
   integration questions for a future Next.js source integration.
 - [Language provider research](./language-provider-research.md): the post-beta

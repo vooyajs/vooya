@@ -59,6 +59,9 @@ See [the release guide](../maintainers/releases.md).
   mount/unmount behavior in both Vue and React browser fixtures.
 - Ship `vooya doctor` for coherent Cargo-selected Rust target, CLI-version, and rustup-path diagnostics.
 - Demonstrate a Vue-hosted 150,000-point Rust/WASM Canvas scatter plot.
+- Use [Vooya Lab](https://vooyajs.github.io/vooya-lab/) as a
+  self-hosting and evidence program; Lab findings that affect product contracts
+  return here as focused issues and fixes.
 - Build packed npm artifacts from a project outside the repository checkout.
 - Verify a test-only precompiled Vue WASM consumer in a clean Vite project
   without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
@@ -141,6 +144,8 @@ See [the release guide](../maintainers/releases.md).
 - The default CI browser evidence is a small Chromium smoke suite plus the
   bundler integration fixtures. Extended DataGrid, scatter, trace, and Firefox
   checks remain available through explicit manual commands.
+- Vooya Lab cases are evidence and product discovery, not a separate support
+  matrix or an automatic beta gate; see [RFC 0011](../rfcs/0011-lab-self-hosting-program.md).
 
 ## Next milestones
 
