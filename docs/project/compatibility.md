@@ -6,7 +6,7 @@ SSR and hydration. Each entry is evidence for the named test path only.
 
 ## Beta framework capabilities
 
-All four adapter packages are published at `0.1.0-beta.0` on the npm `beta`
+All four adapter packages first shipped at `0.1.0-beta.0` on the npm `beta`
 channel. **Published** describes package availability; **supported** describes
 the narrower integration contract. Beta does not mean every host-framework
 feature is implemented.

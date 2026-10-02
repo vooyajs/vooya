@@ -67,13 +67,13 @@ consumer 仍属于未来方向。
 
 ```sh
 npx vooya doctor
-# 仅 main / 下一版本；beta.0 不支持
+# 自 @vooya/vite@0.1.0-beta.1 起支持；beta.0 不支持
 npx vooya doctor --json
 npx vooya doctor --cargo-path /opt/custom-rust/bin/cargo
 ```
 
 ::: info 版本范围
-`doctor --json` 已合入 `main`，供下一版本发布。已发布的
+`doctor --json` 自 `@vooya/vite@0.1.0-beta.1` 起支持。
 `@vooya/vite@0.1.0-beta.0` 不支持该参数；beta.0 请使用不带参数的 `vooya doctor`。
 :::
 
