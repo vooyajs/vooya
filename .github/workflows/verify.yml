@@ -169,7 +169,37 @@ jobs:
       - name: Verify release metadata
         run: npm run verify:release-metadata
 
-      # Browser E2E and bundler browser matrices remain part of the local
-      # release gate (`npm run verify:release`), not routine pull-request CI.
+      # The broader browser/bundler matrix remains in the local release gate;
+      # the named component ABI smoke below also runs on pull requests.
       - name: Run CI verification
         run: npm run verify:ci
+
+  named-component-abi:
+    name: Named component ABI (Vue and React)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Restore wasm-bindgen CLI cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.115-${{ runner.os }}
+      - name: Install wasm-bindgen CLI
+        run: |
+          if ! wasm-bindgen --version 2>/dev/null | grep -Fx 'wasm-bindgen 0.2.115'; then
+            cargo install wasm-bindgen-cli --version 0.2.115 --locked --force
+          fi
+          wasm-bindgen --version | grep -Fx 'wasm-bindgen 0.2.115'
+      - run: node scripts/verify-lockfile-registry.mjs
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:rust-vue
+      - run: npm run test:rust-react
