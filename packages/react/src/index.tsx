@@ -79,7 +79,7 @@ export function defineVooyaComponent(
         return { name: `vooya-${event.name}`, receive };
       });
 
-      void loadBindings()
+      void Promise.resolve().then(loadBindings)
         .then((bindings) => {
           if (!active) return;
           const startedAt = performance.now();

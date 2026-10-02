@@ -114,7 +114,7 @@ export function defineVooyaComponent(
     onMount(() => {
       for (const listener of listeners) host.addEventListener(listener.name, listener.receive);
 
-      void loadBindings().then(
+      void Promise.resolve().then(loadBindings).then(
         (bindings) => {
           if (!active) return;
           const startedAt = performance.now();
@@ -229,7 +229,13 @@ export function useVooyaStore<
   let createdStore: TStore | undefined;
   let unsubscribe: (() => void) | undefined;
 
-  Promise.resolve(factory(props, options)).then(
+  let pending: TStore | Promise<TStore>;
+  try {
+    pending = factory(props, options);
+  } catch (cause) {
+    pending = Promise.reject(cause);
+  }
+  Promise.resolve(pending).then(
     (resolved) => {
       createdStore = resolved;
       if (!active) {

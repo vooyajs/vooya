@@ -267,6 +267,37 @@ test("doctor explains a missing target and mismatched wasm-bindgen", () => {
   assert.doesNotMatch(output, /\.cargo\/bin before/);
 });
 
+for (const cliFailure of ["missing", "mismatched"]) {
+  test(`doctor preserves an installed target when wasm-bindgen is ${cliFailure}`, () => {
+    const cargoPath = "/opt/rust/bin/cargo";
+    const rustcPath = "/opt/rust/bin/rustc";
+    const wasmBindgenPath = "/opt/rust/bin/wasm-bindgen";
+    const targetLibdir = "/opt/rust/lib/rustlib/wasm32-unknown-unknown/lib";
+    const { runner } = matchingFixture({
+      cargoPath, rustcPath, wasmBindgenPath, targetLibdir,
+      sysroot: "/opt/rust",
+      rustcVerbose: "rustc 1.94.0\nhost: x86_64-unknown-linux-gnu",
+    });
+    const report = inspect({
+      env: { PATH: "/opt/rust/bin" },
+      run: (command, args, options) => {
+        if (command === wasmBindgenPath && args[0] === "--version") {
+          if (cliFailure === "missing") throw new Error("Executable not found");
+          return "wasm-bindgen 0.2.126";
+        }
+        return runner(command, args, options);
+      },
+      exists: (path) => path === targetLibdir,
+    });
+
+    assert.equal(report.ok, false);
+    assert.equal(report.results.find((result) => result.name === `Rust target ${WASM_TARGET}`).status, "ok");
+    assert.equal(report.targetLibdir, targetLibdir);
+    assert.equal(report.results.find((result) => result.name === `wasm-bindgen ${WASM_BINDGEN_VERSION}`).status, "error");
+    assert.doesNotMatch(formatToolchainReport(report), /\[error\] Rust target/);
+  });
+}
+
 test("doctor resolves a Windows rustc path containing spaces", () => {
   const cargoPath = "C:\\Program Files\\Rust\\bin\\cargo.exe";
   const rustcPath = "C:\\Program Files\\Rust\\toolchains\\stable\\bin\\rustc.exe";

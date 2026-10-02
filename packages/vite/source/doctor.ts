@@ -58,7 +58,7 @@ export function inspectToolchain({
   const cargo = toolchain?.cargo ?? attempt?.cargo;
   const rustc = toolchain?.rustc ?? attempt?.rustc;
   const wasmBindgen = toolchain?.wasmBindgen ?? attempt?.wasmBindgen;
-  const target = toolchain?.target;
+  const target = toolchain?.target ?? attempt?.target;
 
   results.push(
     check(
