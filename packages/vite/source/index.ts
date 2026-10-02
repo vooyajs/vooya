@@ -39,6 +39,8 @@ import {
 
 const componentExtension = ".voo";
 const rustExtension = ".rs";
+// Match Vite's explicit raw asset query; normal imports still compile.
+const rawQuery = /(?:\?|&)raw(?:&|$)/;
 const runtimeId = "virtual:vooya-runtime";
 const stylePrefix = "virtual:vooya-style:";
 const rustStylePrefix = "virtual:vooya-rust-style:";
@@ -162,6 +164,7 @@ export function vooya({
       if (source === runtimeId) return runtimeModule;
       if (source.startsWith(stylePrefix)) return source;
       if (source.startsWith(rustStylePrefix)) return source;
+      if (rawQuery.test(source)) return null;
       if (!importer) return null;
       const sourcePath = modulePath(source);
       const suffix = source.slice(sourcePath.length);
@@ -174,6 +177,7 @@ export function vooya({
       return this.resolve(source, importer, { ...options, skipSelf: true });
     },
     load(id) {
+      if (rawQuery.test(id)) return null;
       const cleanId = modulePath(id);
       if (cleanId.startsWith(stylePrefix)) {
         const componentId = decodeURIComponent(cleanId.slice(stylePrefix.length, -4));
