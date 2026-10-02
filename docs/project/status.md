@@ -1,7 +1,10 @@
 # Project Status
 
-Vooya `0.1.0-beta.0` is published for all ten public packages. Use each
-package's npm `beta` tag. It remains a prerelease, not a stable compiler or a
+The first Vooya beta, `0.1.0-beta.0`, was published for all ten public packages.
+The current npm `beta` channel has `@vooya/vite`, `@vooya/react`, `@vooya/solid`,
+and `@vooya/svelte` at `0.1.0-beta.1`. The other six packages, including
+`@vooya/vue`, `@vooya/core`, `@vooya/compiler`, and `@vooya/build-core`, remain at
+`0.1.0-beta.0`. Use each package's npm `beta` tag. It remains a prerelease, not a stable compiler or a
 production compatibility promise. The main branch may contain unreleased work.
 
 Vue and React are supported first-party adapters. Solid and Svelte are shipped
@@ -10,10 +13,15 @@ components, events, Store actions, reactive snapshots, and declarations have
 browser evidence. Their tested scope is narrower; see the
 [framework capability matrix](compatibility.md#beta-framework-capabilities).
 
-The [beta release workflow](https://github.com/vooyajs/vooya/actions/runs/36614375254)
+The [beta.0 release workflow](https://github.com/vooyajs/vooya/actions/runs/36614375254)
 passed the full release gate, all four framework browser fixtures, and clean
 Vue/React consumers using both packed artifacts and exact npm versions.
 Solid/Svelte do not yet have that separate clean npm-consumer acceptance step.
+
+The [beta.1 release run](https://github.com/vooyajs/vooya/actions/runs/36997152925)
+passed the release gate, exact registry-consumer verification, and GitHub Release
+publication for the updated package set. This is release evidence for those
+versions; it does not expand the framework compatibility matrix.
 
 The ten public packages share one release workflow:
 

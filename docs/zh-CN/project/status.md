@@ -1,6 +1,9 @@
 # 项目状态
 
-Vooya 的十个公开包已发布 `0.1.0-beta.0`，从 npm `beta` 渠道安装。
+Vooya 首个 Beta 的十个公开包均发布为 `0.1.0-beta.0`。当前 npm `beta` 渠道中，
+`@vooya/vite`、`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 为
+`0.1.0-beta.1`；其余六个包（包括 `@vooya/vue`、`@vooya/core`、
+`@vooya/compiler`、`@vooya/build-core`）仍为 `0.1.0-beta.0`。按包从 `beta` 渠道安装。
 项目仍处于预发布阶段，不承诺稳定 ABI 或全面生产兼容。后续按包独立发版，
 build 包的内部依赖保持精确版本；不要求所有包永久同版本，安装后应保留 lockfile。
 
@@ -9,6 +12,10 @@ build 包的内部依赖保持精确版本；不要求所有包永久同版本�
 [Beta.0 发布验收](https://github.com/vooyajs/vooya/actions/runs/36614375254)
 已通过四框架 Rust-file 浏览器用例，以及 Vue/React 的干净打包产物和 npm 消费验证。
 Solid/Svelte 还没有后者的独立验收，不能宣传为与 Vue/React 同等覆盖。
+
+[Beta.1 发布流程](https://github.com/vooyajs/vooya/actions/runs/36997152925)
+已通过发布门禁、精确版本 registry 消费验证和更新包集合的 GitHub Release 发布。
+这是对应版本的发布证据，不扩大框架兼容性矩阵。
 
 ## 当前已验证
 

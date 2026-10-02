@@ -33,7 +33,7 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | 命令/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
 | `vooya doctor` | CLI command | — | 检查 Cargo、rustc、target、wasm-bindgen、linker 和 types | 只诊断，不安装 toolchain |
-| `--json` | flag | 关闭 | 输出带版本号的 JSON 诊断报告 | 仅 doctor；已合入 main，待下一版本发布，beta.0 不支持 |
+| `--json` | flag | 关闭 | 输出带版本号的 JSON 诊断报告 | 仅 doctor；自 `@vooya/vite@0.1.0-beta.1` 起支持，beta.0 不支持 |
 | `--cargo-path` | 文件路径 | PATH discovery | 指定 doctor 使用的 Cargo | 只对 doctor 有效 |
 | `--workspace-root` | 文件路径 | `.vooya/` | 检查 workspace override | doctor 与 clean 均支持 |
 | `vooya clean` | CLI command | — | 清理 generated Vooya state | 不删除源码 |

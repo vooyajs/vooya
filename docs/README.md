@@ -12,6 +12,13 @@ published as a VitePress site. Markdown remains the canonical content format;
 the site adds navigation, search, version context, and deployable static output
 without creating a second documentation repository.
 
+The current npm `beta` channel uses independent package versions:
+`@vooya/vite`, `@vooya/react`, `@vooya/solid`, and `@vooya/svelte` are at
+`0.1.0-beta.1`; the other six packages remain at `0.1.0-beta.0`. See
+[project status](project/status.md) for release context. The first beta.0
+release remains the historical baseline, not a requirement to keep all packages
+at the same version.
+
 ## Explore the interactive lab
 
 The [Vooya Lab](https://vooyajs.github.io/vooya-lab/) turns these authoring and
