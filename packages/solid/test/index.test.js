@@ -84,3 +84,24 @@ test("preserves a null snapshot before and after a Solid store action", async ()
   }
   assert.equal(listener, undefined);
 });
+
+for (const asynchronous of [false, true]) {
+  test(`routes ${asynchronous ? "asynchronous" : "synchronous"} factory failures to onError`, async () => {
+    const cause = new Error("store unavailable");
+    const errors = [];
+    let disposeOwner;
+    try {
+      createRoot((dispose) => {
+        disposeOwner = dispose;
+        useVooyaStore(() => {
+          if (asynchronous) return Promise.reject(cause);
+          throw cause;
+        }, undefined, { onError: (error) => errors.push(error) });
+      });
+      await Promise.resolve();
+      assert.deepEqual(errors, [cause]);
+    } finally {
+      disposeOwner?.();
+    }
+  });
+}

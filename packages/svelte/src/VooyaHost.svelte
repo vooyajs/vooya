@@ -30,7 +30,7 @@
 
   onMount(() => {
     for (const listener of listeners) host.addEventListener(listener.name, listener.receive);
-    void __vooyaBridge.loadBindings().then(
+    void Promise.resolve().then(() => __vooyaBridge.loadBindings()).then(
       (bindings) => {
         if (!active) return;
         const startedAt = performance.now();

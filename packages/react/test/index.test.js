@@ -340,3 +340,26 @@ test("a null initial snapshot becomes ready and generated actions remain usable"
   assert.equal(listener, undefined);
   assert.equal(disposed, 1);
 });
+
+for (const asynchronous of [false, true]) {
+  test(`routes ${asynchronous ? "asynchronous" : "synchronous"} binding load failures to onError`, async () => {
+    const cause = new Error("binding unavailable");
+    const errors = [];
+    const Component = defineVooyaComponent(
+      { abiVersion: 1, name: "FailedLoader", props: [], events: [] },
+      () => {
+        if (asynchronous) return Promise.reject(cause);
+        throw cause;
+      },
+    );
+    const root = createRoot(document.createElement("div"));
+    try {
+      await act(async () => root.render(createElement(Component, {
+        onError: (error) => errors.push(error),
+      })));
+      assert.deepEqual(errors, [{ stage: "load", cause }]);
+    } finally {
+      await act(async () => root.unmount());
+    }
+  });
+}
