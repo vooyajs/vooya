@@ -54,8 +54,9 @@ Vue 应用消费 Store 的主入口，返回 `{ state, ...typedActions }`；`sta
 
 ### `useVooyaStore(source, options?)`（高级 API）
 
-以下类型兼容性修复目前仅在 main，计划随下一适配器版本发布；
-`@vooya/vue@0.1.0-beta.0` 及 React/Solid/Svelte 的 `0.1.0-beta.1` 仍要求索引签名，尚未包含修复。
+以下类型兼容性修复自 `@vooya/vue@0.1.0-beta.1` 以及
+`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 的 `0.1.0-beta.2` 起可用。
+更早版本仍要求索引签名，未包含修复。
 
 Store 契约要求 `getSnapshot`、`subscribe` 和 `dispose`，不要求生成的接口声明任意字符串索引。
 Vue 可直接接收生成 factory 的 Promise；React、Solid 和 Svelte 接收 factory 与 props，

@@ -69,9 +69,9 @@ the primary Store API for Vue application code; `state` is a readonly reactive
 
 ### `useVooyaStore(source, options?)` (advanced)
 
-The following type compatibility is available on main for the next adapter release;
-`@vooya/vue@0.1.0-beta.0` and the React/Solid/Svelte `0.1.0-beta.1` packages still
-require an index signature and do not include this fix.
+The following type compatibility is available since `@vooya/vue@0.1.0-beta.1`
+and `0.1.0-beta.2` of `@vooya/react`, `@vooya/solid`, and `@vooya/svelte`.
+Earlier releases still require an index signature and do not include this fix.
 
 The Store contract requires `getSnapshot`, `subscribe`, and `dispose`; generated
 Store interfaces do not need a string index signature. Vue accepts the generated

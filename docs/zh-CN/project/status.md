@@ -2,8 +2,9 @@
 
 Vooya 首个 Beta 的十个公开包均发布为 `0.1.0-beta.0`。当前 npm `beta` 渠道中，
 `@vooya/vite`、`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 为
-`0.1.0-beta.1`；其余六个包（包括 `@vooya/vue`、`@vooya/core`、
-`@vooya/compiler`、`@vooya/build-core`）仍为 `0.1.0-beta.0`。按包从 `beta` 渠道安装。
+`0.1.0-beta.2`，`@vooya/vue` 为 `0.1.0-beta.1`；其余五个包
+（`@vooya/core`、`@vooya/compiler`、`@vooya/build-core`、`@vooya/rspack`、
+`@vooya/webpack`）仍为 `0.1.0-beta.0`。按包从 `beta` 渠道安装。
 项目仍处于预发布阶段，不承诺稳定 ABI 或全面生产兼容。后续按包独立发版，
 build 包的内部依赖保持精确版本；不要求所有包永久同版本，安装后应保留 lockfile。
 
@@ -16,6 +17,12 @@ Solid/Svelte 还没有后者的独立验收，不能宣传为与 Vue/React 同�
 [Beta.1 发布流程](https://github.com/vooyajs/vooya/actions/runs/36997152925)
 已通过发布门禁、精确版本 registry 消费验证和更新包集合的 GitHub Release 发布。
 这是对应版本的发布证据，不扩大框架兼容性矩阵。
+
+当前版本包含两项来自 Vooya Lab 接入的修复：Vite 保留显式的
+[`?raw` Rust 源码导入](https://github.com/vooyajs/vooya/pull/142)，
+四个 adapter 可直接接收[生成的 Store 接口](https://github.com/vooyajs/vooya/pull/143)，
+无需任意字符串索引签名。Store 类型修复自 Vue beta.1 和
+React/Solid/Svelte beta.2 起可用；源码导入修复需要 Vite beta.2。
 
 ## 当前已验证
 
