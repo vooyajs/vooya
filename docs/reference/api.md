@@ -48,6 +48,7 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | Command / option | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
 | `vooya doctor` | CLI command | — | Diagnose Cargo, rustc, target, wasm-bindgen, linker, and generated types | Diagnostic only; it does not install a toolchain |
+| `--json` | flag | off | Emit a versioned JSON diagnostic report | Only valid for `doctor`; available on `main` for the next release, not beta.0 |
 | `--cargo-path` | filesystem path | PATH discovery | Pair with an explicit toolchain | Only valid for `doctor`; `vooya doctor --cargo-path /opt/rust/bin/cargo` |
 | `--workspace-root` | filesystem path | `.vooya/` | Inspect a workspace override | Valid for `doctor` and `clean` |
 | `vooya clean` | CLI command | — | Remove generated Vooya state | It removes the selected generated workspace, not source files |

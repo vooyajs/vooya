@@ -49,6 +49,10 @@ See the [framework capability matrix](docs/project/compatibility.md#beta-framewo
 Subsequent releases use independent package versions and exact internal
 dependencies; see the [release guide](docs/maintainers/releases.md).
 
+For your first component, start with the [Vue guide](docs/guide/getting-started.md#vue)
+or [React guide](docs/guide/getting-started.md#react). Each path ends with a visible
+Greeting component. [中文快速开始](docs/zh-CN/guide/getting-started.md)。
+
 ## Why Vooya?
 
 Rust already has strong libraries for parsing, graphics, simulation, search,
