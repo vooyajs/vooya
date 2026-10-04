@@ -1,6 +1,6 @@
 # 兼容性
 
-这张表记录仓库里的自动化证据，不是跨浏览器认证或生产支持承诺。
+这张表记录仓库的接入范围和验证用例。Beta 表格描述已发布的包，后面的新增部分描述当前源码中尚待发布的能力。
 
 ## Beta 四框架适配情况
 
@@ -18,7 +18,7 @@ Vue、React、Solid、Svelte 的 adapter 都已随 `0.1.0-beta.0` 发布，可�
 | Rust 源码生产构建与浏览器用例 | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium |
 | 干净项目安装打包产物的独立验收 | 已覆盖 | 已覆盖 | Vite 8 已覆盖 | Vite 8 已覆盖 |
 | npm registry 独立验收 | 已覆盖 | 已覆盖 | 尚未覆盖 | 尚未覆盖 |
-| SSR / hydration / slots | 未支持 | 未支持 | 未支持 | 未支持 |
+| 已发布 Beta 的 SSR / hydration / slots | 未支持 | 未支持 | 未支持 | 未支持 |
 
 [Beta.0 发布流程](https://github.com/vooyajs/vooya/actions/runs/36614375254)
 已通过完整 `verify:release`，其中包含四个 `test:rust-*` 浏览器用例。adapter
@@ -71,9 +71,16 @@ Rspack 2.1.10 与 Vue/React 的 `.rs` Component、Store、props/event、scoped C
 CSS 更新、新增 `.rs` 和产物不会造成循环重建。Next.js/SSR、Webpack/Rspack
 下的 Solid/Svelte 尚未完成验收。
 
+## 下一版 SSR 接入
+
+当前源码将 Vue Store 的创建推迟到浏览器挂载，并保留 React 的客户端边界。
+adapter 测试覆盖服务端渲染和 hydration，Nuxt 独立打包用例覆盖 WASM 加载、
+props/event、独立 Store 和路由清理。服务端渲染的是宿主容器，Rust 组件内容仍由
+浏览器生成。Next.js 尚未验证，具体 API 边界见 [SSR 范围](./ssr-roadmap.md)。
+
 ## 尚未支持或未验证
 
-Safari/WebKit、移动浏览器、SSR、hydration、Rollup、Turbopack 和未列出的
+Safari/WebKit、移动浏览器、Rollup、Turbopack 和未列出的
 bundler 没有当前兼容性声明。没有正式预编译组件产品；保留的 Vue fixture
 只是 build-contract 证据。`.voo` 是已退休的探索格式，不能作为新组件输入。
 

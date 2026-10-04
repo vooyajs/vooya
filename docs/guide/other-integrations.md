@@ -7,7 +7,7 @@ These setup notes cover additional frameworks and bundlers. They require the sam
 
 ## Solid
 
-Experimental: Solid `>=1.9 <2`, with Vite 7 evidence. The Store examples below
+Experimental: Solid `>=1.9 <2`, with source fixtures for Vite 7/8 and Vite+ 0.2.9. The Store examples below
 assume you have authored the imported Rust roots; see [Store authoring](../concepts/store.md).
 
 Install the Solid adapter and Vite plugin in an existing Solid application:
@@ -46,7 +46,7 @@ before starting Vite.
 
 ## Svelte
 
-Experimental: Svelte `>=5 <6`, with Vite 7 evidence. The imported Rust roots
+Experimental: Svelte `>=5 <6`, with source fixtures for Vite 7/8 and Vite+ 0.2.9. The imported Rust roots
 come from your application; see the [Svelte fixture](https://github.com/vooyajs/vooya/tree/main/tests/fixtures/rust-svelte).
 
 Install the Svelte 5 adapter and Vite plugin in an existing Svelte application:

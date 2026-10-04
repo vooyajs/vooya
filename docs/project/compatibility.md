@@ -1,8 +1,8 @@
 # Compatibility matrix
 
-This matrix records browser tests that run in this repository. It is not a
-cross-browser certification, a production-support promise, or a claim about
-SSR and hydration. Each entry is evidence for the named test path only.
+This page records the supported paths and integration tests in this repository.
+The beta table describes published packages; the additions below describe
+current source awaiting release. Each entry covers its named consumer path.
 
 ## Beta framework capabilities
 
@@ -21,7 +21,7 @@ feature is implemented.
 | Rust-file production browser fixture | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium |
 | Separate clean packed consumer acceptance | Verified | Verified | Verified, Vite 8 | Verified, Vite 8 |
 | npm-registry consumer acceptance | Verified | Verified | Not yet covered | Not yet covered |
-| SSR / hydration / slots | Not supported | Not supported | Not supported | Not supported |
+| SSR / hydration / slots in published beta | Not supported | Not supported | Not supported | Not supported |
 
 The [beta.0 release run](https://github.com/vooyajs/vooya/actions/runs/36614375254)
 passed `verify:release`, including `test:rust-vue`, `test:rust-react`,
@@ -95,10 +95,17 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 | Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 
+## SSR additions
+
+Current source keeps Vue Store creation in the browser and preserves React
+client boundaries. Adapter tests cover server rendering and hydration; the
+Nuxt packed consumer covers WASM loading, props/events, independent Stores and
+route cleanup. The server renders host containers, not Rust component content.
+Next.js remains unverified. See the [SSR scope](./ssr-roadmap.md) for the API boundaries.
+
 ## Not verified / not supported yet
 
-- WebKit/Safari, mobile browsers, SSR, and hydration have no current
-  compatibility claim. Firefox evidence is limited to the named Vue source
+- WebKit/Safari and mobile browsers have no current compatibility claim. Firefox evidence is limited to the named Vue source
   component path above.
 - Solid on Rspack/Webpack, or browsers other than the named Chromium
   fixture has no current compatibility claim.

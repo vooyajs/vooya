@@ -5,7 +5,7 @@
 
 ## Solid 1.9
 
-实验性支持 Solid `>=1.9 <2`，当前验证范围是 Vite 7。
+实验性支持 Solid `>=1.9 <2`，源码用例覆盖 Vite 7/8 和 Vite+ 0.2.9。
 
 
 安装依赖：
@@ -33,7 +33,7 @@ Store 通过 accessor 读取，例如 `state()?.count`；完整用法见
 
 ## Svelte 5
 
-实验性支持 Svelte `>=5 <6`，当前验证范围是 Vite 7。
+实验性支持 Svelte `>=5 <6`，源码用例覆盖 Vite 7/8 和 Vite+ 0.2.9。
 
 
 安装 adapter 与 Vite plugin：
