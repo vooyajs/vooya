@@ -435,3 +435,25 @@ test("discovers ordinary Rust modules while excluding crate roots", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+for (const prefix of ["rust/.", "rust/unused/..", "rust\\."]) {
+  test(`normalizes sourceRoot prefix ${prefix} when selecting public Rust modules`, () => {
+    assert.deepEqual(selectRustRootModules(["rust/Counter.rs", "rust/nested/Hidden.rs"], prefix), ["rust/Counter.rs"]);
+    assert.match(generateRustSourceRoot(["rust/Counter.rs"], [`${prefix}/Counter.rs`], prefix), /pub mod Counter;/);
+    assert.deepEqual(selectRustRootModules([`${prefix}/Counter.rs`], prefix), ["rust/Counter.rs"]);
+  });
+}
+
+test("sourceRoot dot ignores dependency and Git directories", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-source-dot-"));
+  try {
+    writeFileSync(resolve(root, "Counter.rs"), "// authored");
+    for (const directory of ["node_modules/library", ".git/objects", "target", ".vooya"]) {
+      mkdirSync(resolve(root, directory), { recursive: true });
+      writeFileSync(resolve(root, directory, "Internal.rs"), "// excluded");
+    }
+    assert.deepEqual(discoverRustSourceFiles(root, "."), [resolve(root, "Counter.rs")]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

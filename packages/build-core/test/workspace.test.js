@@ -151,3 +151,22 @@ test("writes React store exports into the central declaration", () => {
     rmSync(root, { force: true, recursive: true });
   }
 });
+
+for (const group of ["src/./rust/Counter.rs", "src/rust/../rust/Counter.rs", "rust/./Counter.rs", "src/rust/./Counter.rs", "rust/unused/../Counter.rs", "rust\\.\\Counter.rs"]) {
+  test(`writes declarations for normalized schema group ${group}`, () => {
+    const root = mkdtempSync(resolve(tmpdir(), "vooya-schema-dot-"));
+    try {
+      writeFileSync(resolve(root, "Counter.rs"), "// authored Rust");
+      const written = writeRustSchemaDeclarations({
+        applicationRoot: root,
+        framework: "vue",
+        contracts: [{ component: { version: 1, kind: "component", id: "counter::Counter", name: "Counter", group, params: [] } }],
+      });
+      const declaration = resolve(root, ".vooya/types/Counter.d.rs.ts");
+      assert.deepEqual(written.files, [declaration]);
+      assert.match(readFileSync(declaration, "utf8"), /Counter/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
