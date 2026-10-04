@@ -3,18 +3,24 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readReleaseChannel, validateReleaseVersion } from "./release-channel.js";
+import { readReleaseLine, readReleaseChannel, validateReleaseVersion } from "./release-channel.js";
 
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== "--root" || !args[1])) throw new Error("Usage: create-github-releases [--root path]");
 const root = args.length ? resolve(args[1]) : fileURLToPath(new URL("../..", import.meta.url));
 const channel = readReleaseChannel(root);
+const line = readReleaseLine(root);
+if (line && !((line.branch === "main" && line.channel === "alpha" && line.baseVersion === "0.2.0") || (line.branch === "release/0.1" && line.channel === "beta" && line.baseVersion === "0.1.0"))) throw new Error("Publication is restricted to main/0.2 alpha and release/0.1 beta.");
 const sha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
 const readJson = (path: string) => JSON.parse(readFileSync(resolve(root, path), "utf8"));
 const receipt = readJson(`.vooya-tools/release/${sha}/receipt.json`);
 if (receipt.commit !== sha) throw new Error("Release receipt does not match git HEAD.");
 if (receipt.channel !== channel) throw new Error("Release receipt channel does not match the configured publication channel.");
 const candidate = readJson(".changeset/release.json");
+if (line) {
+  if (JSON.stringify(receipt.line) !== JSON.stringify(line) || JSON.stringify(receipt.candidates) !== JSON.stringify(candidate.packages)) throw new Error("Release receipt does not match the reviewed line and candidates.");
+  if (execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).trim()) throw new Error("GitHub release creation requires a clean reviewed checkout.");
+}
 if (!Array.isArray(candidate.packages) || !candidate.packages.length || !Array.isArray(receipt.packages)) throw new Error("Release candidate and receipt require packages arrays.");
 const repository = process.env.GH_REPO;
 if (!repository || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) throw new Error("GH_REPO must be a GitHub owner/repository.");
@@ -30,7 +36,7 @@ const names = new Set<string>();
 // Validate all local evidence before making any GitHub writes.
 const releases = candidate.packages.map(({ name, version }) => {
   if (typeof name !== "string" || !/^@vooya\/[a-z0-9-]+$/.test(name) || names.has(name) ||
-    !validateReleaseVersion(version, channel)) throw new Error(`Invalid or duplicate ${channel} release candidate.`);
+    !validateReleaseVersion(version, channel, line)) throw new Error(`Invalid or duplicate ${channel} release candidate.`);
   names.add(name);
   const matches = receipt.packages.filter((entry) => entry.name === name);
   if (matches.length !== 1 || matches[0].version !== version) throw new Error(`Receipt is missing exact candidate ${name}@${version}.`);

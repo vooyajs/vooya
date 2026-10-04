@@ -144,6 +144,26 @@ try {
   write(receiptPath(), JSON.stringify({ commit: sha, channel: "alpha", packages }));
   await fails("receipt from wrong channel cannot create beta releases", /receipt channel/);
   assert.equal(state.requests.length, 0);
+  channel = "alpha";
+  const line = { baseVersion: "0.2.0", channel, branch: "main" };
+  packages[1].version = "0.2.0-alpha.0";
+  write(".changeset/pre.json", JSON.stringify({ mode: "pre", tag: channel }));
+  write(".changeset/line.json", JSON.stringify(line));
+  write(".changeset/release.json", JSON.stringify({ packages: [packages[1]] }));
+  write("packages/vite/package.json", JSON.stringify(packages[1]));
+  write("packages/vite/CHANGELOG.md", "# Changelog\n\n## 0.2.0-alpha.0\n\n- Feature candidate only.\n");
+  write(".gitignore", ".vooya-tools/\n");
+  for (const args of [["add", ".changeset", "packages", ".gitignore"], ["-c", "user.name=Vooya test", "-c", "user.email=tests@vooya.dev", "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "mixed-line release"]]) {
+    const result = spawnSync("git", args, { cwd: fixture, encoding: "utf8" }); assert.equal(result.status, 0, result.stderr);
+  }
+  sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: fixture, encoding: "utf8" }).stdout.trim();
+  reset();
+  write(receiptPath(), JSON.stringify({ commit: sha, channel, line, candidates: [packages[1]], packages }));
+  await succeeds("mixed graph only creates the alpha candidate GitHub release");
+  assert.deepEqual([...state.releases.keys()], ["@vooya/vite@0.2.0-alpha.0"]);
+  state.requests = [];
+  await succeeds("mixed graph GitHub release retry is read-only");
+  assert(state.requests.every(({ method }) => method === "GET"));
   console.log("GitHub release contract passed: receipt guards, exact notes, missing/existing releases, annotated/conflicting tags, alpha/beta partial retry, channel receipts, and endpoint guards.");
 } finally {
   server.closeAllConnections();

@@ -4,6 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseChangesetFile } from "@changesets/parse";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const fixture = mkdtempSync(resolve(tmpdir(), "vooya-beta-transition-"));
@@ -11,16 +12,32 @@ const names = new Map();
 const history = new Map();
 const initialVersions = new Map();
 try {
-  // Exercise the real package graph, changelog history, pending changesets and
-  // production version wrapper. Omit external dependencies to stay offline.
+  // Replay the actual first-beta cohort, not packages introduced after beta.0.
+  // New adapters/toolchains must not invent alpha history to join this rehearsal.
+  // Omit external dependencies to stay offline.
   cpSync(resolve(root, ".changeset"), resolve(fixture, ".changeset"), { recursive: true });
+  rmSync(resolve(fixture, ".changeset/line.json"), { force: true });
+  const betaNote = resolve(fixture, ".changeset/first-source-author-beta.md");
+  if (!existsSync(betaNote)) {
+    const consumed = resolve(fixture, ".changeset/pre/first-source-author-beta.md");
+    assert(existsSync(consumed), "Keep the first-beta changeset or its prerelease archive for rehearsal.");
+    cpSync(consumed, betaNote);
+    rmSync(consumed);
+  }
+  const cohort = new Set(parseChangesetFile(readFileSync(betaNote, "utf8")).releases.map(({ name }) => name));
+  // Current work may reference packages that did not exist in the historical graph.
+  for (const name of readdirSync(resolve(fixture, ".changeset"))) {
+    if (name.endsWith(".md") && !["README.md", "first-source-author-beta.md"].includes(name)) {
+      rmSync(resolve(fixture, ".changeset", name));
+    }
+  }
   writeJson(".changeset/pre.json", { mode: "pre", tag: "beta" });
   writeJson("package.json", { name: "vooya-beta-fixture", private: true, type: "module", workspaces: ["packages/*"] });
   for (const directory of readdirSync(resolve(root, "packages"))) {
     const path = resolve(root, "packages", directory, "package.json");
     if (!existsSync(path)) continue;
     const manifest = JSON.parse(readFileSync(path, "utf8"));
-    if (manifest.private) continue;
+    if (manifest.private || !cohort.has(manifest.name)) continue;
     names.set(manifest.name, directory);
     const changelog = readFileSync(resolve(root, "packages", directory, "CHANGELOG.md"), "utf8");
     const alpha = /^## v?(0\.1\.0-alpha\.\d+)\s*$/m.exec(changelog);
@@ -28,6 +45,7 @@ try {
     initialVersions.set(manifest.name, alpha[1]);
     history.set(directory, `${changelog.slice(0, changelog.search(/^## /m))}${changelog.slice(alpha.index)}`);
   }
+  assert.deepEqual([...names.keys()].sort(), [...cohort].sort(), "Every historical beta package must remain in the rehearsal.");
   for (const [name, directory] of names) {
     const source = JSON.parse(readFileSync(resolve(root, "packages", directory, "package.json"), "utf8"));
     const manifest = { name, version: initialVersions.get(name) };
@@ -45,17 +63,10 @@ try {
   const archived = '---\n"@vooya/core": patch\n---\n\nRetain the previously published alpha summary.\n';
   mkdirSync(resolve(fixture, ".changeset/pre"), { recursive: true });
   writeFileSync(resolve(fixture, ".changeset/pre/earlier-alpha.md"), archived);
-  const betaNote = resolve(fixture, ".changeset/first-source-author-beta.md");
-  if (!existsSync(betaNote)) {
-    const consumed = resolve(fixture, ".changeset/pre/first-source-author-beta.md");
-    assert(existsSync(consumed), "Keep the first-beta changeset or its prerelease archive for rehearsal.");
-    cpSync(consumed, betaNote);
-    rmSync(consumed);
-  }
   rmSync(resolve(fixture, ".changeset/release.json"), { force: true });
   const pending = readdirSync(resolve(fixture, ".changeset")).filter((name) => name.endsWith(".md") && name !== "README.md");
   const pendingSources = new Map(pending.map((name) => [name, readFileSync(resolve(fixture, ".changeset", name), "utf8")]));
-  assert(pending.includes("first-source-author-beta.md"), "First beta must explicitly include all public packages.");
+  assert(pending.includes("first-source-author-beta.md"), "First beta must explicitly include its recorded package cohort.");
   synchronizeLockfile();
   const before = snapshot();
   const preview = spawnSync(process.execPath, [resolve(fixture, "scripts/generated/release-status.js")], { cwd: fixture, encoding: "utf8" });

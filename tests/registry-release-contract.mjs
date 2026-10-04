@@ -120,7 +120,7 @@ test("beta verification compares exact candidate versions and dependency pins, n
   verifyRegistrySnapshot(snapshot, "beta", expected);
   const mistaggedAlpha = release();
   for (const manifest of Object.values(mistaggedAlpha)) manifest["dist-tags"].beta = manifest.version;
-  assert.throws(() => verifyRegistrySnapshot(mistaggedAlpha, "beta", mistaggedAlpha), /not a 0.1.0 beta/);
+  assert.throws(() => verifyRegistrySnapshot(mistaggedAlpha, "beta", mistaggedAlpha), /not a beta/);
   for (const framework of ["vue", "react"]) verifyRegistryLockfile(consumer(snapshot, framework), framework, snapshot);
   const wrong = structuredClone(snapshot);
   wrong["@vooya/vue"].version = "0.1.0-beta.1";
@@ -188,4 +188,72 @@ test("beta and packed commands require an explicit exact candidate source", () =
   assert.deepEqual(parseRegistryArguments(["--pack-dir=/packed", "--expected-root=/candidate"]), { tag: "alpha", expectedRoot: "/candidate", packDir: "/packed" });
   for (const args of [["--tag", "beta"], ["--pack-dir", "/packed"], ["--tag", "latest"], ["--tag", "alpha", "--tag", "beta"]]) assert.throws(() => parseRegistryArguments(args));
   assert.throws(() => parseRegistryArguments([], { VOOYA_REGISTRY_TAG: "beta" }), /expected-root/);
+});
+
+function withProvider(snapshot) {
+  const core = snapshot["@vooya/core"];
+  const name = "@vooya/provider-rust";
+  snapshot[name] = { ...core, name, dependencies: { "@vooya/core": core.version, "@vooya/compiler": snapshot["@vooya/compiler"].version } };
+  snapshot["@vooya/build-core"].dependencies = { [name]: core.version };
+  return snapshot;
+}
+
+test("new provider dependency is checked without requiring it in historical releases", () => {
+  const snapshot = withProvider(release());
+  verifyRegistrySnapshot(snapshot, "alpha");
+  const lock = consumer(snapshot);
+  assert.throws(() => verifyRegistryLockfile(lock, "vue", snapshot), /missing snapshot packages: @vooya\/provider-rust/);
+  const provider = snapshot["@vooya/provider-rust"];
+  lock.packages["node_modules/@vooya/provider-rust"] = { version: provider.version, resolved: provider.dist.tarball };
+  verifyRegistryLockfile(lock, "vue", snapshot);
+  provider["dist-tags"] = { alpha: "0.0.0" };
+  assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha"), /does not match dist-tag/);
+  delete snapshot["@vooya/provider-rust"];
+  assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha"), /snapshot version exactly/);
+});
+
+test("packed provider must preserve candidate archive provenance and dependency versions", () => {
+  const expected = withProvider(betaRelease());
+  const snapshot = withProvider(packedRelease());
+  const provider = snapshot["@vooya/provider-rust"];
+  provider.packedPath = resolve("candidate/provider-rust.tgz");
+  verifyPackedSnapshot(snapshot, expected);
+  const lock = packedConsumer(snapshot);
+  assert.throws(() => verifyPackedLockfile(lock, "vue", snapshot, resolve("consumer")), /missing snapshot packages/);
+  lock.packages["node_modules/@vooya/provider-rust"] = { version: provider.version, resolved: "file:../candidate/provider-rust.tgz", integrity: provider.dist.integrity };
+  verifyPackedLockfile(lock, "vue", snapshot, resolve("consumer"));
+  lock.packages["node_modules/@vooya/provider-rust"].integrity = "wrong";
+  assert.throws(() => verifyPackedLockfile(lock, "vue", snapshot, resolve("consumer")), /candidate tarball and integrity/);
+  provider.dependencies = { "@vooya/core": "0.0.0" };
+  assert.throws(() => verifyPackedSnapshot(snapshot, expected), /snapshot version exactly/);
+});
+
+
+test("a newly introduced provider can use an independent beta version", () => {
+  const snapshot = withProvider(betaRelease());
+  const provider = snapshot["@vooya/provider-rust"];
+  provider.version = "0.0.1-beta.0";
+  provider["dist-tags"] = { beta: provider.version };
+  provider.dist = { tarball: "https://registry.npmjs.org/@vooya/provider-rust/-/provider-rust-0.0.1-beta.0.tgz" };
+  snapshot["@vooya/build-core"].dependencies[provider.name] = provider.version;
+  verifyRegistrySnapshot(snapshot, "beta", structuredClone(snapshot));
+});
+
+
+test("alpha candidates can consume unchanged beta packages without moving their tags", () => {
+  const snapshot = betaRelease();
+  const expected = structuredClone(snapshot);
+  const candidates = [{ name: "@vooya/vite", version: "0.2.0-alpha.0" }];
+  for (const graph of [snapshot, expected]) {
+    graph["@vooya/vite"].version = "0.2.0-alpha.0";
+    graph["@vooya/vite"]["dist-tags"].alpha = "0.2.0-alpha.0";
+  }
+  verifyRegistrySnapshot(snapshot, "alpha", expected, candidates);
+  assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha", expected), /not a alpha release/);
+  const wrong = structuredClone(snapshot);
+  wrong["@vooya/vite"]["dist-tags"].alpha = "0.2.0-alpha.1";
+  assert.throws(() => verifyRegistrySnapshot(wrong, "alpha", expected, candidates), /does not match dist-tag/);
+  wrong["@vooya/core"].version = "0.1.0-beta.1";
+  assert.throws(() => verifyRegistrySnapshot(wrong, "alpha", expected, candidates), /expected candidate|snapshot version exactly/);
+  assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha", undefined, candidates), /requires exact manifests/);
 });

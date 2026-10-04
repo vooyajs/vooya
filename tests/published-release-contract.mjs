@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -95,7 +95,7 @@ try {
   await fails("an existing baseline cannot be overwritten", ["--capture-latest", snapshot], /EEXIST/);
   resetRegistry();
   assert.deepEqual(JSON.parse(readFileSync(snapshot, "utf8")), {
-    channel: "alpha", latest: { "@vooya/build-core": "0.0.1", "@vooya/core": "0.0.1", "@vooya/vite": "0.0.1" },
+    channel: "alpha", beta: Object.fromEntries(manifests.map(({ name }) => [name, null])), latest: { "@vooya/build-core": "0.0.1", "@vooya/core": "0.0.1", "@vooya/vite": "0.0.1" },
   });
   await succeeds("latest is unchanged", ["--check", "--latest-before", snapshot]);
   metadata.get("@vooya/core")["dist-tags"].latest = "0.1.0-alpha.11";
@@ -150,6 +150,54 @@ try {
   await fails("beta baseline must include every alpha tag", ["--check-baseline", "--latest-before", betaSnapshot], /alpha snapshot is missing/);
   metadata.get("@vooya/vite")["dist-tags"].beta = "0.2.0-beta.0";
   await fails("beta preflight rejects another release line", ["--check-published"], /Invalid published beta/);
+  // An alpha feature candidate consumes unchanged beta packages. Only the
+  // reviewed candidates may receive alpha tags; both other channels are frozen.
+  writeFileSync(resolve(fixture, ".changeset/pre.json"), JSON.stringify({ mode: "pre", tag: "alpha" }));
+  writeFileSync(resolve(fixture, ".changeset/line.json"), JSON.stringify({ baseVersion: "0.2.0", channel: "alpha", branch: "main" }));
+  const versions = ["0.1.0-beta.0", "0.2.0-alpha.0", "0.2.0-alpha.0"];
+  for (const [index, manifest] of manifests.entries()) {
+    manifest.version = versions[index];
+    for (const field of ["dependencies", "optionalDependencies"]) for (const name of Object.keys(manifest[field] ?? {})) {
+      const dependency = manifests.findIndex((entry) => entry.name === name);
+      if (dependency >= 0) manifest[field][name] = versions[dependency];
+    }
+    writeFileSync(resolve(fixture, "packages", manifest.name.slice(7), "package.json"), JSON.stringify(manifest));
+  }
+  writeFileSync(resolve(fixture, ".changeset/release.json"), JSON.stringify({ packages: manifests.slice(1).map(({ name, version }) => ({ name, version })) }));
+  resetRegistry();
+  for (const manifest of manifests) Object.assign(metadata.get(manifest.name)["dist-tags"], { alpha: "0.1.0-alpha.1", beta: "0.1.0-beta.0" });
+  const alphaSnapshot = resolve(fixture, "alpha-two-before.json");
+  for (const manifest of manifests.slice(1)) delete metadata.get(manifest.name).versions[manifest.version];
+  await succeeds("alpha line captures both channels and candidate identities", ["--capture-latest", alphaSnapshot]);
+  const alphaBefore = JSON.parse(readFileSync(alphaSnapshot, "utf8"));
+  assert.deepEqual(alphaBefore.unchanged, { "@vooya/core": "0.1.0-alpha.1" });
+  assert.equal(alphaBefore.beta["@vooya/vite"], "0.1.0-beta.0");
+  await fails("partial alpha cannot tag any candidate before all versions exist", ["--sync", "--latest-before", alphaSnapshot], /missing exact/);
+  for (const manifest of manifests.slice(1)) metadata.get(manifest.name).versions[manifest.version] = structuredClone(manifest);
+  await fails("mutating tags requires original baseline", ["--sync"], /requires the original/);
+  metadata.get("@vooya/core")["dist-tags"].beta = "0.1.0-beta.9";
+  await fails("alpha cannot move an unchanged dependency's beta", ["--sync", "--latest-before", alphaSnapshot], /beta changed during alpha/);
+  metadata.get("@vooya/core")["dist-tags"].beta = "0.1.0-beta.0";
+  if (process.platform !== "win32") {
+    // Only npm's mutation boundary is stubbed. The real verifier, HTTP metadata
+    // reads, preflight, candidate filtering and retry decisions execute unchanged.
+    mkdirSync(resolve(fixture, "bin"));
+    const npm = resolve(fixture, "bin/npm");
+    writeFileSync(npm, `#!${process.execPath}\nimport('node:fs').then(({appendFileSync}) => appendFileSync(${JSON.stringify(resolve(fixture, "tag-calls.jsonl"))}, JSON.stringify(process.argv.slice(2)) + "\\n"));\n`);
+    chmodSync(npm, 0o755);
+    await succeeds("only alpha candidates are sent to npm", ["--sync", "--latest-before", alphaSnapshot]);
+    const calls = readFileSync(resolve(fixture, "tag-calls.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
+    assert.deepEqual(calls, manifests.slice(1).map(({ name, version }) => ["dist-tag", "add", `${name}@${version}`, "alpha"]));
+    for (const manifest of manifests.slice(1)) metadata.get(manifest.name)["dist-tags"].alpha = manifest.version;
+    await succeeds("retry is idempotent after candidate tags become visible", ["--sync", "--latest-before", alphaSnapshot]);
+    assert.equal(readFileSync(resolve(fixture, "tag-calls.jsonl"), "utf8").trim().split("\n").length, 2);
+    await succeeds("mixed-line dependency graph verifies without retagging beta core", ["--check", "--latest-before", alphaSnapshot]);
+  }
+  metadata.get("@vooya/vite")["dist-tags"].alpha = "0.2.0-alpha.1";
+  await fails("old release retries cannot roll back a newer alpha", ["--sync", "--latest-before", alphaSnapshot], /Refusing to roll back/);
+  metadata.get("@vooya/vite")["dist-tags"].alpha = "0.2.0-alpha.0";
+  metadata.get("@vooya/core")["dist-tags"].alpha = "0.2.0-alpha.0";
+  await fails("noncandidate alpha tag must also remain unchanged", ["--check-baseline", "--latest-before", alphaSnapshot], /Unchanged dependency/);
   console.log("Published release contract passed: independent versions, exact dependencies, alpha tags, missing versions, 404 preflight, latest/alpha protected snapshots, alpha/beta retries, and CLI guards.");
 } finally {
   server.closeAllConnections();
@@ -186,11 +234,11 @@ async function fails(description, args, expected) {
 }
 
 async function run(args) {
-  assert(args.some((argument) => ["--check", "--check-published", "--check-baseline", "--capture-latest", "--dry-run"].includes(argument)), "Every invocation must select a non-mutating mode.");
+  assert(args.some((argument) => ["--sync", "--check", "--check-published", "--check-baseline", "--capture-latest", "--dry-run"].includes(argument)), "Every invocation must select a non-mutating mode.");
   const env = { ...process.env, NPM_CONFIG_REGISTRY: `http://127.0.0.1:${server.address().port}/` };
   // Even a regression into the default mutation path cannot launch a real npm.
   for (const name of Object.keys(env)) if (name.toLowerCase() === "path") delete env[name];
-  env.PATH = "";
+  env.PATH = args.includes("--sync") ? resolve(fixture, "bin") : "";
   const child = spawn(process.execPath, [resolve(root, "scripts/generated/sync-alpha-dist-tags.js"), "--root", fixture, ...args], {
     cwd: fixture, env, stdio: ["ignore", "pipe", "pipe"], timeout: 20_000,
   });

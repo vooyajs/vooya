@@ -50,3 +50,12 @@ try {
     assert.throws(() => readReleaseChannel(fixture), /stable publication is not enabled/);
   }
 } finally { rmSync(fixture, { recursive: true, force: true }); }
+
+
+const featureLine = { branch: "main", channel: "alpha", baseVersion: "0.2.0" };
+const featureCandidate = [{ name: "@vooya/vite", version: "0.2.0-alpha.0" }];
+assert.equal(alphaPublishPlan({ version: 1, plan: [[entry(featureCandidate[0])]] }, featureCandidate, "alpha", featureLine).plan[0][0].tag, "alpha");
+assert.throws(() => alphaPublishPlan({ version: 1, plan: [[entry({ name: "@vooya/core", version: "0.1.0-beta.0" })]] }, featureCandidate, "alpha", featureLine), /Unexpected publication/);
+assert.throws(() => alphaPublishPlan({ version: 1, plan: [] }, [{ name: "@vooya/vite", version: "0.1.0-alpha.1" }], "alpha", featureLine), /Invalid alpha/);
+
+await import("./publisher-guards-contract.mjs");
