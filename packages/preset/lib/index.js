@@ -1,11 +1,10 @@
 import { spawn } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync, chmodSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
-import { Readable, Transform } from "node:stream";
-import { pipeline } from "node:stream/promises";
 import { x as extract } from "tar";
+import { downloadVerified } from "./download.js";
 import { acquireInstallLock } from "./lock.js";
 import { platformManifest, RUST_VERSION, WASM_BINDGEN_VERSION, WASM_TARGET } from "./manifest.js";
 export { RUST_VERSION, WASM_BINDGEN_VERSION } from "./manifest.js";
@@ -90,19 +89,7 @@ async function install(root, manifest, env) {
   rmSync(installer);
 }
 
-// Stream to a private partial file; never execute or extract before verification.
-export async function downloadVerified({ url, sha256 }, destination) {
-  const partial = `${destination}.partial-${randomUUID()}`;
-  try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5 * 60_000) });
-    if (!response.ok || !response.body) throw new Error(`Toolchain download failed: ${response.status} ${url}`);
-    const hash = createHash("sha256");
-    const digest = new Transform({ transform(chunk, _encoding, callback) { hash.update(chunk); callback(null, chunk); } });
-    await pipeline(Readable.fromWeb(response.body), digest, createWriteStream(partial, { flags: "wx" }));
-    if (hash.digest("hex") !== sha256) throw new Error(`SHA-256 mismatch for ${url}. Download discarded.`);
-    renameSync(partial, destination);
-  } finally { rmSync(partial, { force: true }); }
-}
+
 function run(command, args, env) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { env, stdio: ["ignore", "pipe", "pipe"] });

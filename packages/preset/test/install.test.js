@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { downloadVerified } from "../lib/index.js";
+import { downloadVerified } from "../lib/download.js";
 import { acquireInstallLock } from "../lib/lock.js";
 import { platformManifest } from "../lib/manifest.js";
 
