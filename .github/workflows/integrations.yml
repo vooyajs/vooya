@@ -1,0 +1,60 @@
+name: Experimental integrations
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: ${{ matrix.script }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        script: [test:rust-octane, test:rust-bundlers, test:vite8-frameworks]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.115-${{ runner.os }}
+      - name: Install wasm-bindgen CLI
+        run: |
+          if ! wasm-bindgen --version 2>/dev/null | grep -Fx 'wasm-bindgen 0.2.115'; then
+            cargo install wasm-bindgen-cli --version 0.2.115 --locked --force
+          fi
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run ${{ matrix.script }}
+
+  managed-toolchain:
+    name: Managed toolchain (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # The fixture downloads its own pinned tools into an empty cache and asserts
+      # both compiler and doctor paths. Runner-provided native SDK/linker remains.
+      - run: npm run test:preset-consumer
