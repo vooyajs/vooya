@@ -26,6 +26,7 @@ try {
   const packages = [
     "@vooya/compiler",
     "@vooya/core",
+    "@vooya/provider-rust",
     "@vooya/build-core",
     "@vooya/vue",
     "@vooya/react",

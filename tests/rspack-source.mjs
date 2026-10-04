@@ -14,7 +14,7 @@ try {
   mkdirSync(packageDirectory, { recursive: true });
   run("npm", ["run", "build:core"], root);
   for (const workspace of ["@vooya/vue", "@vooya/react", "@vooya/rspack"]) run("npm", ["run", "build", "--workspace", workspace], root);
-  const packages = ["@vooya/compiler", "@vooya/core", "@vooya/build-core", "@vooya/vue", "@vooya/react", "@vooya/rspack"].map(pack);
+  const packages = ["@vooya/compiler", "@vooya/core", "@vooya/provider-rust", "@vooya/build-core", "@vooya/vue", "@vooya/react", "@vooya/rspack"].map(pack);
   const vueProject = verify("rspack-vue", packages, true);
   verify("rspack-native", packages, true);
   const reactProject = verify("rspack-react", packages, true);

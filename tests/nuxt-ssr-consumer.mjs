@@ -19,7 +19,7 @@ try {
   mkdirSync(packs);
   const manifestPath = resolve(temporary, "package.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  for (const name of ["compiler", "core", "build-core", "vite", "vue"]) {
+  for (const name of ["compiler", "core", "provider-rust", "build-core", "vite", "vue"]) {
     const output = run("npm", ["pack", "--pack-destination", packs, "--json"], resolve(root, "packages", name), true);
     manifest.dependencies[`@vooya/${name}`] = `file:${resolve(packs, JSON.parse(output)[0].filename)}`;
   }

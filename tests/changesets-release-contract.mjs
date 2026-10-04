@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, symlinkSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -12,8 +12,8 @@ const cli = require.resolve("@changesets/cli/bin.js");
 assert.equal(require("@changesets/cli/package.json").version, "3.0.3", "Revalidate the real release contract before upgrading Changesets.");
 const fixture = mkdtempSync(resolve(tmpdir(), "vooya-changesets-release-"));
 const initial = new Map();
-const firstRelease = new Set(["core", "build-core", "vite", "rspack", "webpack"]);
-const secondRelease = new Set(["build-core", "vite", "rspack", "webpack"]);
+const firstRelease = new Set(["core", "provider-rust", "build-core", "vite", "rspack", "webpack"]);
+const secondRelease = new Set(["provider-rust", "build-core", "vite", "rspack", "webpack"]);
 const namedSummary = "Generate concrete TypeScript interfaces for derived Rust structs and unit enums.";
 const scopedSummary = "Resolve named schemas within their source group and conventional Rust module paths.";
 const nextSummary = "Preserve exact dependency declarations in the next alpha build.";
@@ -21,8 +21,8 @@ const nextSummary = "Preserve exact dependency declarations in the next alpha bu
 try {
   createFixture();
   synchronizeLockfile();
-  writeChangeset("named-abi-declarations", ["core", "build-core"], namedSummary);
-  writeChangeset("scoped-abi-declarations", ["build-core"], scopedSummary);
+  writeChangeset("named-abi-declarations", ["core", "provider-rust"], namedSummary);
+  writeChangeset("scoped-abi-declarations", ["provider-rust"], scopedSummary);
   const before = snapshotPackages();
   runChangesets("version");
   synchronizeLockfile();
@@ -31,8 +31,8 @@ try {
   assertVersionsAndDependencies(firstVersions);
   assertReleaseChangelogs(before, firstRelease, firstVersions);
   assertReleaseSummary("core", namedSummary);
-  assertReleaseSummary("build-core", namedSummary);
-  assertReleaseSummary("build-core", scopedSummary);
+  assertReleaseSummary("provider-rust", namedSummary);
+  assertReleaseSummary("provider-rust", scopedSummary);
   for (const directory of ["vite", "rspack", "webpack"]) {
     const section = currentSection(directory);
     assert(section.includes(`@vooya/build-core@${firstVersions.get("build-core")}`), `${directory}: propagated dependency note is missing.`);
@@ -50,15 +50,15 @@ try {
   assert.equal(readFileSync(resolve(fixture, "package-lock.json"), "utf8"), firstLock);
   assert.deepEqual(archivedChangesets().map((name) => [name, readFileSync(resolve(fixture, ".changeset/pre", name), "utf8")]), archivedBefore, "Consumed alpha changesets must stay archived exactly once.");
 
-  writeChangeset("next-alpha-build", ["build-core"], nextSummary);
+  writeChangeset("next-alpha-build", ["provider-rust"], nextSummary);
   runChangesets("version");
   synchronizeLockfile();
   const secondVersions = new Map([...firstVersions].map(([directory, version]) => [directory, secondRelease.has(directory) ? nextAlpha(version) : version]));
   assertVersionsAndDependencies(secondVersions);
   assertReleaseChangelogs(firstSnapshot, secondRelease, secondVersions);
-  assertReleaseSummary("build-core", nextSummary);
-  assert(!currentSection("build-core").includes(namedSummary), "The next alpha must not consume the first alpha's ABI changeset again.");
-  assert(!currentSection("build-core").includes(scopedSummary));
+  assertReleaseSummary("provider-rust", nextSummary);
+  assert(!currentSection("provider-rust").includes(namedSummary), "The next alpha must not consume the first alpha's ABI changeset again.");
+  assert(!currentSection("provider-rust").includes(scopedSummary));
   assert.deepEqual(pendingChangesets(), []);
   assert.deepEqual(archivedChangesets(), ["named-abi-declarations.md", "next-alpha-build.md", "scoped-abi-declarations.md"]);
 
@@ -71,10 +71,11 @@ try {
   assertVersionsAndDependencies(stableVersions);
   assertReleaseChangelogs(beforeStable, new Set(initial.keys()), stableVersions);
   assertReleaseSummary("core", namedSummary);
-  for (const summary of [namedSummary, scopedSummary, nextSummary]) assertReleaseSummary("build-core", summary);
+  for (const summary of [namedSummary, scopedSummary, nextSummary]) assertReleaseSummary("provider-rust", summary);
   assert(!existsSync(resolve(fixture, ".changeset/pre.json")), "Finishing the stable release must exit prerelease mode.");
   assert.deepEqual(pendingChangesets(), []);
   assert.deepEqual(archivedChangesets(), [], "Stable release must consume the archived alpha changesets.");
+  verifyFirstProviderRelease();
   console.log("Changesets 3.0.3 real-engine release contract passed: independent alphas, two ABI changesets, exact dependencies, offline lockfile sync, changelog history, repeat version, second alpha, and stable 0.1.0 exit.");
 } finally {
   rmSync(fixture, { recursive: true, force: true });
@@ -207,4 +208,54 @@ function synchronizeLockfile() {
     cwd: fixture, encoding: "utf8", shell: process.platform === "win32",
   });
   assert.equal(result.status, 0, `Offline lockfile synchronization failed:\n${result.stdout}\n${result.stderr}`);
+}
+
+
+function verifyFirstProviderRelease() {
+  const directory = resolve(fixture, "first-provider-release");
+  const write = (path, value) => {
+    mkdirSync(resolve(directory, path, ".."), { recursive: true });
+    writeFileSync(resolve(directory, path), typeof value === "string" ? value : JSON.stringify(value, null, 2));
+  };
+  const read = (path) => JSON.parse(readFileSync(resolve(directory, path), "utf8"));
+  write("package.json", { private: true, type: "module", workspaces: ["packages/*"] });
+  write(".changeset/config.json", readJson(".changeset/config.json"));
+  write(".changeset/pre.json", { mode: "pre", tag: "beta" });
+  write(".changeset/provider-boundary.md", '---\n"@vooya/provider-rust": minor\n"@vooya/build-core": minor\n---\n\nExtract the Rust provider while retaining the compatible build entry.\n');
+  for (const [name, version, dependencies] of [
+    ["compiler", "0.1.0-beta.0", {}],
+    ["core", "0.1.0-beta.0", {}],
+    ["provider-rust", "0.0.0", { "@vooya/compiler": "0.1.0-beta.0", "@vooya/core": "0.1.0-beta.0" }],
+    ["build-core", "0.1.0-beta.0", { "@vooya/provider-rust": "0.0.0" }],
+    ["vite", "0.1.0-beta.2", { "@vooya/build-core": "0.1.0-beta.0" }],
+    ["vue", "0.1.0-beta.1", {}],
+  ]) write(`packages/${name}/package.json`, { name: `@vooya/${name}`, version, dependencies });
+  write("package-lock.json", { lockfileVersion: 3, packages: { "": { workspaces: ["packages/*"] } } });
+  const init = spawnSync("git", ["init", "--quiet"], { cwd: directory, encoding: "utf8" });
+  assert.equal(init.status, 0, init.stderr);
+  for (const name of ["version-packages", "release-model", "release-channel", "release-plan"]) {
+    mkdirSync(resolve(directory, "scripts/generated"), { recursive: true });
+    copyFileSync(resolve(root, `scripts/generated/${name}.js`), resolve(directory, `scripts/generated/${name}.js`));
+  }
+  symlinkSync(resolve(root, "node_modules"), resolve(directory, "node_modules"), process.platform === "win32" ? "junction" : "dir");
+  const version = () => {
+    const result = spawnSync(process.execPath, [resolve(directory, "scripts/generated/version-packages.js")], { cwd: directory, encoding: "utf8", env: { ...process.env, CI: "true", npm_config_offline: "true" } });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert(existsSync(resolve(directory, ".changeset/release.json")), result.stdout + result.stderr);
+  };
+  version();
+  const candidates = read(".changeset/release.json").packages;
+  // During an existing prerelease, a minor entry advances its prerelease counter;
+  // it does not independently start the next stable minor line.
+  assert.deepEqual(candidates, [
+    { name: "@vooya/build-core", version: "0.1.0-beta.1" },
+    { name: "@vooya/provider-rust", version: "0.1.0-beta.0" },
+    { name: "@vooya/vite", version: "0.1.0-beta.3" },
+  ]);
+  assert.equal(read("packages/build-core/package.json").dependencies["@vooya/provider-rust"], "0.1.0-beta.0");
+  assert.equal(read("packages/vite/package.json").dependencies["@vooya/build-core"], "0.1.0-beta.1");
+  assert.equal(read("packages/vue/package.json").version, "0.1.0-beta.1");
+  version();
+  assert.deepEqual(read(".changeset/release.json").packages, candidates, "Repeating version must retain the original new-provider candidates.");
+  console.log("First-provider release passed: 0.0.0 plus minor, facade minor, exact propagated Vite dependency and repeat-version stability.");
 }

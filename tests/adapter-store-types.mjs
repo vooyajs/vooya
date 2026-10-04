@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 // Exercise the actual generator without requiring a Rust build or stale dist output.
 const compiled = ts.transpileModule(
   readFileSync(
-    resolve(root, "packages/build-core/source/schema-declarations.ts"),
+    resolve(root, "packages/provider-rust/source/schema-declarations.ts"),
     "utf8",
   ),
   {

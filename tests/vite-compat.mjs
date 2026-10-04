@@ -73,6 +73,7 @@ try {
   const packages = {
     compiler: pack("@vooya/compiler"),
     core: pack("@vooya/core"),
+    providerRust: pack("@vooya/provider-rust"),
     buildCore: pack("@vooya/build-core"),
     plugin: pack("@vooya/vite"),
     vue: pack("@vooya/vue"),
@@ -138,6 +139,7 @@ function configureProject(packages) {
     vite: targetName === "vite-plus" ? "npm:@voidzero-dev/vite-plus-core@0.2.9" : target.version,
     "@vooya/compiler": `file:${packages.compiler}`,
     "@vooya/core": `file:${packages.core}`,
+    "@vooya/provider-rust": `file:${packages.providerRust}`,
     "@vooya/build-core": `file:${packages.buildCore}`,
     "@vooya/vite": `file:${packages.plugin}`,
     ...(target.install.length ? { "vite-plus": target.version } : {}),

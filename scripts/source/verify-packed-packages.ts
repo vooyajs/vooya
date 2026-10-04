@@ -10,6 +10,7 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const expectedPackages = [
   "@vooya/compiler",
   "@vooya/core",
+  "@vooya/provider-rust",
   "@vooya/build-core",
   "@vooya/vite",
   "@vooya/vue",
@@ -74,9 +75,12 @@ try {
       assert(files.has("dist/index.js"), name, "archive is missing compiler JavaScript");
       assert(files.has("dist/index.d.ts"), name, "archive is missing compiler types");
     }
+    if (name === "@vooya/build-core" || name === "@vooya/provider-rust") {
+      assert(files.has("dist/index.js"), name, "archive is missing build JavaScript");
+      assert(files.has("dist/index.d.ts"), name, "archive is missing build types");
+    }
     if (name === "@vooya/build-core") {
-      assert(files.has("dist/index.js"), name, "archive is missing build-core JavaScript");
-      assert(files.has("dist/index.d.ts"), name, "archive is missing build-core types");
+      assert([...files].filter((file) => file.startsWith("dist/")).every((file) => ["dist/index.js", "dist/index.d.ts"].includes(file)), name, "facade archive must not retain old Rust implementation files");
     }
     if (name === "@vooya/vite") {
       for (const file of [
@@ -169,6 +173,17 @@ import {
   resolveVooyaWorkspace,
   writeVooDeclarations,
 } from "@vooya/build-core";
+import { buildApplication as buildRustApplication } from "@vooya/provider-rust";
+import type { BuildApplicationOptions as RustOptions, BuildApplicationResult as RustResult } from "@vooya/provider-rust";
+import type { BuildApplicationOptions as LegacyOptions, BuildApplicationResult as LegacyResult } from "@vooya/build-core";
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
+type Assert<T extends true> = T;
+type OptionsIdentity = Assert<Equal<RustOptions, LegacyOptions>>;
+type ResultIdentity = Assert<Equal<RustResult, LegacyResult>>;
+// The facade must preserve the entire function signature, not merely exports.
+type FunctionIdentity = Assert<Equal<typeof buildRustApplication, typeof buildApplication>>;
+const directBuilder: typeof buildApplication = buildRustApplication;
+void directBuilder;
 import { buildPrecompiledVueArtifact } from "@vooya/vite/build";
 import { formatVooComponent } from "@vooya/vite/format";
 import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
@@ -224,6 +239,14 @@ void verifyManagedToolchainContract;
 `,
   );
 
+  writeFileSync(join(consumer, "provider-entry.mjs"), `
+import assert from "node:assert/strict";
+import * as provider from "@vooya/provider-rust";
+import * as legacy from "@vooya/build-core";
+assert.equal(typeof provider.buildApplication, "function");
+assert.deepEqual(Object.keys(legacy).sort(), Object.keys(provider).sort());
+for (const name of Object.keys(provider)) assert.equal(legacy[name], provider[name], name);
+`);
   const npm = process.platform === "win32" ? "npm.cmd" : "npm";
   const install = spawnSync(npm, ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false"], {
     cwd: consumer,
@@ -232,6 +255,8 @@ void verifyManagedToolchainContract;
   if (install.status !== 0) {
     throw new Error(`packed type consumer install failed:\n${install.stderr || install.stdout}`);
   }
+  const entry = spawnSync(process.execPath, ["provider-entry.mjs"], { cwd: consumer, encoding: "utf8" });
+  if (entry.status !== 0) throw new Error(`packed provider/facade entry failed:\n${entry.stderr || entry.stdout}`);
   const tsc = join(consumer, "node_modules", ".bin", process.platform === "win32" ? "tsc.cmd" : "tsc");
   const typecheck = spawnSync(tsc, ["--project", "tsconfig.json"], { cwd: consumer, encoding: "utf8" });
   if (typecheck.status !== 0) {

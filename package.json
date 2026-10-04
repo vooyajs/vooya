@@ -87,8 +87,9 @@
     "test:rust-octane": "node tests/rust-octane-source.mjs",
     "test:rust-bundlers": "npm run build:packages && node tests/rust-bundler-source.mjs",
     "test:vite8-frameworks": "npm run build:packages && node tests/vite8-frameworks.mjs",
-    "test:build-core": "npm test --workspace @vooya/build-core",
-    "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs"
+    "test:build-core": "npm run test:provider-rust && npm test --workspace @vooya/build-core",
+    "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs",
+    "test:provider-rust": "npm test --workspace @vooya/provider-rust"
   },
   "devDependencies": {
     "@changesets/apply-release-plan": "8.1.1",

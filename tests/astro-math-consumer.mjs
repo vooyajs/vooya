@@ -15,7 +15,7 @@ let runningAstro;
 
 try {
   run("npm", ["run", "build:packages"], root);
-  const packages = ["compiler", "build-core", "core", "vite", "vue"];
+  const packages = ["compiler", "provider-rust", "build-core", "core", "vite", "vue"];
   const tarballs = Object.fromEntries(packages.map((name) => [name, pack(resolve(root, "packages", name), packs)]));
   cpSync(source, temporary, {
     recursive: true,

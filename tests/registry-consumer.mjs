@@ -1,12 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { parseRegistryArguments, registryPackages, verifyPackedLockfile, verifyPackedSnapshot, verifyRegistryLockfile, verifyRegistrySnapshot } from "./helpers/registry-release-contract.mjs";
+import { candidatePackages, consumerPackages, parseRegistryArguments, registryPackages, verifyPackedLockfile, verifyPackedSnapshot, verifyRegistryLockfile, verifyRegistrySnapshot } from "./helpers/registry-release-contract.mjs";
 
 // Registry mode installs only published npm packages. Packed mode is an explicit
 // prepublication rehearsal of the same consumer, with different provenance checks.
@@ -16,7 +16,7 @@ const temporaryRoot = realpathSync(mkdtempSync(resolve(tmpdir(), "vooya-registry
 
 try {
   const snapshot = packDir ? packedSnapshot(resolve(packDir)) : publishedSnapshot(tag);
-  const expected = expectedRoot ? Object.fromEntries(registryPackages.map((name) => [
+  const expected = expectedRoot ? Object.fromEntries(candidatePackages.filter((name) => existsSync(resolve(expectedRoot, "packages", name, "package.json"))).map((name) => [
     `@vooya/${name}`, JSON.parse(readFileSync(resolve(expectedRoot, "packages", name, "package.json"), "utf8")),
   ])) : undefined;
   const versions = packDir ? verifyPackedSnapshot(snapshot, expected) : verifyRegistrySnapshot(snapshot, tag, expected);
@@ -27,9 +27,18 @@ try {
 }
 
 function publishedSnapshot(tag) {
-  return Object.fromEntries(registryPackages.map((name) => [
-    `@vooya/${name}`, JSON.parse(capture("npm", ["view", `@vooya/${name}@${tag}`, "--json", "--registry=https://registry.npmjs.org/"], repositoryRoot)),
-  ]));
+  const snapshot = {};
+  const pending = new Map(registryPackages.map((name) => [`@vooya/${name}`, tag]));
+  for (const [name, version] of pending) {
+    const manifest = JSON.parse(capture("npm", ["view", `${name}@${version}`, "--json", "--registry=https://registry.npmjs.org/"], repositoryRoot));
+    snapshot[name] = manifest;
+    for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
+      for (const [dependency, range] of Object.entries(manifest[field] ?? {})) {
+        if (dependency.startsWith("@vooya/") && !pending.has(dependency)) pending.set(dependency, range);
+      }
+    }
+  }
+  return snapshot;
 }
 
 function packedSnapshot(directory) {
@@ -38,7 +47,7 @@ function packedSnapshot(directory) {
     if (!entry.isFile() || !entry.name.endsWith(".tgz")) continue;
     const path = realpathSync(resolve(directory, entry.name));
     const manifest = JSON.parse(capture("tar", ["-xOf", path, "package/package.json"], directory));
-    if (!registryPackages.some((name) => manifest.name === `@vooya/${name}`)) continue;
+    if (!candidatePackages.some((name) => manifest.name === `@vooya/${name}`)) continue;
     if (snapshot[manifest.name]) throw new Error(`Duplicate candidate tarball for ${manifest.name}.`);
     snapshot[manifest.name] = {
       ...manifest,
@@ -54,7 +63,7 @@ async function verifyConsumer(framework, versions, snapshot) {
   cpSync(resolve(repositoryRoot, `tests/fixtures/registry-${framework}`), project, { recursive: true });
   cpSync(resolve(repositoryRoot, "tests/fixtures/registry-rust"), resolve(project, "src"), { recursive: true });
   const packages = packDir
-    ? ["compiler", "core", "build-core", "vite", framework].map((name) => snapshot[`@vooya/${name}`].packedPath)
+    ? consumerPackages(snapshot, framework).map((name) => snapshot[name].packedPath)
     : [`@vooya/${framework}@${versions[framework]}`, `@vooya/vite@${versions.vite}`];
   run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--save-exact", "--registry=https://registry.npmjs.org/", ...packages], project);
   const lockfile = JSON.parse(readFileSync(resolve(project, "package-lock.json"), "utf8"));

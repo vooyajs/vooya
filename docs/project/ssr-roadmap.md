@@ -107,11 +107,10 @@ Reference: [Nuxt lifecycle](https://nuxt.com/docs/3.x/guide/concepts/nuxt-lifecy
 
 ## Provider extraction stages
 
-1. **Rust seam:** current source provides the internal seam;
-   [PR #148](https://github.com/vooyajs/vooya/pull/148) extracts it into a
-   package while retaining `@vooya/build-core` as a facade. Compilation lives in
-   `rust-provider.ts`; the public facade delegates through `BuildProvider`.
-   Rust-specific options/schema remain on the Rust side.
+1. **Rust package boundary (unreleased):** `@vooya/provider-rust` owns compilation,
+   schema, workspace, and toolchain behavior. `@vooya/build-core` re-exports the
+   existing API for compatibility. The internal `BuildProvider` seam remains
+   Rust-shaped and is not a public extension protocol.
 2. **Normalized artifacts:** still needed. The initial internal artifact shape
    retains one JavaScript entry and one WASM file for compatibility. It is not
    yet the multi-asset/versioned manifest proposed in
