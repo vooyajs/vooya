@@ -5,7 +5,8 @@
 
 ## Solid 1.9
 
-实验性支持 Solid `>=1.9 <2`，源码用例覆盖 Vite 7/8 和 Vite+ 0.2.9。
+已发布 Beta 的实验性 Solid `>=1.9 <2` 路径以 Vite 7 为验证基线。
+main 另有 Vite 8 和 Vite+ 0.2.9 的打包用例，尚未发布；不要把该证据套用到下面的 `@beta` 安装。
 
 
 安装依赖：
@@ -33,7 +34,8 @@ Store 通过 accessor 读取，例如 `state()?.count`；完整用法见
 
 ## Svelte 5
 
-实验性支持 Svelte `>=5 <6`，源码用例覆盖 Vite 7/8 和 Vite+ 0.2.9。
+已发布 Beta 的实验性 Svelte `>=5 <6` 路径以 Vite 7 为验证基线。
+main 另有 Vite 8 和 Vite+ 0.2.9 的打包用例，尚未发布；不要把该证据套用到下面的 `@beta` 安装。
 
 
 安装 adapter 与 Vite plugin：
@@ -71,6 +73,12 @@ Store state 是 Svelte `Readable`，模板通过 `$state` 读取；callback even
 配置后继续快速开始中的[类型配置和运行检查](./getting-started.md#run)。
 
 ## Vite+
+
+::: warning 未发布的 0.2 候选配置
+本节对应当前 main 的五框架打包验收，不能与上文的 `@beta` 安装混用。
+复现时从同一源码提交构建并安装相关包的 tarball，运行仓库的
+`npm run test:vite-plus-frameworks`；版本边界见[发布线说明](../project/release-lines.md)。
+:::
 
 已验证 Vite+ **0.2.9** 和同版本 core alias（实际 Vite **8.2.1**）。保留当前
 框架插件及 Vooya adapter，在 `package.json` 中加入：
@@ -112,6 +120,9 @@ Octane 0.9 要求 Node 22.22.2 或更新版本。
 依赖配置依据 [Vite+ 官方迁移规则](https://viteplus.dev/guide/migrate-rules)。
 
 ## Rspack 和 Webpack
+
+已发布 beta.0 包仅保留 legacy `.voo` 实验路径；当前 main 新增的普通 `.rs`
+接入尚未发布。新项目应先使用 Vite；下方英文配置中的 Rust-file 示例须从同一源码提交打包验证。
 
 - [实验性 Rspack 配置](../../guide/other-integrations.md#experimental-rspack-path)：包含 Rsbuild 和直接 Rspack 入口。
 - [实验性 Webpack 5 配置](../../guide/other-integrations.md#experimental-webpack-5-path)：包含 loader、CSS 配置和重建行为。

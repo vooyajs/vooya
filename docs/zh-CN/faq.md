@@ -2,8 +2,9 @@
 
 ## 用户需要安装 Rust 吗？
 
-当前 source-authoring 路径需要 Cargo、稳定 Rust、`wasm32-unknown-unknown`
-和 `wasm-bindgen-cli 0.2.115`。预编译消费者未来可能不需要，但正式产品尚未发布。
+已发布 Beta 的 source-authoring 路径需要 Cargo、稳定 Rust、`wasm32-unknown-unknown`
+和 `wasm-bindgen-cli 0.2.115`。main 中可选的托管 preset 尚未发布；它仍需宿主 SDK/linker。
+预编译消费者未来可能不需要 Rust，但正式产品尚未发布。
 
 ## TypeScript 是用户依赖吗？
 
@@ -23,9 +24,10 @@
 ## Webpack/Rspack 支持吗？
 
 有 experimental first-party adapter。Vite 是主路径；Rspack 证据下限为 2.1.10，
-Webpack 为 5，未列版本、SSR、hydration、Turbopack 等都不能推断支持。
+Webpack 为 5。已发布 beta.0 仅有 legacy `.voo` fixture；普通 `.rs` 接入是 main
+的未发布 0.2 候选，新项目先用 Vite。未列版本、SSR、hydration、Turbopack 等都不能推断支持。
 
-## 当前有哪些 framework adapter？
+## 已发布 Beta 有哪些 framework adapter？
 
 Vue `>=3.5.2 <4`、React `>=19` 是 supported first-party adapter。Solid
 `>=1.9 <2`、Svelte `>=5 <6` 是 Vite 7 Rust-file 路径上的 experimental adapter。
@@ -45,6 +47,7 @@ Vue 返回 `Ref`，React 返回 snapshot，Solid 返回 `Accessor`，Svelte 返�
 ## 能否接入其他 Web 框架？
 
 架构目标是框架无关的 Web↔WASM layer。当前 adapter 证据覆盖 Vue、React，以及
-experimental Solid/Svelte 路径；其他框架需要独立 adapter 和证据，不能推断已支持。
+experimental Solid/Svelte 路径。main 已有未发布的 Octane adapter，以及具名 Nuxt SSR 安全岛用例；
+它们不属于当前 npm Beta，见[发布线说明](project/release-lines.md)。其他框架仍需独立证据。
 
 更多英文 FAQ 见[FAQ](../faq.md)。

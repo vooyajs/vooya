@@ -144,7 +144,7 @@ export function generateRustSourceRoot(
   rootPrefix = "",
 ): string {
   const prefix = posix.normalize(rootPrefix.replaceAll("\\", "/")).replace(/^\.$/, "").replace(/\/$/, "");
-  const publicSet = new Set(publicFiles.map((file) => file.replaceAll("\\", "/")));
+  const publicSet = new Set(publicFiles.map((file) => posix.normalize(file.replaceAll("\\", "/"))));
   const declarations: string[] = [];
   const used = new Set<string>();
   for (const file of selectRustRootModules(files, prefix)) {
@@ -176,7 +176,7 @@ export function generateRustSourceRoot(
 export function selectRustRootModules(files: string[], rootPrefix = ""): string[] {
   const prefix = posix.normalize(rootPrefix.replaceAll("\\", "/")).replace(/^\.$/, "").replace(/\/$/, "");
   return [...files]
-    .map((file) => file.replaceAll("\\", "/"))
+    .map((file) => posix.normalize(file.replaceAll("\\", "/")))
     .filter((file) => {
       const relative = prefix && file.startsWith(`${prefix}/`) ? file.slice(prefix.length + 1) : file;
       const parts = relative.split("/");

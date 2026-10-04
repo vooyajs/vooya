@@ -1,15 +1,18 @@
 # API Reference
 
+Unless a section says otherwise, this reference describes the [published 0.1 beta packages](../project/status.md). Managed toolchain modes, Octane and SSR-safe Store factories belong to the [unreleased 0.2 work](../project/next-release.md); installing `@beta` does not enable them.
+
 This page lists the public consumption paths verified from the package exports.
 The beta ABI may change between prereleases. Internal `@vooya/build-core`
 helpers are implementation details unless a package page explicitly exports
 them.
 
-Generated `.rs` modules currently pass a framework-neutral Component or Store
+Current-source generated `.rs` modules pass a framework-neutral Component or Store
 bridge into the selected adapter. This is the implementation boundary that
 keeps framework branches out of generation; it is not a stable author-facing
 IR. The supported application APIs are the generated component, `useName()`,
-and `createNameStore()` exports described below.
+and `createNameStore()` exports described below. The source implementation
+description does not add an application API to the published beta.
 
 See the [tooling reference](./tooling.md), [compatibility matrix](../project/compatibility.md),
 and [ABI v1 RFC](../rfcs/0007-rust-file-authoring-and-abi-v1.md) for the wider

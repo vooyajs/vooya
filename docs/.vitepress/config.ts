@@ -63,6 +63,8 @@ const zhNav = [
     text: "项目",
     items: [
       { text: "状态", link: "/zh-CN/project/status" },
+      { text: "发布线与冻结范围", link: "/zh-CN/project/release-lines" },
+      { text: "下一轮发布", link: "/zh-CN/project/next-release" },
       { text: "路线图与 RFC（英文）", link: "/rfcs/0008-layer-boundary-and-roadmap" },
       { text: "基准测试（英文）", link: "/benchmarks/data-grid" },
       { text: "参与贡献", link: "/zh-CN/contribute/" },
@@ -117,6 +119,8 @@ const zhSidebar = {
       items: [
         { text: "项目概览", link: "/zh-CN/project/" },
         { text: "状态", link: "/zh-CN/project/status" },
+        { text: "发布线与冻结范围", link: "/zh-CN/project/release-lines" },
+        { text: "下一轮发布", link: "/zh-CN/project/next-release" },
         { text: "兼容性", link: "/zh-CN/project/compatibility" },
       ],
     },
@@ -176,6 +180,8 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    // Partial translations do not have a matching route for every English page.
+    i18nRouting: false,
     logo: { src: communityLogo.assetPath, alt: communityLogo.alt },
     siteTitle: "Vooya",
     nav: [
@@ -222,6 +228,8 @@ export default defineConfig({
         text: "Project",
         items: [
           { text: "Status", link: "/project/status" },
+          { text: "Release lines", link: "/maintainers/release-lines" },
+          { text: "Next release", link: "/project/next-release" },
           { text: "Roadmap and RFCs", link: "/rfcs/0008-layer-boundary-and-roadmap" },
           { text: "Benchmarks", link: "/benchmarks/data-grid" },
           { text: "Contributing", link: "/contribute/" },
@@ -280,7 +288,20 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/project/" },
             { text: "Status", link: "/project/status" },
+            { text: "Release lines", link: "/maintainers/release-lines" },
+            { text: "Next release", link: "/project/next-release" },
             { text: "Compatibility", link: "/project/compatibility" },
+          ],
+        },
+      ],
+      "/maintainers/": [
+        {
+          text: "Maintainers",
+          items: [
+            { text: "Release lines", link: "/maintainers/release-lines" },
+            { text: "Next release", link: "/project/next-release" },
+            { text: "Release procedure", link: "/maintainers/releases" },
+            { text: "Project status", link: "/project/status" },
           ],
         },
       ],

@@ -1,9 +1,17 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      action:
+        description: Prepare a version PR or publish an already reviewed version commit
+        type: choice
+        options: [prepare, publish]
+        required: true
+      sha:
+        description: Full reviewed commit SHA; must equal the selected release branch HEAD
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -14,7 +22,7 @@ concurrency:
 
 jobs:
   version:
-    if: github.ref == 'refs/heads/main'
+    if: inputs.action == 'prepare' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/0.1')
     name: Prepare release pull request
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -22,12 +30,23 @@ jobs:
       contents: write
       pull-requests: write
       actions: write
-    outputs:
-      publish: ${{ steps.candidate.outputs.publish }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Verify reviewed release branch and commit
+        env:
+          REVIEWED_SHA: ${{ inputs.sha }}
+        run: |
+          test "$REVIEWED_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SHA"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const line = JSON.parse(readFileSync(".changeset/line.json", "utf8"));
+          const valid = (line.branch === "main" && line.channel === "alpha" && line.baseVersion === "0.2.0") || (line.branch === "release/0.1" && line.channel === "beta" && line.baseVersion === "0.1.0");
+          if (!valid || process.env.GITHUB_REF !== `refs/heads/${line.branch}`) throw new Error("Release line does not match the workflow branch.");
+          NODE
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -51,20 +70,16 @@ jobs:
           PR_NUMBER: ${{ steps.changesets.outputs.pr-number }}
         run: |
           release_ref=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .head.ref)
-          gh workflow run verify.yml --ref "$release_ref"
-      - name: Identify a merged release commit
-        id: candidate
-        env:
-          HAS_CHANGESETS: ${{ steps.changesets.outputs.has-changesets }}
-        run: |
-          # The action may have checked out its version branch; inspect the event SHA.
-          if [ "$HAS_CHANGESETS" = "false" ] && ! git diff --quiet "$GITHUB_SHA^" "$GITHUB_SHA" -- .changeset/release.json; then
-            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          release_sha=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .head.sha)
+          existing=$(gh api "repos/$GH_REPO/actions/workflows/verify.yml/runs?head_sha=$release_sha&per_page=100" --jq '.workflow_runs | length')
+          if [ "$existing" = "0" ]; then
+            gh workflow run verify.yml --ref "$release_ref"
+          else
+            echo "Checks already exist for $release_sha; inspect or rerun that run instead of dispatching a duplicate."
           fi
 
   publish:
-    needs: version
-    if: needs.version.outputs.publish == 'true'
+    if: inputs.action == 'publish' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/0.1')
     name: Validate and publish release commit
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -75,6 +90,20 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.sha }}
+      - name: Require the exact reviewed release commit
+        env:
+          REVIEWED_SHA: ${{ inputs.sha }}
+        run: |
+          test "$REVIEWED_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$REVIEWED_SHA"
+          git diff --exit-code
+          git diff --quiet HEAD^ HEAD -- .changeset/release.json && exit 1
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const line = JSON.parse(readFileSync(".changeset/line.json", "utf8"));
+          const valid = (line.branch === "main" && line.channel === "alpha" && line.baseVersion === "0.2.0") || (line.branch === "release/0.1" && line.channel === "beta" && line.baseVersion === "0.1.0");
+          if (!valid || process.env.GITHUB_REF !== `refs/heads/${line.branch}`) throw new Error("Release line does not match the workflow branch.");
+          NODE
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -145,6 +174,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_CHANNEL: ${{ steps.channel.outputs.name }}
+          VOOYA_RELEASE_SHA: ${{ inputs.sha }}
         run: node scripts/generated/publish-alpha.js --channel "$RELEASE_CHANNEL"
       - name: Create missing package GitHub Releases after acceptance
         env:

@@ -24,7 +24,7 @@ Solid/Svelte 还没有后者的独立验收，不能宣传为与 Vue/React 同�
 无需任意字符串索引签名。Store 类型修复自 Vue beta.1 和
 React/Solid/Svelte beta.2 起可用；源码导入修复需要 Vite beta.2。
 
-## 当前已验证
+## 已发布 Beta 的验证范围
 
 - 普通 `.rs` component/store 编译为 application-local WASM。
 - Vue 3 与 React 19 的 props、events、Store、lifecycle、dispose 和 ABI bindings。
@@ -40,7 +40,7 @@ React/Solid/Svelte beta.2 起可用；源码导入修复需要 Vite beta.2。
 - `rsx!` 的 signal binding、条件分支、keyed loop 和 owned cleanup。
 - 100,000-row DataGrid 与 150,000-point Canvas scatter 等浏览器证据。
 
-## 当前限制
+## 已发布 Beta 的限制
 
 source consumer 仍需要 Cargo、`wasm32-unknown-unknown` 和
 `wasm-bindgen-cli`。没有正式预编译 component product；不能宣传 WASM 自动
@@ -48,8 +48,13 @@ source consumer 仍需要 Cargo、`wasm32-unknown-unknown` 和
 都不在当前承诺内。Rspack/Webpack 仍需按[兼容性矩阵](./compatibility.md)
 逐版本看 evidence。
 
-owned struct/unit enum 的命名类型声明、作用域名称消歧，以及 `rsx!` 条件/键控
-渲染已经落地。下一步是 Solid/Svelte 的独立消费验收、更多真实组件场景、
-state-preserving HMR、更完整的 Rust 类型解析和预编译产品契约。
-`@vooya/preset` 托管工具链安装留在 [0.2 工作流](https://github.com/vooyajs/vooya/issues/129)。
+## main 的 0.2 候选（未发布）
+
+当前源码已有可选托管 Rust preset、Octane adapter、Solid/Svelte Vite 8 与五框架
+Vite+ 打包用例、Vue/React Rust-file Webpack/Rspack 接入，以及 SSR 安全岛和 Nuxt 用例。
+这些能力尚未包含在上面的 npm Beta 包中；具体证据见[兼容性矩阵](./compatibility.md)。
+
+0.1 只维护已发布行为，0.2 按功能批次审查和冻结。Go/TinyGo、多语言协议、Rust
+服务端 HTML 和保留状态的 Rust HMR 不在本批范围。完整范围和发布工具限制见
+[发布线说明](./release-lines.md)；不以当前 main 的 patch Changeset 直接生成 0.1 发布。
 完整路线图见[项目状态英文版](../../project/status.md)。

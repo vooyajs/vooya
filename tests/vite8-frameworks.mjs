@@ -14,7 +14,7 @@ const frameworks = plus ? ["vue", "react", "solid", "svelte", "octane"] : ["soli
 const temporary = mkdtempSync(resolve(tmpdir(), `vooya-${target}-frameworks-`));
 try {
   mkdirSync(resolve(temporary, "packages"));
-  const common = ["compiler", "core", "build-core", "vite"];
+  const common = ["compiler", "core", "provider-rust", "build-core", "vite"];
   const packages = new Map([...common, ...frameworks].map((name) => {
     const packed = run("npm", ["pack", "--workspace", `@vooya/${name}`, "--pack-destination", resolve(temporary, "packages"), "--json"], root, {}, true);
     return [name, resolve(temporary, "packages", JSON.parse(packed)[0].filename)];

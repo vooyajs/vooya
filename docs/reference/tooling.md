@@ -1,5 +1,7 @@
 # Tooling Reference
 
+The application options and CLI reference below describe the [published 0.1 beta](../project/status.md). Repository verification commands exercise the current checkout. [Unreleased 0.2 features](../project/next-release.md) have separate availability notes; they are not enabled by installing `@beta`.
+
 ## JavaScript output and TypeScript authoring
 
 Vooya packages execute published JavaScript. TypeScript is a repository
@@ -18,8 +20,10 @@ The public plugin entry is `vooya()` from `@vooya/vite`.
 The plugin requires Vite `>=7`. Vite+ is tested as a separate
 toolchain because it aliases `vite` to `@voidzero-dev/vite-plus-core`; it still
 uses the same `vooya()` plugin and does not create a second Vooya adapter API.
-The current Vite+ fixture uses npm legacy peer resolution because its aliased
-core has a `0.x` package version; the normal Vite fixtures install strictly.
+The current source fixture installs normally with the documented npm aliases
+and overrides; it does not require `--legacy-peer-deps`. That five-framework
+Vite+ evidence belongs to the unreleased 0.2 batch, not the published beta.
+See [Vite+ setup](../guide/other-integrations.md#vite) for the pinned configuration.
 
 ```ts
 vooya({
@@ -73,6 +77,10 @@ manifest's `web-sys` dependency. Supplying the option explicitly takes priority.
 | Parameter | Type / values | Default | Purpose | Limit / evidence |
 | --- | --- | --- | --- | --- |
 | `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 are supported; Solid 1.9 and Svelte 5 have experimental Vite 7 evidence; it does not change the Rust ABI |
+| `rust.sourceRoot` | `string` | `"src"` | Selects the Rust source directory relative to the application root | Dot-segment roots such as `"."` and `"rust/."` have a known beta defect; the fix is a [backport candidate](../maintainers/release-lines.md#maintenance-backport-candidates) |
+| `rust.entry` | `string` | Unset; generate a module root | Selects an authored crate entry relative to the application root | An authored entry must be configured explicitly |
+| `rust.files` | `string[]` | `[]` | Adds Rust input files relative to the application root | These join the files discovered under `sourceRoot` |
+| `rust.public` | `string[]` | `[]` | Selects public root modules relative to `sourceRoot` | JavaScript exposure still follows the Component/Store contract; this does not export arbitrary Rust values |
 | `rust.dependencies` | `Record<string, string \| Dependency>` | Nearest `Cargo.toml`, then `{}` | Adds or overrides Cargo registry, Git, or path dependencies | The generated crate owns core browser dependency versions; path edits may require a server restart in experimental adapters |
 | `rust.webSysFeatures` | `string[]` | Nearest `Cargo.toml`, then `[]` | Enables the required `web-sys` browser APIs | An explicit array replaces manifest-provided features; built-in runtime features are always retained |
 | `toolchain.cargoPath` | `string` | PATH discovery | Chooses the Cargo executable used for the build | The selected Cargo's `rustc`, target, and CLI must be coherent; no silent fallback |
@@ -129,8 +137,9 @@ user's PATH preference.
 
 A project may choose and share its own Cargo policy across native and WASM
 builds, but that is project configuration, not a third Vooya-managed toolchain
-mode. Managed toolchains and Rust-free precompiled consumers are not current
-guarantees.
+mode in the published beta. The unreleased source adds optional
+[managed/system/auto selection](../project/next-release.md#managed-rust-toolchain).
+A supported Rust-free precompiled consumer product remains future work.
 
 ## Generated application workspace
 
@@ -199,6 +208,13 @@ npm run test:rust-hmr
 
 ## Rspack and Rsbuild
 
+::: warning Rust-file support is unreleased
+The npm 0.1 beta adapter covers transitional `.voo` regression fixtures, not
+the supported `.rs` authoring path. The configuration below documents the
+current source for the proposed 0.2 batch. Use Vite with published packages for
+a new Rust-file application; see the [release boundary](../project/next-release.md).
+:::
+
 `@vooya/rspack` exposes `vooyaRsbuild()` for Rsbuild projects and
 `vooyaRspack()` for direct Rspack configuration. Both call the same
 `@vooya/build-core` Cargo and wasm-bindgen pipeline as Vite.
@@ -222,6 +238,13 @@ editing a path dependency currently requires restarting the Rspack development
 server.
 
 ## Webpack 5
+
+::: warning Rust-file support is unreleased
+The npm 0.1 beta adapter covers transitional `.voo` regression fixtures, not
+the supported `.rs` authoring path. The configuration below documents the
+current source for the proposed 0.2 batch. Use Vite with published packages for
+a new Rust-file application; see the [release boundary](../project/next-release.md).
+:::
 
 `@vooya/webpack` uses Webpack's public plugin and loader protocols and delegates
 Rust compilation, declarations, diagnostics, and workspace layout to

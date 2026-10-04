@@ -88,7 +88,8 @@ The intended progression is:
 
 The current beta implements the source-authoring path and explicit system
 toolchain diagnostics. Managed installation and a complete precompiled consumer
-workflow are future work; they must remain configuration-compatible with the
+workflow are outside the published beta; managed installation now has
+[unreleased source evidence](./next-release.md#managed-rust-toolchain). They must remain configuration-compatible with the
 same `vooya()` entry point.
 
 ### Artifact boundary

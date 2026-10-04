@@ -3,6 +3,20 @@ import { fileURLToPath } from "node:url";
 
 export const registryPackages = ["compiler", "core", "build-core", "vite", "vue", "react"];
 
+// Keep legacy registry roots: the provider is discovered from published dependency
+// edges, so historical releases do not require an unpublished package.
+export const candidatePackages = [...registryPackages, "provider-rust"];
+
+export function consumerPackages(snapshot, framework) {
+  const required = new Set(["compiler", "core", "build-core", "vite", framework].map((name) => `@vooya/${name}`));
+  for (const name of required) {
+    for (const field of dependencyFields) {
+      for (const dependency of Object.keys(internalDependencies(snapshot[name] ?? {}, field))) required.add(dependency);
+    }
+  }
+  return [...required];
+}
+
 const dependencyFields = ["dependencies", "optionalDependencies", "peerDependencies"];
 const exactVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
@@ -23,12 +37,15 @@ function isRegistryUrl(value) {
 
 // A release snapshot may intentionally contain several package versions. Its
 // invariant is that each published internal dependency points into this snapshot.
-export function verifyRegistrySnapshot(snapshot, tag, expectedManifests) {
+export function verifyRegistrySnapshot(snapshot, tag, expectedManifests, candidates) {
+  if (candidates && (!expectedManifests || !Array.isArray(candidates) || !candidates.length || new Set(candidates.map((entry) => entry.name)).size !== candidates.length)) throw new Error("Candidate-aware registry verification requires exact manifests and unique candidates.");
+  for (const entry of candidates ?? []) if (expectedManifests[entry.name] && expectedManifests[entry.name].version !== entry.version) throw new Error(`Registry candidate ${entry.name} does not match its expected version.`);
   return verifySnapshot(snapshot, expectedManifests, (manifest, name) => {
-    if (tag === "beta" && !/^0\.1\.0-beta\.(0|[1-9]\d*)$/.test(manifest.version)) {
-      throw new Error(`Registry ${name}@${manifest.version} is not a 0.1.0 beta release.`);
+    const tagged = !candidates || candidates.some((entry) => entry.name === name);
+    if (tagged && !new RegExp(`-${tag}\\.(0|[1-9]\\d*)$`).test(manifest.version)) {
+      throw new Error(`Registry ${name}@${manifest.version} is not a ${tag} release.`);
     }
-    if (manifest["dist-tags"]?.[tag] !== manifest.version) {
+    if (tagged && manifest["dist-tags"]?.[tag] !== manifest.version) {
       throw new Error(`Registry ${name}@${manifest.version} does not match dist-tag ${JSON.stringify(tag)}.`);
     }
     if (!isRegistryUrl(manifest.dist?.tarball)) {
@@ -48,8 +65,9 @@ export function verifyPackedSnapshot(snapshot, expectedManifests) {
 
 function verifySnapshot(snapshot, expectedManifests, verifySource) {
   const versions = {};
-  for (const shortName of registryPackages) {
-    const name = `@vooya/${shortName}`;
+  const names = new Set([...registryPackages.map((name) => `@vooya/${name}`), ...Object.keys(snapshot), ...Object.keys(expectedManifests ?? {})]);
+  for (const name of names) {
+    const shortName = name.replace("@vooya/", "");
     const manifest = snapshot[name];
     if (!manifest || manifest.name !== name || !exactVersion.test(manifest.version ?? "")) {
       throw new Error(`Registry snapshot is missing a valid manifest for ${name}.`);
@@ -96,7 +114,7 @@ export function verifyPackedLockfile(lockfile, framework, snapshot, projectRoot)
 }
 
 function verifyLockfile(lockfile, framework, snapshot, verifySource, description) {
-  const required = new Set(["compiler", "core", "build-core", "vite", framework].map((name) => `@vooya/${name}`));
+  const required = new Set(consumerPackages(snapshot, framework));
   for (const [path, entry] of Object.entries(lockfile.packages ?? {})) {
     const match = path.match(/(?:^|\/)node_modules\/(@vooya\/[^/]+)$/);
     if (!match) continue;

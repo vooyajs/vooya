@@ -1,7 +1,7 @@
 {
   "name": "@vooya/build-core",
   "version": "0.1.0-beta.0",
-  "description": "Bundler-neutral Rust/WASM build core for Vooya component islands.",
+  "description": "Compatibility entry point for Vooya Rust builds.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
   "repository": {
@@ -13,7 +13,8 @@
     "access": "public"
   },
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/index.d.ts",
     "LICENSE-MIT",
     "LICENSE-APACHE"
   ],
@@ -25,13 +26,11 @@
     }
   },
   "scripts": {
-    "build": "npm run build --prefix ../compiler && tsc -p tsconfig.json",
+    "build": "npm run build --prefix ../provider-rust && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "npm run build && node --test test/*.test.js"
   },
   "dependencies": {
-    "@vooya/compiler": "0.1.0-beta.0",
-    "@vooya/core": "0.1.0-beta.0",
-    "smol-toml": "1.8.0"
+    "@vooya/provider-rust": "0.0.0"
   }
 }

@@ -39,7 +39,7 @@
     "release:status": "npm run verify:release-metadata && node scripts/generated/release-status.js",
     "version:packages": "npm run verify:release-metadata && node scripts/generated/version-packages.js && npm install --package-lock-only --ignore-scripts --legacy-peer-deps=false && npm run verify:release-metadata",
     "verify:versions": "npm run build:scripts && node scripts/generated/verify-package-versions.js",
-    "test:release-contract": "npm run build:scripts && node tests/release-contract.mjs && node tests/changelog-contract.mjs && node tests/change-policy-contract.mjs && node tests/published-release-contract.mjs && node --test tests/registry-release-contract.mjs && node tests/changesets-release-contract.mjs && node tests/beta-release-contract.mjs && node tests/alpha-publish-plan-contract.mjs && node tests/github-release-contract.mjs && node tests/release-pipeline-contract.mjs",
+    "test:release-contract": "npm run build:scripts && node tests/release-contract.mjs && node tests/changelog-contract.mjs && node tests/change-policy-contract.mjs && node tests/published-release-contract.mjs && node --test tests/registry-release-contract.mjs && node tests/changesets-release-contract.mjs && node tests/beta-release-contract.mjs && node tests/alpha-publish-plan-contract.mjs && node tests/github-release-contract.mjs && node tests/release-pipeline-contract.mjs && node tests/release-lines-contract.mjs && node --test tests/packed-release-plan-contract.mjs",
     "test:voo": "npm test --workspace @vooya/vite",
     "test:react": "npm test --workspace @vooya/react",
     "test:vue": "npm test --workspace @vooya/vue",
@@ -87,8 +87,9 @@
     "test:rust-octane": "node tests/rust-octane-source.mjs",
     "test:rust-bundlers": "npm run build:packages && node tests/rust-bundler-source.mjs",
     "test:vite8-frameworks": "npm run build:packages && node tests/vite8-frameworks.mjs",
-    "test:build-core": "npm test --workspace @vooya/build-core",
-    "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs"
+    "test:build-core": "npm run test:provider-rust && npm test --workspace @vooya/build-core",
+    "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs",
+    "test:provider-rust": "npm test --workspace @vooya/provider-rust"
   },
   "devDependencies": {
     "@changesets/apply-release-plan": "8.1.1",

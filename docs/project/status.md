@@ -49,14 +49,15 @@ same version. Release checks verify the complete dependency graph.
 Changesets 3.0.3 manages independent package versions and changelogs, with no
 fixed or linked version groups. Published source and dependency changes carry
 package-scoped release notes. The **Release** workflow prepares a release PR
-on `main`; merging that PR runs the full gate and publishes the reviewed
-prerelease channel,
-followed by exact registry checks and per-package GitHub Releases. The receipt
+on the selected release branch after an explicit `prepare` dispatch.
+Publication requires a separate `publish` dispatch for the reviewed version
+commit, followed by the full gate, exact registry checks and per-package GitHub
+Releases. Ordinary source and version merges do not publish automatically. The receipt
 records the tested commit and verified package set. This automation does not
 promote a prerelease to stable or expand the compatibility claims below.
 See [the release guide](../maintainers/releases.md).
 
-## Working today
+## Published beta capabilities
 
 - Compile Rust-file components and stores into application-level WASM.
 - Generate typed mount, prop update, event, dispose, and ABI bindings.
@@ -119,10 +120,11 @@ See [the release guide](../maintainers/releases.md).
   production, rebuild, HMR, and error recovery. Rspack `>=2.1.10`
   has an experimental first-party adapter with Rsbuild, Rslib, and direct
   Rspack fixtures. Webpack `>=5` has an experimental first-party
-  adapter. Webpack 4, Rollup, Turbopack, and other bundlers remain unsupported.
-- Vite+ has a compatibility smoke path because it aliases Vite to its bundled
-  Vite core; it is not a separate Vooya bundler integration or a promise that
-  every Vite+ workflow is supported.
+  adapter. Both published non-Vite adapters retain transitional `.voo` fixture
+  evidence; their `.rs` integration is unreleased 0.2 work. Webpack 4, Rollup,
+  Turbopack, and other bundlers remain unsupported.
+- The newer Vite+ five-framework dev/build matrix runs against current-source
+  tarballs. It does not expand the published beta claim or cover every Vite+ tool.
 - Turbopack has no compatibility claim. Its loader API evidence and unverified integration requirements are
   recorded in [Turbopack research](turbopack-research.md); Webpack and Rspack
   evidence must not be generalized to Turbopack.
@@ -161,13 +163,22 @@ See [the release guide](../maintainers/releases.md).
 - Vooya Lab cases are evidence and product discovery, not a separate support
   matrix or an automatic beta gate; see [RFC 0011](../rfcs/0011-lab-self-hosting-program.md).
 
+## Unreleased 0.2 work
+
+The optional managed preset, Octane, SSR-safe islands and Nuxt fixture,
+Webpack/Rspack Rust-file integration, expanded Vite+ evidence, and proposed
+Rust provider extraction belong to the [next feature batch](./next-release.md).
+The [release-line review](../maintainers/release-lines.md) identifies two
+possible 0.1 maintenance backports; neither has been published. Do not treat
+the current main branch as a maintenance release candidate.
+
 ## Next milestones
 
 Beta.0 passed strict TypeScript checks and Chromium interaction for clean
 Rust-file Vue and React consumers, first with packed artifacts and then with
 exact registry versions. Future releases retain these separate acceptance steps.
-Extending clean packed/registry consumer coverage to Solid and Svelte is follow-up
-work before considering a broader support claim.
+Current source adds clean Vite 8 packed consumers for Solid and Svelte. Registry
+browser acceptance remains follow-up work before a broader support claim.
 Managed toolchain installation through `@vooya/preset` remains a separate
 `0.2` workstream in [#129](https://github.com/vooyajs/vooya/issues/129), not a
 prerequisite for this beta. Source consumers still need the Rust/WASM toolchain.

@@ -2,10 +2,12 @@
 
 ## Do I need Rust installed?
 
-Yes, for the current source-authoring path. A local project compiling `.rs`
+Yes, for the published 0.1 beta source-authoring path. A local project compiling `.rs`
 files needs Cargo, a stable Rust toolchain, the `wasm32-unknown-unknown` target,
 and the pinned `wasm-bindgen-cli`. A future precompiled component product may
-remove that requirement for consumers; it is not published yet.
+remove that requirement for consumers; it is not published yet. The optional
+managed preset in the [0.2 source work](./project/next-release.md) prepares Rust
+tools; it does not turn a source build into a Rust-free build.
 
 ## Do I need to install TypeScript?
 
@@ -39,8 +41,8 @@ intend to use.
 
 ## Is Webpack or Rspack supported?
 
-Both have experimental first-party adapters with named fixtures. Vite remains
-the primary path. Check the [compatibility matrix](./project/compatibility.md)
+Both have experimental first-party adapters with named fixtures. Their published beta evidence covers transitional `.voo` fixtures; `.rs`
+integration is unreleased 0.2 work. Vite remains the published Rust-file path. Check the [compatibility matrix](./project/compatibility.md)
 before choosing a bundler; do not infer support for unlisted versions,
 Turbopack, Rollup, SSR, or hydration.
 

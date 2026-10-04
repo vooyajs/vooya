@@ -2,7 +2,9 @@
 
 This page records the supported paths and integration tests in this repository.
 The beta table describes published packages; the additions below describe
-current source awaiting release. Each entry covers its named consumer path.
+current source awaiting the proposed 0.2 release. Each entry covers its named
+consumer path. Check [package versions](status.md) before applying a row;
+[release lines](../maintainers/release-lines.md) explains the maintenance boundary.
 
 ## Beta framework capabilities
 
@@ -19,7 +21,7 @@ feature is implemented.
 | Generated component/Store declarations, owned struct and unit-enum types | Implemented | Implemented | Implemented | Implemented |
 | Lifecycle coverage | Mount/unmount and late Store resolution | StrictMode cleanup and late Store resolution | Owner cleanup and late Store resolution in adapter tests | Component and Store disposed once on child unmount |
 | Rust-file production browser fixture | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium |
-| Separate clean packed consumer acceptance | Verified | Verified | Verified, Vite 8 | Verified, Vite 8 |
+| Separate clean packed consumer acceptance in the published release | Verified | Verified | Not yet covered | Not yet covered |
 | npm-registry consumer acceptance | Verified | Verified | Not yet covered | Not yet covered |
 | SSR / hydration / slots in published beta | Not supported | Not supported | Not supported | Not supported |
 
@@ -35,7 +37,7 @@ optional Boolean prop (`Option::None`, rather than `Some(false)`). Solid and
 Svelte already preserve those values; the React/Vue fixes do not imply those
 adapters were absent from earlier builds.
 
-`test:vite8-frameworks` adds separate clean tarball installs of Solid/Svelte,
+**Unreleased source evidence:** `test:vite8-frameworks` adds separate clean tarball installs of Solid/Svelte,
 Vite 8.2.1 production Chromium checks, and strict generated declaration checks.
 Svelte uses `@sveltejs/vite-plugin-svelte` 7.1.2 on Vite 8. npm-registry consumer
 acceptance is still pending; both adapters remain experimental. SvelteKit is not covered.
@@ -43,18 +45,25 @@ See [Getting started](../guide/getting-started.md) for all four configurations.
 
 ## Framework and host-tool minimums
 
+These rows combine published minimums with explicitly marked source-only
+experiments. Octane and the newer Vapor fixture are not additions to the
+published beta support table above.
+
 | Layer | Minimum version | Status | Evidence and boundary |
 | --- | --- | --- | --- |
 | Node.js | `^20.19.0 \|\| >=22.12.0` | Supported | Source quickstarts run on Ubuntu + Node 20, macOS + Node 22, Windows + Node 22; the full release gate runs on Ubuntu + Node 22 |
-| Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; Vue 3.6 is a compatibility target and will be verified in its own fixture; 3.5.0 and 3.5.1 are outside the supported type boundary |
+| Vue | `>=3.5.2 <4` | Supported | Strict adapter declaration checks pass from 3.5.2 through 3.5.41; current-source Vue 3.6/Vapor evidence is listed separately below; 3.5.0 and 3.5.1 are outside the supported type boundary |
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
 | Solid | `>=1.9 <2` | Experimental | Vite 7 production browser fixture covers a Rust-file component, callback event, and Accessor-backed Store update; adapter unit tests cover owner cleanup and late resolution |
 | Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 production Chromium fixture covers Component mount/callback, Store action, Component prop update, generated `Readable` declarations, and Component/Store owner cleanup |
-| Octane | `0.9.0` | Experimental, client only | Packed native Octane fixture with `@octanejs/vite-plugin` 0.2.1 on Vite 8 and Vite+ 0.2.9 covers Component/Store isolation, props/events, disposal/remount and strict declarations; Node >=22.22.2; SSR is not covered |
+| Octane | `0.9.0` | Unreleased 0.2, experimental, client only | Packed native Octane fixture with `@octanejs/vite-plugin` 0.2.1 on Vite 8 and Vite+ 0.2.9 covers Component/Store isolation, props/events, disposal/remount and strict declarations; Node >=22.22.2; SSR is not covered |
 | React 19 Rust-file authoring | Vite 7 | Supported beta path | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
-| Vue Vapor | Vue 3.6 experimental | Verified, experimental | Vite 8 + Vue 3.6.0-beta.17 mounts a Rust-file component when the app uses Vue's `vaporInteropPlugin`; Vapor remains an upstream Vue opt-in |
+| Vue Vapor | Vue 3.6 experimental | Current-source fixture, experimental | Vite 8 + Vue 3.6.0-beta.17 mounts a Rust-file component when the app uses Vue's `vaporInteropPlugin`; Vapor remains an upstream Vue opt-in |
 
-## Verified browser fixtures
+## Current-source browser fixtures
+
+Commands in this section run the checkout, including unpublished changes.
+Only the release evidence above establishes the npm beta boundary.
 
 | Consumer path | Verified behavior | Evidence |
 | --- | --- | --- |
@@ -72,7 +81,7 @@ See [Getting started](../guide/getting-started.md) for all four configurations.
 
 ## Rust-file bundler additions
 
-The next release adds Webpack/Rspack Rust-file integration. These checks run
+The proposed 0.2 batch adds Webpack/Rspack Rust-file integration. These checks run
 against tarballs built from this checkout, not the existing npm Beta artifacts.
 `npm run test:rust-bundlers` covers Vue and React on Webpack 5.109.2 and Rspack
 2.1.10, including `rust.sourceRoot: "."` with Rust files at the application root.
@@ -81,9 +90,11 @@ added `.rs` files, and stable builds after generated output. Applications retain
 responsibility for framework transforms, HTML and CSS rules.
 SSR/Next.js and state-preserving HMR are not implied.
 
-## Verified bundler/toolchain matrix
+## Current-source bundler/toolchain matrix
 
-These entries run against packed Vooya packages in a fresh temporary consumer.
+These entries run against tarballs built from the checkout in a fresh temporary
+consumer. They are source evidence, not proof that installing npm `@beta`
+provides Vite+ five-framework support or Webpack/Rspack Rust-file integration.
 The evidence and boundary columns state the exact checks exercised by each
 toolchain; a production smoke does not imply development-server or HMR support.
 
@@ -95,7 +106,7 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 | Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 
-## SSR additions
+## Unreleased 0.2 SSR additions
 
 Current source keeps Vue Store creation in the browser and preserves React
 client boundaries. Adapter tests cover server rendering and hydration; the

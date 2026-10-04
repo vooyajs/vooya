@@ -7,7 +7,7 @@ import type { ToolchainEnvironment } from "./toolchain.js";
 
 export type ToolchainMode = "auto" | "system" | "managed";
 
-/** Optional project package; build-core never installs npm packages itself. */
+/** Optional project package; the provider never installs npm packages itself. */
 export function prepareProjectToolchain({ cwd, env, mode = "auto", cargoPath }: {
   cwd: string; env: ToolchainEnvironment; mode?: ToolchainMode; cargoPath?: string;
 }): { cargoPath: string; environment: ToolchainEnvironment } | undefined {

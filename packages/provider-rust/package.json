@@ -1,0 +1,37 @@
+{
+  "name": "@vooya/provider-rust",
+  "version": "0.0.0",
+  "description": "Rust source, Cargo, wasm-bindgen, schema and toolchain support for Vooya.",
+  "type": "module",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vooyajs/vooya.git",
+    "directory": "packages/provider-rust"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "npm run build --prefix ../compiler && tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@vooya/compiler": "0.1.0-beta.0",
+    "@vooya/core": "0.1.0-beta.0",
+    "smol-toml": "1.8.0"
+  }
+}

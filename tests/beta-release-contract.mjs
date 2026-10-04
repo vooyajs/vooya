@@ -16,6 +16,7 @@ try {
   // New adapters/toolchains must not invent alpha history to join this rehearsal.
   // Omit external dependencies to stay offline.
   cpSync(resolve(root, ".changeset"), resolve(fixture, ".changeset"), { recursive: true });
+  rmSync(resolve(fixture, ".changeset/line.json"), { force: true });
   const betaNote = resolve(fixture, ".changeset/first-source-author-beta.md");
   if (!existsSync(betaNote)) {
     const consumed = resolve(fixture, ".changeset/pre/first-source-author-beta.md");

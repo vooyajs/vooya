@@ -1,8 +1,9 @@
 # SSR 与 0.2.0 计划
 
-下一轮功能版本定为 **0.2.0**：推进 Next.js（React）、Nuxt（Vue）的 SSR 接入，
-以及 Rust provider 抽离。缺陷修复用 patch，新功能用 minor；本次不直接改版本号
-或发布 0.2.0。已经发布的 Beta 支持范围保持不变。
+SSR 安全岛、具名 Nuxt 消费用例与 Rust provider 抽离属于 **0.2 候选功能批次**，
+尚未发布。当前 npm `0.1.0-beta.N` 的支持范围不变；本文的 API 与测试描述对应 main，
+不能直接套用到 `@beta` 安装。发布前先审查并冻结范围，再完成内部验收。
+Next.js 仍未验证，不是首批 Alpha 的已承诺能力；具体范围见[发布线说明](./release-lines.md)。
 
 ## 第一层：SSR 页面中的客户端 WASM 岛
 
@@ -14,29 +15,30 @@
 组件依赖浏览器 DOM；后一种能力还需要服务端渲染契约、状态传递与 DOM 所有权
 设计。加 `use client` 或关闭 SSR 并不能实现它。
 
-## 这批基础改动
+## main 中已有的基础改动（未发布）
 
 - Vue 生成的 Store 在挂载后才调用工厂；高级 `useVooyaStore` 也接受惰性工厂。
   SSR 场景应传工厂，已经创建的 Promise/Store 无法被 adapter 撤销初始化。
 - React 构建产物保留 `use client`。Next 中调用 `defineVooyaComponent` 或
   `defineVooyaStore` 的模块自身仍需客户端边界，不能在 Server Component 调用这些工厂。
 - 补充无 DOM 的服务端渲染、现有宿主节点 hydration、实例隔离和卸载清理测试。
-  hydration 使用 JSDOM 与 mock bindings，尚不是 Next/Nuxt 的真实 WASM 浏览器验收。
+  adapter 层 hydration 使用 JSDOM 与 mock bindings；另有下文的 Nuxt 真实 WASM 消费用例。
+  这两层证据均不能证明 Next.js 支持。
 - Rust 构建实现抽到内部 provider，公共 `buildApplication` API 保持兼容。
   当前产物接口仍是单 JS/单 WASM 的内部过渡层，不是完整多语言插件协议。
 
-## 接下来必须补齐
+## 具名集成与后续边界
 
 | 路径 | 实际缺口 | 支持声明前的验收 |
 | --- | --- | --- |
-| Next.js | 现有 Webpack adapter 已支持 Vue/React 的 `.rs`，但还未验证 Next.js；Turbopack 不读取 Webpack 配置，仍需确定 Next 专用的源码或预构建产物接入 | App Router 生产构建、服务端 HTML、WASM URL、hydration、交互、路由切换与卸载 |
-| Nuxt | 验证 Vite 的服务端/客户端两套构建与 Nitro 产物，不能只靠 Vue adapter 测试 | SSR 生产构建启动、HTML、真实 WASM 交互、hydration、路由清理与请求隔离 |
-| Provider | 版本化多资产产物、运行环境约束、缓存身份、进一步收拢 Rust schema/binding 逻辑 | 现有 Rust 回归不退化，预编译 consumer 不依赖 Cargo，再考虑其他语言 canary |
+| Next.js | main 的 Webpack adapter 已加入 Vue/React 的 `.rs`，但还未验证 Next.js；Turbopack 不读取 Webpack 配置，仍需确定 Next 专用的源码或预构建产物接入 | App Router 生产构建、服务端 HTML、WASM URL、hydration、交互、路由切换与卸载 |
+| Nuxt | main 已有具名打包消费用例，尚未发布；不能外推到其他版本或 Edge runtime | 下文列出已覆盖的生产 SSR、真实 WASM、独立 Store 与路由清理；发布候选仍需通过完整门禁 |
+| Rust provider | 本批限于现有 Rust 实现抽离、兼容 facade、包与类型身份 | 保留现有 Rust 回归和消费测试；多语言协议与正式预编译产品不属于本批 |
 
-Nuxt 的真实 fixture 和 CI 已加入本 PR；Next.js 接入仍待完成，不能宣传已全面支持 SSR。
+Nuxt 的真实 fixture 和 CI 已加入 main；Next.js 接入仍待完成，不能宣传已全面支持 SSR。
 详细实施边界、官方参考与发布验收见[英文计划](../../project/ssr-roadmap.md)。
 
-## 现有 API 的 SSR 行为
+## main API 的 SSR 行为（未发布）
 
 | API | 服务端渲染 | 浏览器生命周期 |
 | --- | --- | --- |

@@ -65,3 +65,6 @@ workload 仍应与真实宿主基线测量。
 `0.1.0-beta.2`，`@vooya/vue` 为 `0.1.0-beta.1`，其余五个仍为 beta.0。请按包使用 `beta` 标签，不要强制同版。Vite Rust-file 路径是主要 source-authoring
 路径，Rspack 与 Webpack 仍是 experimental；预编译组件产品尚未正式发布。
 请从[快速开始](guide/getting-started.md)开始，再看[项目状态](project/status.md)。
+
+main 的托管工具链、Octane、SSR/Nuxt 与 Rust-file bundler 扩展尚未发布，
+请先核对[发布线与功能批次](project/release-lines.md)，不要把源码用例视为 npm Beta 能力。
