@@ -49,6 +49,7 @@ export * from "./rust-modules.js";
 export * from "./rust-bundler.js";
 export * from "./schema-declarations.js";
 export * from "./toolchain.js";
+export type { ToolchainMode } from "./managed-toolchain.js";
 export * from "./workspace.js";
 
 export type MappedDiagnostic = string;

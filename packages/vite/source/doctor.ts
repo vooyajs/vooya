@@ -29,12 +29,13 @@ export function inspectToolchain({
   exists = existsSync,
   probeManifestPath = undefined,
   cargoPath = undefined,
+  mode = "auto" as import("@vooya/build-core").ToolchainMode,
   workspaceRoot = undefined,
 } = {}) {
   let toolchain;
   let resolutionError;
   try {
-    toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath });
+    toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath, mode });
   } catch (error) {
     resolutionError = error;
   }

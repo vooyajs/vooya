@@ -51,7 +51,7 @@ export type VooyaFramework = "vue" | "react" | "solid" | "svelte" | "octane";
 export interface VooyaPluginOptions {
   framework?: VooyaFramework;
   rust?: RustBuildOptions;
-  toolchain?: { cargoPath?: string };
+  toolchain?: { cargoPath?: string; mode?: "auto" | "system" | "managed" };
   workspace?: { root?: string };
 }
 
@@ -98,6 +98,7 @@ export function vooya({
         toolchain = resolveToolchain({
           cwd: applicationRoot,
           cargoPath: toolchainOptions?.cargoPath,
+          mode: toolchainOptions?.mode,
         });
         logger?.info(`Vooya: selected Rust/WASM toolchain: ${formatResolvedToolchain(toolchain)}.`);
         if (toolchain.cargoPathWarning) {

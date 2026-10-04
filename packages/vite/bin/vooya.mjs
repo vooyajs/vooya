@@ -15,6 +15,7 @@ if (parsed.help) {
 } else {
   const report = inspectToolchain({
     cargoPath: parsed.cargoPath,
+    mode: parsed.mode,
     workspaceRoot: parsed.workspaceRoot,
   });
   console.log(parsed.json ? JSON.stringify(createToolchainJsonReport(report), null, 2) : formatToolchainReport(report));
@@ -27,6 +28,7 @@ export function parseDoctorArguments(args) {
 
   let json = false;
   let cargoPath;
+  let mode;
   let workspaceRoot;
   for (let index = 1; index < args.length; index += 1) {
     const argument = args[index];
@@ -34,6 +36,12 @@ export function parseDoctorArguments(args) {
     if (argument === "--json") {
       if (args[0] !== "doctor") return { error: "--json is only available for vooya doctor." };
       json = true;
+      continue;
+    }
+    if (argument === "--toolchain") {
+      const value = args[++index];
+      if (args[0] !== "doctor" || !["auto", "system", "managed"].includes(value) || mode !== undefined) return { error: "--toolchain requires auto, system, or managed and may be used once with doctor." };
+      mode = value;
       continue;
     }
     if (argument === "--cargo-path") {
@@ -71,13 +79,13 @@ export function parseDoctorArguments(args) {
   if (args[0] === "clean" && cargoPath !== undefined) {
     return { error: "--cargo-path is only available for vooya doctor." };
   }
-  return { command: args[0], cargoPath, workspaceRoot, json };
+  return { command: args[0], cargoPath, workspaceRoot, json, ...(mode ? { mode } : {}) };
 }
 
 function usage() {
   return [
     "Usage:",
-    "  vooya doctor [--json] [--cargo-path <path>] [--workspace-root <path>]",
+    "  vooya doctor [--toolchain auto|system|managed] [--json] [--cargo-path <path>] [--workspace-root <path>]",
     "  vooya clean [--workspace-root <path>]",
   ].join("\n");
 }

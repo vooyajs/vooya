@@ -3,6 +3,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, platform as hostPlatform, tmpdir } from "node:os";
 import { join, posix, win32 } from "node:path";
+import { prepareProjectToolchain } from "./managed-toolchain.js";
+import type { ToolchainMode } from "./managed-toolchain.js";
 import { VooyaUserError } from "./errors.js";
 
 export const WASM_BINDGEN_VERSION = "0.2.115";
@@ -19,6 +21,7 @@ export type ToolchainRun = (
 export type ToolchainExists = (path: string) => boolean;
 
 export interface ResolveToolchainOptions {
+  mode?: ToolchainMode;
   env?: ToolchainEnvironment;
   cwd?: string;
   platform?: string;
@@ -37,7 +40,7 @@ export interface ResolvedToolchain {
   cargoCandidates: string[];
   firstCargoPath?: string;
   selectedCargoIndex: number;
-  cargoSelection: "explicit" | "path";
+  cargoSelection: "explicit" | "path" | "managed";
   cargoPathWarning?: string;
   environment: ToolchainEnvironment;
 }
@@ -60,9 +63,12 @@ export function resolveToolchain({
   exists = existsSync,
   probeManifestPath = undefined,
   cargoPath = undefined,
+  mode = "auto",
 }: ResolveToolchainOptions = {}): ResolvedToolchain {
   const paths = platform === "win32" ? win32 : posix;
-  const environment = { ...env };
+  const managed = prepareProjectToolchain({ cwd, env, mode, cargoPath });
+  if (managed) cargoPath = managed.cargoPath;
+  const environment = managed?.environment ?? { ...env };
   const cacheKey = getToolchainCacheKey({
     cargoPath,
     environment,
@@ -82,9 +88,9 @@ export function resolveToolchain({
       [],
     );
   }
-  const cargoSelection = cargoPath === undefined ? "path" : "explicit";
+  const cargoSelection = managed ? "managed" : cargoPath === undefined ? "path" : "explicit";
   const explicitCargoPath =
-    cargoSelection === "explicit"
+    cargoSelection !== "path"
       ? paths.isAbsolute(cargoPath)
         ? paths.normalize(cargoPath)
         : paths.resolve(cwd, cargoPath)
