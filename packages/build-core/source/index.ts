@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, posix, relative, resolve } from "node:path";
 
 import { acquireBuildLock } from "./build-lock.js";
 import { CargoBuildError, VooyaUserError } from "./errors.js";
@@ -157,8 +157,8 @@ export function generateRustSourceRoot(
   publicFiles: string[] = [],
   rootPrefix = "",
 ): string {
-  const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
-  const publicSet = new Set(publicFiles.map((file) => file.replaceAll("\\", "/")));
+  const prefix = posix.normalize(rootPrefix.replaceAll("\\", "/")).replace(/^\.$/, "").replace(/\/$/, "");
+  const publicSet = new Set(publicFiles.map((file) => posix.normalize(file.replaceAll("\\", "/"))));
   const declarations: string[] = [];
   const used = new Set<string>();
   for (const file of selectRustRootModules(files, prefix)) {
@@ -188,9 +188,9 @@ export function generateRustSourceRoot(
 
 /** Keep only files that can be declared directly by a conventional crate root. */
 export function selectRustRootModules(files: string[], rootPrefix = ""): string[] {
-  const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
+  const prefix = posix.normalize(rootPrefix.replaceAll("\\", "/")).replace(/^\.$/, "").replace(/\/$/, "");
   return [...files]
-    .map((file) => file.replaceAll("\\", "/"))
+    .map((file) => posix.normalize(file.replaceAll("\\", "/")))
     .filter((file) => {
       const relative = prefix && file.startsWith(`${prefix}/`) ? file.slice(prefix.length + 1) : file;
       const parts = relative.split("/");
@@ -227,7 +227,7 @@ export function discoverRustSourceFiles(applicationRoot: string, configuredRoot 
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
       const path = resolve(directory, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== "target" && entry.name !== ".vooya") visit(path);
+        if (!["target", ".vooya", "node_modules", ".git"].includes(entry.name)) visit(path);
       } else if (entry.isFile() && entry.name.endsWith(".rs") && entry.name !== "lib.rs" && entry.name !== "main.rs") {
         files.push(path);
       }
