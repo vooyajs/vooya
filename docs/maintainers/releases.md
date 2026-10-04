@@ -1,34 +1,35 @@
 # Releases
 
-::: warning Choose the release line first
-Current main contains unreleased 0.2 feature work while Changesets still selects
-`0.1.0-beta`. Do not publish the entire pending plan as 0.1 maintenance.
-Read the [release-line review and scope freeze](./release-lines.md) before
-preparing a version PR. The branch/channel transition still needs its own
-release-tooling rehearsal; the commands below describe the existing pipeline.
+::: warning Prepare a candidate before publishing
+Source changes and version changes belong in separate reviewed PRs. The main
+branch is the 0.2 feature line; it must not be published as 0.1 maintenance.
+Read the [current release-line review](./release-lines.md) before preparing a
+candidate. A source merge or successful version preview does not authorize
+publication.
 :::
 
-Changesets 3.0.3 plans versions, exact internal dependency updates, and
-per-package changelogs. Public packages are independently versioned:
-`.changeset/config.json` keeps `fixed` and `linked` empty. Do not hand-edit
-versions or generated changelogs.
+Changesets 3.0.3 plans exact internal dependency updates and per-package
+changelogs. Packages remain independently versioned: `fixed` and `linked` are
+empty. Do not hand-edit package versions or generated changelogs.
 
-The first `0.1.0-beta.0` release is published for all ten public packages;
-[its release workflow](https://github.com/vooyajs/vooya/actions/runs/36614375254)
-completed package and registry-consumer acceptance. The initial one-time
-changeset named all ten public packages, and `.changeset/pre.json` selects
-`beta`. Changesets 3 carries each alpha version's numeric prerelease counter
-into a new tag, so changing `pre.json` alone does not produce `beta.0`.
-`version:packages` uses the pinned official release-plan assembler, verifies
-that every public package starts at `0.1.0-alpha.N` and is included in the
-`0.1.0-beta.N` plan, then normalizes that plan's versions to `0.1.0-beta.0`.
-The official applier still writes package versions, dependency pins, changelogs,
-and consumed-entry archives. Incomplete or mixed first-beta cohorts fail before
-application; later beta version operations use the unmodified Changesets CLI.
-`fixed` and `linked` remain empty, so later beta changes are
-versioned independently. Installation guides now use the published `beta`
-channel. Preparing a future source or version change does not publish it;
-versioning and publication remain separate reviewed steps.
+`.changeset/line.json` makes the target explicit:
+
+| Branch | Base version | Channel | Purpose |
+| --- | --- | --- | --- |
+| `main` | `0.2.0` | `alpha` | Current feature batch; new packages start at `0.2.0-alpha.0` |
+| `release/0.1` | `0.1.0` | `beta` | Fixes to published 0.1 beta behavior |
+
+The file's `channel` must match `.changeset/pre.json`. Use the repository's
+`release:status` and `version:packages` commands: they review the target versions
+before the official Changesets applier writes manifests, exact dependency pins,
+changelogs and consumed-entry archives. They retain unchanged packages, reject
+version regressions and keep repeated versioning without new changesets a no-op.
+Changing the prerelease tag alone is not a minor-version transition.
+
+The first 0.1 beta is already published; its historical transition remains a
+regression fixture. Stable publication is not enabled. Installation guides
+continue using published `beta` packages until the new alpha is accepted and
+published.
 
 Use Node.js 22.22.2 or newer on the 22.x line with npm 10.9.x for release
 preparation. The repository's current Octane and JSDOM dependencies require
@@ -72,15 +73,19 @@ installing, so a maintainer’s private registry cannot leak into the public loc
 
 ## Release pull request
 
-When changesets reach `main`, the **Release** workflow creates or updates a
-release PR with the version plan, package changelogs, exact dependency updates,
-and synchronized lockfile. The version step also records the exact candidate
+After collecting a reviewed batch, manually dispatch the **Release** workflow
+on `main` or `release/0.1` with `action=prepare` and the full branch-head `sha`.
+It creates or updates a release PR with the version plan, package changelogs,
+exact dependency updates, and synchronized lockfile. Ordinary pushes do not
+prepare or publish releases. The version step also records the exact candidate
 package versions in `.changeset/release.json`. Review these files together.
 Source changes and their release version changes belong in separate PRs.
 
 The version job uses the official Changesets action to maintain the PR. Because
 pull requests created with `GITHUB_TOKEN` do not trigger normal pull-request
-workflows, it explicitly dispatches **Verify** for the generated release branch.
+workflows, it dispatches **Verify** for the generated release branch only when
+that exact PR head has no existing Verify run. Inspect or rerun a failed run
+instead of dispatching duplicates.
 Repository Actions settings must enable **Allow GitHub Actions to create and
 approve pull requests**. The version job explicitly grants `contents: write`,
 `pull-requests: write`, and `actions: write`; it uses the repository token and
@@ -96,16 +101,18 @@ will not fix it.
 
 The **Create or update release PR** step fails with GitHub's API error when PR
 creation is denied. That failure is not ignored: the version job fails, the
-candidate step is skipped, and the dependent publish job does not run. A pushed
+prepare operation stops. Publication is a separate explicit dispatch. A pushed
 version branch alone is not a successfully prepared release PR.
 
 While an owner resolves the policy, a maintainer with normal push and PR rights
-can prepare the same version PR manually. Start from a fresh worktree, confirm
+can prepare the same version PR manually. This example targets the feature
+line; for maintenance, use `origin/release/0.1` and `--base release/0.1`.
+Start from a fresh worktree, confirm
 its Git author/committer use your public-project identity, and run:
 
 ```sh
 git fetch origin main
-git worktree add -b codex/release-packages ../vooya-release-preview origin/main
+git worktree add -b feat/release-packages ../vooya-release-preview origin/main
 cd ../vooya-release-preview
 npm ci
 npm run release:status
@@ -123,15 +130,16 @@ changes, stop instead of opening an empty version PR. Once the diff is correct:
 ```sh
 git add .changeset packages/*/package.json packages/*/CHANGELOG.md package-lock.json
 git commit -m 'chore: release packages'
-git push -u origin codex/release-packages
-gh pr create --base main --head codex/release-packages --title 'chore: release packages' --body 'Consume pending changesets into reviewed package versions, dependency pins, and per-package changelogs.'
+git push -u origin feat/release-packages
+gh pr create --base main --head feat/release-packages --title 'chore: release packages' --body 'Consume pending changesets into reviewed package versions, dependency pins, and per-package changelogs.'
 ```
 
 A PR created with the maintainer's normal GitHub credentials triggers ordinary
 PR checks. Wait for those checks and review before merging. These commands do
-not publish; merging this version PR still enters the normal prerelease publishing
-job and its complete release gate. The manual route does not grant permission
-to skip verification or publish stable versions.
+not publish, and merging the version PR does not publish either. Publication
+requires a separate dispatch of the reviewed release commit and its complete
+release gate. The manual route does not skip verification or enable stable
+versions.
 
 For a local preview of the same version operation, use an isolated checkout:
 
@@ -159,10 +167,11 @@ changesets for already published history.
 
 ## Publish alpha or beta
 
-Merging the reviewed release PR triggers the **Release** workflow on `main`.
-Its separate publishing job runs only when that commit changes the generated
-`.changeset/release.json` and no pending changesets remain. Ordinary source
-merges prepare a release PR instead of publishing directly.
+After merging and reviewing the version PR, manually dispatch **Release** on
+its configured release branch with `action=publish` and the complete reviewed
+`sha`. The SHA must equal the selected branch head, change the generated
+`.changeset/release.json`, and have no pending changesets. Source merges never
+publish automatically.
 
 Use `npm run release:beta` for the beta channel or `npm run release:alpha` for
 alpha. Both commands write to npm and explicitly guard the selected channel
@@ -176,14 +185,18 @@ Publication uses the same commit that passes the complete release gate:
 1. Require a clean release checkout and no pending changesets.
 2. Run `verify:release`, including browser and bundler acceptance, build the
    packages, and recheck the commit and checkout before publication.
-3. Capture the existing npm `latest` tags as the retry baseline; beta also
-   captures the existing `alpha` tags. Verify this baseline before publishing.
+3. Capture `latest` and the other prerelease channel as the retry baseline:
+   alpha protects beta, and beta protects alpha. Also preserve same-channel
+   tags for unchanged packages. Verify the original baseline before publishing.
 4. Use the Changesets publish plan, pack, and publish commands for only the
    recorded candidates, forcing the selected `alpha` or `beta` tag. Publish packed artifacts with
    Git tagging disabled, skipping exact versions already present on npm.
 5. Verify each expected registry version and its exact internal dependencies,
-   synchronize and check the selected channel tag, and verify that `latest`
-   remains at the original baseline. Beta must also leave `alpha` unchanged. Registry propagation checks use bounded retries.
+   synchronize and check only the candidates' selected-channel tags, and
+   verify that protected tags remain at the original baseline. Unchanged
+   dependencies can remain on the other channel and are checked by exact
+   version. An older retry must not roll a newer channel tag back. Registry
+   propagation checks use bounded retries.
 6. Install clean Rust-file Vue and React consumers from the registry and
    verify their exact resolved versions and dependency graph against the
    release checkout. Require strict TypeScript checks, production builds, and
@@ -209,17 +222,19 @@ installing a registry package does not by itself prove type or browser behavior.
 
 Keep the same release commit and exact versions. Inspect the failed step; do
 not bump versions again, unpublish successful packages, or move protected tags
-to hide a partial release. Beta retries preserve both `latest` and `alpha`. Fix the failed prerequisite and rerun the workflow.
+to hide a partial release. Alpha retries preserve `latest` and `beta`; beta
+retries preserve `latest` and `alpha`. Fix the prerequisite and retry the same
+reviewed SHA.
 If the original `latest-before.json` baseline is missing and any candidate version
 already exists on npm, fresh baseline capture fails closed, even in a new manual
 workflow run. Restore the baseline from that release SHA’s uploaded artifact
 before retrying; an existing baseline is never overwritten.
 Changesets skips already published npm versions and publishes the missing set.
 
-The baseline filename remains `latest-before.json`. For beta it contains
-`channel: "beta"`, a `latest` map, and an `alpha` map keyed by package name;
-missing tags are recorded as `null`. Keep the entire original file when
-recovering a beta run, not only its `latest` field.
+The baseline filename remains `latest-before.json`. It records the channel,
+release line, candidate set, protected `latest` and other-channel maps, and
+same-channel tags for unchanged packages. Missing tags are `null`. Keep the
+entire original file when recovering, not only its `latest` field.
 
 A local retry retains its original `latest-before.json`. CI restores the
 baseline using a key for the exact release commit and saves it before any npm
@@ -240,7 +255,7 @@ recreate an announcement.
 ## Stable and later toolchain work
 
 The workflow supports reviewed alpha and beta candidates while preserving
-`latest`; beta also preserves the alpha channel. The first stable `0.1.0`
+`latest` and the other prerelease channel. The first stable `0.1.0`
 requires a separate review of prerelease exit, the publication command, dist-tag
 policy, and transition tests. Exiting Changesets prerelease mode alone does not
 authorize publication through `latest`. Both prerelease publishing commands

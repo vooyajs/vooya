@@ -238,3 +238,22 @@ test("a newly introduced provider can use an independent beta version", () => {
   snapshot["@vooya/build-core"].dependencies[provider.name] = provider.version;
   verifyRegistrySnapshot(snapshot, "beta", structuredClone(snapshot));
 });
+
+
+test("alpha candidates can consume unchanged beta packages without moving their tags", () => {
+  const snapshot = betaRelease();
+  const expected = structuredClone(snapshot);
+  const candidates = [{ name: "@vooya/vite", version: "0.2.0-alpha.0" }];
+  for (const graph of [snapshot, expected]) {
+    graph["@vooya/vite"].version = "0.2.0-alpha.0";
+    graph["@vooya/vite"]["dist-tags"].alpha = "0.2.0-alpha.0";
+  }
+  verifyRegistrySnapshot(snapshot, "alpha", expected, candidates);
+  assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha", expected), /not a alpha release/);
+  const wrong = structuredClone(snapshot);
+  wrong["@vooya/vite"]["dist-tags"].alpha = "0.2.0-alpha.1";
+  assert.throws(() => verifyRegistrySnapshot(wrong, "alpha", expected, candidates), /does not match dist-tag/);
+  wrong["@vooya/core"].version = "0.1.0-beta.1";
+  assert.throws(() => verifyRegistrySnapshot(wrong, "alpha", expected, candidates), /expected candidate|snapshot version exactly/);
+  assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha", undefined, candidates), /requires exact manifests/);
+});

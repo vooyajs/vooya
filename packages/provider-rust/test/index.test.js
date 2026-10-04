@@ -449,3 +449,11 @@ test("sourceRoot dot selects top-level Rust modules and ignores installed packag
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+for (const prefix of ["rust/.", "rust/unused/..", "rust\\."]) {
+  test(`preserves public modules with normalized sourceRoot ${prefix}`, () => {
+    const publicFiles = [`${prefix}/Counter.rs`];
+    assert.deepEqual(selectRustRootModules(publicFiles, prefix), ["rust/Counter.rs"]);
+    assert.match(generateRustSourceRoot(["rust/Counter.rs"], publicFiles, prefix), /pub mod Counter;/);
+  });
+}

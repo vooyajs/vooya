@@ -49,9 +49,10 @@ same version. Release checks verify the complete dependency graph.
 Changesets 3.0.3 manages independent package versions and changelogs, with no
 fixed or linked version groups. Published source and dependency changes carry
 package-scoped release notes. The **Release** workflow prepares a release PR
-on `main`; merging that PR runs the full gate and publishes the reviewed
-prerelease channel,
-followed by exact registry checks and per-package GitHub Releases. The receipt
+on the selected release branch after an explicit `prepare` dispatch.
+Publication requires a separate `publish` dispatch for the reviewed version
+commit, followed by the full gate, exact registry checks and per-package GitHub
+Releases. Ordinary source and version merges do not publish automatically. The receipt
 records the tested commit and verified package set. This automation does not
 promote a prerelease to stable or expand the compatibility claims below.
 See [the release guide](../maintainers/releases.md).

@@ -15,20 +15,22 @@ const { expectedRoot, packDir, tag } = parseRegistryArguments(process.argv.slice
 const temporaryRoot = realpathSync(mkdtempSync(resolve(tmpdir(), "vooya-registry-consumer-")));
 
 try {
-  const snapshot = packDir ? packedSnapshot(resolve(packDir)) : publishedSnapshot(tag);
   const expected = expectedRoot ? Object.fromEntries(candidatePackages.filter((name) => existsSync(resolve(expectedRoot, "packages", name, "package.json"))).map((name) => [
     `@vooya/${name}`, JSON.parse(readFileSync(resolve(expectedRoot, "packages", name, "package.json"), "utf8")),
   ])) : undefined;
-  const versions = packDir ? verifyPackedSnapshot(snapshot, expected) : verifyRegistrySnapshot(snapshot, tag, expected);
+  const candidates = expectedRoot && existsSync(resolve(expectedRoot, ".changeset/line.json"))
+    ? JSON.parse(readFileSync(resolve(expectedRoot, ".changeset/release.json"), "utf8")).packages : undefined;
+  const snapshot = packDir ? packedSnapshot(resolve(packDir)) : publishedSnapshot(tag, expected);
+  const versions = packDir ? verifyPackedSnapshot(snapshot, expected) : verifyRegistrySnapshot(snapshot, tag, expected, candidates);
   for (const framework of ["vue", "react"]) await verifyConsumer(framework, versions, snapshot);
 } finally {
   if (!process.env.VOOYA_KEEP_REGISTRY_FIXTURE) rmSync(temporaryRoot, { force: true, recursive: true });
   else console.log(`Preserved consumer fixtures: ${temporaryRoot}`);
 }
 
-function publishedSnapshot(tag) {
+function publishedSnapshot(tag, expected) {
   const snapshot = {};
-  const pending = new Map(registryPackages.map((name) => [`@vooya/${name}`, tag]));
+  const pending = new Map(expected ? Object.entries(expected).map(([name, manifest]) => [name, manifest.version]) : registryPackages.map((name) => [`@vooya/${name}`, tag]));
   for (const [name, version] of pending) {
     const manifest = JSON.parse(capture("npm", ["view", `${name}@${version}`, "--json", "--registry=https://registry.npmjs.org/"], repositoryRoot));
     snapshot[name] = manifest;

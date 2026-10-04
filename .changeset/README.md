@@ -26,24 +26,30 @@ Write a concrete user-facing summary and describe any migration requirements.
 Use `patch`, `minor`, or `major` according to the public impact. Keep generated
 versions and changelogs in the release PR instead of editing them in a source PR.
 
-The first beta is published. Its one-time changeset included all ten original
-public packages. Changesets 3 preserves the numeric alpha counter when its
-prerelease tag changes; switching `pre.json` alone does not reset it to zero.
-Use `npm run version:packages`: its first-beta adapter validates the complete
-official release plan and sets its versions to `0.1.0-beta.0` before the official
-applier updates dependencies, changelogs, and archives. Subsequent version steps
-use the normal Changesets CLI. This does not create a fixed or linked
-version group: later changesets still name only directly affected packages,
-with dependency propagation handled by Changesets.
+The release target is explicit in `.changeset/line.json`: `baseVersion`,
+`channel`, and the publishing `branch`. Its channel must match `pre.json`.
+The current feature line targets `0.2.0-alpha.N` on `main`; maintenance targets
+`0.1.0-beta.N` on `release/0.1`. New packages in the current feature batch start
+at `0.2.0-alpha.0`. Unchanged packages retain their versions.
+
+Use `npm run release:status` to preview the reviewed plan and
+`npm run version:packages` to apply it. The wrapper adjusts the target base and
+channel, checks increasing versions and dependency propagation, and delegates
+manifest, changelog and archive writes to the official Changesets applier.
+Repeating versioning without new changesets must leave the output unchanged.
+Do not invoke `changeset version` directly to bypass the release-line review.
+
+The first beta is already published. The historical all-package alpha-to-beta
+adapter remains available for replaying releases without a line configuration;
+it is not the current feature-line plan.
 
 Changesets moves consumed entries
 into `.changeset/pre/` for the eventual stable changelog; their presence does
 not mean they are waiting to publish again. Preserve these entries and existing
 per-package changelog history, including older `v`-prefixed headings.
 
-Choose the release line before consuming pending entries. Main currently
-contains 0.2 feature work; a `minor` entry in its existing beta prerelease state
-does not automatically produce a 0.2 version. Follow the
+Choose the release line before consuming pending entries. Main contains 0.2 feature work; a
+`minor` entry alone does not select a new numeric prerelease base. Follow the
 [release-line review](../docs/maintainers/release-lines.md), keep 0.1 backports
 separate, and freeze a bounded feature batch before its first alpha.
 

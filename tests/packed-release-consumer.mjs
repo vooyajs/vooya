@@ -1,26 +1,20 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { readPackedReleasePlan } from "./helpers/packed-release-plan.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const directory = mkdtempSync(resolve(tmpdir(), "vooya-candidate-packs-"));
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 try {
-  const channels = new Set();
-  for (const name of readdirSync(resolve(root, "packages"))) {
-    const manifestPath = resolve(root, "packages", name, "package.json");
-    if (!existsSync(manifestPath)) continue;
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    if (manifest.private) continue;
-    const channel = /^0\.\d+\.\d+-(alpha|beta)\.\d+$/.exec(manifest.version)?.[1];
-    if (!channel) throw new Error(`Unsupported candidate version ${manifest.name}@${manifest.version}.`);
-    channels.add(channel);
+  const { channel, packages } = readPackedReleasePlan(root);
+  for (const { manifest } of packages) {
     run(npm, ["pack", "--workspace", manifest.name, "--pack-destination", directory, "--ignore-scripts", "--json"]);
   }
-  if (channels.size !== 1) throw new Error("Packed release consumers require one coherent alpha or beta channel.");
-  run(process.execPath, [resolve(root, "tests/registry-consumer.mjs"), "--pack-dir", directory, "--expected-root", root, "--tag", [...channels][0]]);
+  run(process.execPath, [resolve(root, "tests/registry-consumer.mjs"), "--pack-dir", directory, "--expected-root", root, "--tag", channel]);
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

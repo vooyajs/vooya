@@ -37,12 +37,15 @@ function isRegistryUrl(value) {
 
 // A release snapshot may intentionally contain several package versions. Its
 // invariant is that each published internal dependency points into this snapshot.
-export function verifyRegistrySnapshot(snapshot, tag, expectedManifests) {
+export function verifyRegistrySnapshot(snapshot, tag, expectedManifests, candidates) {
+  if (candidates && (!expectedManifests || !Array.isArray(candidates) || !candidates.length || new Set(candidates.map((entry) => entry.name)).size !== candidates.length)) throw new Error("Candidate-aware registry verification requires exact manifests and unique candidates.");
+  for (const entry of candidates ?? []) if (expectedManifests[entry.name] && expectedManifests[entry.name].version !== entry.version) throw new Error(`Registry candidate ${entry.name} does not match its expected version.`);
   return verifySnapshot(snapshot, expectedManifests, (manifest, name) => {
-    if (tag === "beta" && !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-beta\.(0|[1-9]\d*)$/.test(manifest.version)) {
-      throw new Error(`Registry ${name}@${manifest.version} is not a beta release.`);
+    const tagged = !candidates || candidates.some((entry) => entry.name === name);
+    if (tagged && !new RegExp(`-${tag}\\.(0|[1-9]\\d*)$`).test(manifest.version)) {
+      throw new Error(`Registry ${name}@${manifest.version} is not a ${tag} release.`);
     }
-    if (manifest["dist-tags"]?.[tag] !== manifest.version) {
+    if (tagged && manifest["dist-tags"]?.[tag] !== manifest.version) {
       throw new Error(`Registry ${name}@${manifest.version} does not match dist-tag ${JSON.stringify(tag)}.`);
     }
     if (!isRegistryUrl(manifest.dist?.tarball)) {

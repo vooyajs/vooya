@@ -6,9 +6,10 @@ current source through [PR #147](https://github.com/vooyajs/vooya/pull/147), and
 the separate Rust package extraction in
 [PR #148](https://github.com/vooyajs/vooya/pull/148).
 
-## Release policy
+## Working release approach
 
-Use the 0.1 line to maintain its published behavior. Group new capabilities into
+We are trying this approach for the current pre-1.0 development cycle and will
+review it after practicing the two lines. Use the 0.1 line to maintain its published behavior. Group new capabilities into
 a bounded 0.2 feature batch. A minor release should deliver a coherent set of
 capabilities, not meet a quota of features. Once its scope is frozen, new
 features move to a later batch; bug fixes, tests, and documentation continue.
@@ -93,35 +94,38 @@ Alpha remains a prerelease even when it has passed internal acceptance. This
 project chooses to freeze the batch's scope before alpha; fixes continue after
 that point. Version ordering follows [Semantic Versioning](https://semver.org/).
 
-## Release tooling work required first
+## Release tooling acceptance
 
-The policy above is not yet an automated release-line switch. Current tooling
-has these constraints that must be resolved before publishing either line:
+The source candidate now makes the two lines explicit in `.changeset/line.json`:
+`main` targets `0.2.0-alpha.N`; `release/0.1` targets `0.1.0-beta.N`.
+The wrapper uses the official Changesets planner and applier, with a reviewed
+numeric target, monotonic versions, and dependency propagation against the
+final versions. Maintenance changesets must be patches. Existing historical
+release fixtures retain their original behavior without a line configuration.
 
-- `release:status` is read-only and currently includes all pending main-branch
-  Changesets in the beta release plan. On the reviewed source, it assigns the preset and Octane `0.1.0-beta.0`
-  and advances existing packages' beta counters, including SSR changes. A
-  `minor` entry does **not** establish a 0.2 target in this prerelease state.
-- `.changeset/pre.json` has one channel, the workflow and publisher require
-  `main`, and beta validation accepts only `0.1.0-beta.N`. A proposed
-  `release/0.1` maintenance branch cannot use the current publisher unchanged.
-- Tag synchronization requires the entire public package set to match the
-  selected channel and updates that set's channel tags. Separate the packages
-  being tagged from the full dependency set being verified, so unchanged 0.1
-  dependencies can remain in a 0.2 alpha consumer graph.
-- Alpha publication currently records and checks `latest`, but does not preserve
-  a baseline for `beta`. Before 0.2 alpha, add before/after and retry checks for
-  the existing 0.1 beta tags. A 0.1 beta maintenance release must continue
-  preserving `alpha`, including future 0.2 alpha tags.
+Local rehearsals of the actual source graphs produce nine feature candidates
+at `0.2.0-alpha.0`, and five maintenance candidates: React/Vite beta.3 and
+build-core/Rspack/Webpack beta.1. Unchanged packages and historical changelog
+sections remain intact; repeating versioning without a new entry changes
+nothing. These are planned versions, not published artifacts.
 
-Do not merge a generated version PR as a substitute for those decisions. The
-next release-tooling change must rehearse both lines in temporary fixtures:
-exact target versions, increasing version precedence, dependency closure,
-changelog history, candidate-only publication, protected tags, retry behavior,
-and repeat-version stability. Merely switching `beta` to `alpha` at the same
-numeric version moves version precedence backwards. A temporary planning
-rehearsal produced `@vooya/vite: 0.1.0-beta.2 → 0.1.0-alpha.3` when only the
-channel was changed; it did not produce `0.2.0-alpha.0`.
+The publishing path separates the candidate set from the complete dependency
+graph. Only candidates receive the selected channel tag; unchanged dependencies
+are verified at their exact versions. Alpha protects `latest` and `beta`, while
+beta protects `latest` and `alpha`. Same-channel tags of unchanged packages are
+also protected. Retry checks retain the original baseline and must not roll
+newer channel tags back.
+
+Release preparation and publication require separate manual workflow dispatches
+with an exact reviewed branch-head SHA. Source pushes do not trigger version
+PRs or publication. The publisher still runs the complete release gate and
+registry consumer acceptance. See the [operating procedure](./releases.md).
+
+The original audit found that switching only `pre.json` from beta to alpha
+produced `@vooya/vite: 0.1.0-beta.2 → 0.1.0-alpha.3`, not `0.2.0-alpha.0`.
+Do not bypass the wrapper or merge a generated version PR without reviewing the
+numeric targets, dependencies, changelogs and candidate set. Stable publication
+and prerelease exit remain outside the supported publisher.
 
 Keep source changesets intact while preparing this policy; hiding a changeset
 does not remove its implementation from a package tarball. Do not edit published

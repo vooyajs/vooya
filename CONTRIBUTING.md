@@ -219,8 +219,9 @@ CI checks entry coverage and valid, nonempty summaries. Reviewers check that
 the description and bump severity match the change.
 
 Do not hand-edit package versions, generated changelogs, or internal dependency
-versions. The **Release** workflow opens or updates a release PR on `main`;
-merging that PR publishes the reviewed prerelease versions and creates a GitHub
+versions. The **Release** workflow opens or updates a release PR on the selected line
+when explicitly dispatched with `action=prepare`. A separate `action=publish`
+dispatch for the reviewed version commit publishes prereleases and creates a GitHub
 Release for each newly published package. Keep source changes separate from
 the generated version/changelog PR. See [the release workflow](docs/maintainers/releases.md)
 for the full gate, registry acceptance, and partial-publication recovery.
