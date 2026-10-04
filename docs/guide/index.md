@@ -23,6 +23,7 @@ problem this layer is intended to solve.
 | --- | --- |
 | Run a first component | [Getting started](./getting-started.md) |
 | Understand the Rust source contract | [Rust-file authoring](./rust-file-authoring.md) |
+| Review unreleased features | [Next release](../project/next-release.md) |
 | Choose a bundler | [Bundler guide](./bundlers.md) |
 | Add a canvas-heavy example | [Scatter plot](./scatter-plot.md) |
 | Use another bundler | [Tooling reference](../reference/tooling.md) and the [compatibility matrix](../project/compatibility.md) |
@@ -33,12 +34,12 @@ problem this layer is intended to solve.
 1. Install the host framework adapter and the bundler integration.
 2. Install Rust, the `wasm32-unknown-unknown` target, and the pinned
    `wasm-bindgen-cli`.
-3. Add `vooya()` (or the matching experimental bundler adapter) to the host
+3. Add `vooya()` to the Vite host
    build.
 4. Author an ordinary `.rs` component or store.
 5. Run `vooya doctor` before the first development build.
 
-Vooya is currently an beta source-authoring toolchain. A clean consumer still
+Vooya is currently a beta source-authoring toolchain. A clean consumer still
 needs the Rust toolchain; a supported precompiled component distribution is a
 future product, not an implicit feature of this package set. The current
 supported first-party framework adapters are Vue and React. Solid and Svelte

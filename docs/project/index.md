@@ -42,4 +42,6 @@ currently make a compatibility claim for that path.
 These projects share principles, not support matrices. Browser compatibility in
 this repository does not imply Node filesystem compatibility, or vice versa.
 
+- [Next release: unpublished features](./next-release.md)
+- [Release lines and maintenance policy](../maintainers/release-lines.md)
 - [SSR and 0.2 provider roadmap](./ssr-roadmap.md)

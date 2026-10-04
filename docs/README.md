@@ -53,6 +53,8 @@ semantics instead of browser WebAssembly.
   framework owns, what WASM owns, and why that boundary exists.
 - [Tooling reference](reference/tooling.md): Vite options, generated files,
   Rust dependencies, and development rebuilds.
+- [Release lines and scope freeze](maintainers/release-lines.md): 0.1 backport
+  candidates, the proposed 0.2 batch, and the required version/channel rehearsal.
 - [Maintainer releases](maintainers/releases.md): release state, prerelease
   publication, and the stable-release lifecycle.
 - [Project status](project/status.md): what works, what remains experimental,

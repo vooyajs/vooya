@@ -80,7 +80,9 @@ Vooya first published all ten packages at `0.1.0-beta.0`. The npm `beta` channel
 now has `@vooya/vite`, `@vooya/react`, `@vooya/solid`, and `@vooya/svelte` at
 `0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`; the other five remain at beta.0. Use each package's `beta` tag,
 not a forced shared version. The Vite Rust-file path is the primary source
-authoring route; Rspack and Webpack adapters are experimental. Source authors
+authoring route; published Rspack and Webpack evidence uses transitional
+fixtures. Their Rust-file integration and other [0.2 additions](project/next-release.md)
+are unreleased. Source authors
 install the Rust/WASM toolchain. A supported precompiled component product is
 not published yet. Read [Project status](project/status.md) for the evidence
 behind these statements.

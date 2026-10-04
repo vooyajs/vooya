@@ -5,9 +5,10 @@ Vooya 处于公开 beta 阶段，欢迎围绕真实证据参与：一个能复�
 ## 从一个小任务开始
 
 1. 先读[项目状态](../project/status.md)和[兼容性矩阵](../project/compatibility.md)。
-2. 搜索已有 issue 和 pull request，避免重复工作。
-3. 提交一个边界清晰的 reproduction、fixture、文档修订或实现改动。
-4. 在说明中区分已观察行为、验证证据和未来设想。
+2. 阅读[发布线与功能批次](../project/release-lines.md)，确认变更属于 0.1 回补还是 0.2 候选。
+3. 搜索已有 issue 和 pull request，避免重复工作。
+4. 提交一个边界清晰的 reproduction、fixture、文档修订或实现改动。
+5. 在说明中区分已观察行为、验证证据和未来设想。
 
 好的兼容性报告应包含 Vooya、Node、Rust、`wasm-bindgen`、宿主框架、bundler、浏览器和操作系统的精确版本，以及可从干净目录运行的最小复现。请删除 token、私人路径和无关日志。
 

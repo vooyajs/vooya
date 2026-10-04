@@ -57,12 +57,28 @@ MSVC host 需要 Visual Studio Build Tools 的 **Desktop development with C++**
 
 声明在 `.vooya/types`，不会写回 `.rs` 旁边。配置 `allowArbitraryExtensions`
 和 `rootDirs: [".", ".vooya/types"]`；Vooya 不会自动改你的 tsconfig。可以
-执行 `vooya clean` 清理旧 workspace，再重新 build。
+先停止使用同一 workspace 的构建，再执行 `vooya clean` 清理旧 workspace，随后重新 build。
 
 ## 失败后开发服务器坏掉
 
-修复报错指向的 Rust 行并再次保存。Vite、Rspack、Webpack 路径都会尝试从失败
-构建恢复；成功的 Rust rebuild 当前会触发整页 reload，不保留组件 state。
+修复报错指向的 Rust 行并再次保存。已发布 Beta 的 Vite Rust-file 路径会尝试
+从失败构建恢复；成功的 Rust rebuild 会触发整页 reload，不保留组件 state。
+Rspack/Webpack 的普通 `.rs` watch 恢复目前只在 main 验证，尚未发布；
+不要将它与 beta.0 的 legacy `.voo` fixture 混淆，见[Bundler 指南](./bundlers.md)。
+
+## 源码没有出现在生成结果中
+
+已发布 Beta 应使用没有尾部点路径的专用源码目录，例如用 `rust` 代替 `rust/.`，
+避免扫描整个项目根目录。sourceRoot 规范化与依赖目录排除仍是
+[0.1 回补候选](../project/release-lines.md)，尚未发布；不能因为 main 有回归测试就假设安装包已有修复。
+
+## React Store factory 抛错却没有进入 `onError`
+
+已发布 React adapter 的高级 factory API 可能让同步抛错逃离创建错误回调。
+可暂用 `async` 包装 factory，将同步抛错转换成该 API 能处理的 Promise rejection；
+保留原工厂参数和返回类型，不要吞掉错误。对应修复仍是 0.1 回补候选，尚不是可安装的更新。
+
+## 仍有问题
 
 仍无法复现时，请提供 package、Node、Rust、wasm-bindgen、framework、bundler、
 操作系统、命令和干净 consumer reproduction。不要提交 token、私人路径或无关日志。

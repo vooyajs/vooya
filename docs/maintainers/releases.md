@@ -1,5 +1,13 @@
 # Releases
 
+::: warning Choose the release line first
+Current main contains unreleased 0.2 feature work while Changesets still selects
+`0.1.0-beta`. Do not publish the entire pending plan as 0.1 maintenance.
+Read the [release-line review and scope freeze](./release-lines.md) before
+preparing a version PR. The branch/channel transition still needs its own
+release-tooling rehearsal; the commands below describe the existing pipeline.
+:::
+
 Changesets 3.0.3 plans versions, exact internal dependency updates, and
 per-package changelogs. Public packages are independently versioned:
 `.changeset/config.json` keeps `fixed` and `linked` empty. Do not hand-edit
@@ -22,9 +30,9 @@ versioned independently. Installation guides now use the published `beta`
 channel. Preparing a future source or version change does not publish it;
 versioning and publication remain separate reviewed steps.
 
-Use Node.js 22.12 or newer on the 22.x line with npm 10.9.x for release
-preparation, matching the release workflow. The current rehearsal uses Node.js
-22.23.2 and npm 10.9.8. Although Changesets also supports newer Node versions,
+Use Node.js 22.22.2 or newer on the 22.x line with npm 10.9.x for release
+preparation. The repository's current Octane and JSDOM dependencies require
+that Node minimum; the release workflow selects the current Node 22 release. Although Changesets also supports newer Node versions,
 npm 11 currently rewrites optional peer entries differently from the CI npm 10
 lockfile; do not regenerate release lockfiles with npm 11. This does not change
 the published packages' Node.js 20 consumer compatibility.

@@ -2,14 +2,16 @@
 
 SSR integration and Rust provider extraction are the next **0.2.0 feature
 workstream**. They are not part of the published 0.1 Beta support promise.
-Bug fixes remain patch changes; new SSR behavior and provider architecture use
-minor changesets. Do not edit package versions or publish 0.2 before acceptance.
+The [release-line review](../maintainers/release-lines.md) defines the batch
+and maintenance candidates. A patch Changeset alone does not make a change
+suitable for 0.1. Do not edit package versions or publish 0.2 before acceptance.
 
 ## First target: SSR pages with client-mounted WASM islands
 
-Next.js is the React host; Nuxt is the Vue host. The first target is for either
-host to render a page on the server and hydrate it in the browser without
-starting the browser WASM runtime on the server.
+Nuxt is the verified source consumer for the proposed batch. Next.js is a
+research target, not a requirement or support claim for the first 0.2 alpha.
+The island contract lets a host render a page on the server and hydrate it in
+the browser without starting the browser WASM runtime on the server.
 
 The host framework renders a stable empty Vooya host element. Generated Store
 state is `undefined` in server HTML and during initial hydration. After the
@@ -23,7 +25,7 @@ on the server and hydrating that Rust-owned subtree requires a separate render
 contract, state transfer, and ownership design. It is not accomplished by adding
 `use client`, disabling SSR, or wrapping everything in a client-only component.
 
-## Foundation in this change
+## Unreleased source foundation
 
 - Vue's generated Store passes a lazy factory to `useVooyaStore`; the factory
   starts only after mount. The advanced composable also accepts factories.
@@ -86,8 +88,10 @@ References: [Next server/client components](https://nextjs.org/docs/app/getting-
 [client directive](https://nextjs.org/docs/app/api-reference/directives/use-client),
 and [Turbopack configuration](https://nextjs.org/docs/app/api-reference/turbopack).
 
-## Nuxt acceptance before claiming support
+## Nuxt acceptance contract
 
+The named current-source Nuxt fixture above exercises the following contract.
+Retain it for the release candidate; it is not yet published compatibility.
 Use an actual SSR-enabled Nuxt fixture with the normal Vite integration and
 ordinary `.rs` imports. Exercise both server and client builds; ensure generated
 WASM URLs and imports survive Nitro output. Rendering a server page must neither
@@ -103,7 +107,9 @@ Reference: [Nuxt lifecycle](https://nuxt.com/docs/3.x/guide/concepts/nuxt-lifecy
 
 ## Provider extraction stages
 
-1. **Internal Rust seam:** implemented here. Compilation lives in
+1. **Rust seam:** current source provides the internal seam;
+   [PR #148](https://github.com/vooyajs/vooya/pull/148) extracts it into a
+   package while retaining `@vooya/build-core` as a facade. Compilation lives in
    `rust-provider.ts`; the public facade delegates through `BuildProvider`.
    Rust-specific options/schema remain on the Rust side.
 2. **Normalized artifacts:** still needed. The initial internal artifact shape
@@ -123,8 +129,9 @@ not enable server-side Rust rendering or make arbitrary WASM a Vooya component.
 
 ## Release gate
 
-Keep the existing Beta regression and packed/registry checks. Add named
-Next.js and Nuxt production/browser commands to release CI once implemented,
-then update the support matrix with their exact scope. SSR-safe islands,
+Keep the existing beta regression and packed/registry checks, and retain the
+named Nuxt production/browser acceptance for the candidate. Add Next.js only
+when its own integration and acceptance exist; do not infer it from React or
+Nuxt tests. Update the matrix after publication with exact versions. SSR-safe islands,
 server-rendered Rust content, and multi-language support must remain separate
 claims. The published Beta matrix stays unchanged until those gates pass.

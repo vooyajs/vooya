@@ -1,5 +1,9 @@
 # Troubleshooting
 
+This guide targets the [published beta](../project/status.md). If a main-branch
+example mentions a managed preset, Octane or SSR, check its
+[unreleased availability](../project/next-release.md) before changing your setup.
+
 Start with the diagnostic command from the application root:
 
 ```sh
@@ -64,15 +68,15 @@ available to Cargo.
 
 Declarations are written under `.vooya/types`, not beside the `.rs` file. Add
 that directory to the application's `rootDirs` and enable
-`allowArbitraryExtensions`; Vooya does not rewrite `tsconfig` for you. Remove
+`allowArbitraryExtensions`; Vooya does not rewrite `tsconfig` for you. Stop active builds and remove
 the generated workspace with `vooya clean` if stale declarations remain, then
 run the normal build again.
 
 ## A failed build leaves the app unusable
 
 Keep the dev server running, fix the reported Rust source line, and save again.
-The Vite, Rspack, and Webpack paths are designed to recover after a failed
-compilation. A successful Rust rebuild currently causes a full page reload, so
+The published Rust-file Vite path recovers after failed compilation.
+Webpack/Rspack Rust-file recovery is part of the unreleased 0.2 source tests. A successful Rust rebuild currently causes a full page reload, so
 component state is not preserved.
 
 Builds using the same `.vooya` workspace are serialized. Vooya prepares WASM,
@@ -87,6 +91,23 @@ process's replacement lock. An owner whose process still exists is never evicted
 on age alone. Builds still use the synchronous API: a contending call waits for
 up to 30 seconds and then reports a busy workspace. Retry after the other build
 finishes. Independent workspaces do not share this lock.
+
+## A source file is missing from generated output
+
+On published beta, use a source directory without trailing dot segments, such
+as `rust` rather than `rust/.`. Keep application sources in a dedicated directory
+instead of scanning the project root. Root normalization and excluding dependency
+directories are [maintenance candidates](../maintainers/release-lines.md#maintenance-backport-candidates),
+not released fixes. Check the exact package version before assuming a main-branch
+regression test covers your installation.
+
+## A React Store factory throws before `onError` runs
+
+The published React adapter can let a synchronous factory throw escape its
+creation-error callback. When using the advanced factory API, an `async` wrapper
+turns such a throw into a rejected Promise handled by that API. Preserve the
+factory arguments and return type; do not suppress the error. The focused fix
+is a 0.1 maintenance candidate, not an available package update.
 
 ## Still blocked
 

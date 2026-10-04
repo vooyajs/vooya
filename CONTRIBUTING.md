@@ -186,6 +186,13 @@ tests, or an issue/RFC, and may decline changes that do not fit the current
 project direction or maintenance capacity. The project is responsible for
 applying its full review and CI requirements before merge.
 
+Before assigning release scope, read the
+[release-line policy](docs/maintainers/release-lines.md). The 0.1 maintenance
+line takes fixes for published behavior; new capabilities belong to a bounded
+feature batch. A patch changeset on main does not automatically make its code
+eligible for a maintenance backport. Collect related fixes and finish targeted
+local checks before pushing a CI candidate.
+
 Vooya uses Changesets 3.0.3 for independently versioned packages. Every PR that
 changes published source, public APIs, or dependencies must include a
 package-scoped `.changeset/*.md` entry. Documentation and test-only changes

@@ -1,5 +1,8 @@
 # API 参考
 
+本页参数表描述[已发布 Beta](../project/status.md) 的公开 API。main 中的 Octane、
+托管工具链和 SSR 惰性工厂等变化尚未发布，见[发布线说明](../project/release-lines.md)。
+
 这里列的是从包的公开导出和已验证消费路径中整理出的 API。prerelease ABI 可能在
 预发布版本间 breaking。没有公开导出的内部 `@vooya/build-core` helper 不在这里
 冒充稳定 API。
@@ -18,6 +21,10 @@ adapter。这个实现边界用于避免 generation 层出现框架分支，不�
 | --- | --- | --- | --- | --- |
 | `vooya()` | `Plugin` | — | 加入 Vite config | Vite `>=7 <9`；`plugins: [vue(), vooya()]` |
 | `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | 选择宿主 adapter | Vue 3、React 19 为 supported；Solid 1.9、Svelte 5 在 Vite 7 上为 experimental |
+| `rust.sourceRoot` | `string` | `"src"` | 指定应用根目录下的 Rust 源码目录 | Beta 的点路径匹配有已知缺陷；`"."` / `"rust/."` 修复仍是回补候选，见[发布线说明](../project/release-lines.md) |
+| `rust.entry` | `string` | 未设置；生成模块根 | 指定相对应用根目录的 Rust crate 入口 | 显式入口与 conventional module graph 需可达；它不是 npm package 入口 |
+| `rust.files` | `string[]` | `[]` | 添加相对应用根目录的额外 Rust 输入 | 与 sourceRoot 发现的文件一起进入生成构建 |
+| `rust.public` | `string[]` | `[]` | 指定相对 sourceRoot 的公开根模块 | 不会把任意 Rust 值自动导出为 JavaScript；仍遵循 Component/Store 契约 |
 | `rust.dependencies` | `Record<string, string \| Dependency>` | 就近 `Cargo.toml`，再回退 `{}` | 复用或覆盖 Cargo registry/Git/path crate | 仅 browser-compatible Rust；插件同名项优先 |
 | `rust.webSysFeatures` | `string[]` | 就近 `Cargo.toml`，再回退 `[]` | 开启 `web-sys` browser API | 插件显式 features 优先；生成运行时的内建 features 保留 |
 | `toolchain.cargoPath` | `string` | PATH discovery | 指定 Cargo | 该 Cargo 的 rustc、target、CLI 必须一致 |
@@ -148,5 +155,5 @@ loader rule。`.voo` 已作为新 authoring format 退休并计划移除；在�
 | `rust`、`workspaceRoot` | Rust options、文件路径 | `{}`、`.vooya/` | 共享依赖或移动 generated state | Experimental adapter options |
 | `rule()` | `{ test: /\.voo$/, use: [{ loader, options }] }` | — | 接入 Webpack source loader | 还需要正常 framework、CSS 和 async WASM 配置 |
 
-当前没有公开 Web Components、预编译 artifact consumer、SSR、hydration 或
+已发布 Beta 没有公开 Web Components、预编译 artifact consumer、SSR、hydration 或
 通用 renderer API。

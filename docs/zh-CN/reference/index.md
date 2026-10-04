@@ -5,6 +5,7 @@
 
 - [工具配置](./tooling.md)：`vooya()`、Rust 依赖、toolchain、`.vooya/` 和
   Rspack/Webpack adapter。
+- [发布线说明](../project/release-lines.md)：区分 npm Beta 与 main 中的未发布能力。
 - [API 参考](./api.md)：公开导出、参数和当前 beta 边界。
 - [兼容性矩阵](../project/compatibility.md)：每一项支持声明对应的命令和版本。
 - [英文 RFC 0007](../../rfcs/0007-rust-file-authoring-and-abi-v1.md)：schema、
