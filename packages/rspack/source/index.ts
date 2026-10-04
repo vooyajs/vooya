@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import {
   buildApplication,
   prepareRustModules,
+  rustInputFingerprint,
   resolveVooyaWorkspace,
   resolveToolchain,
   writeVooDeclarations,
@@ -48,9 +49,10 @@ interface RspackCompilationLike {
 
 interface RspackCompilerLike {
   context: string;
-  options: { mode?: string };
+  options: { mode?: string; output?: { path?: string } };
   rspack: { sources: { RawSource: new (value: unknown) => unknown } };
   hooks: {
+    watchRun: { tap(name: string, callback: () => void): void };
     beforeCompile: {
       tapPromise(name: string, callback: () => Promise<void>): void;
     };
@@ -108,6 +110,8 @@ export class VooyaRspackPlugin implements RspackPluginLike {
   toolchain?: VooyaRspackOptions["toolchain"];
   buildError?: Error;
   buildId?: string;
+  private needsBuild = true;
+  private inputFingerprint?: string;
 
   constructor({
     framework = "vue",
@@ -135,7 +139,13 @@ export class VooyaRspackPlugin implements RspackPluginLike {
 
   apply(input: unknown): void {
     const compiler = input as RspackCompilerLike;
+    compiler.hooks.watchRun.tap("vooya", () => {
+      const state = getBuildState(this.instanceId);
+      if (!state) return;
+      this.needsBuild = Boolean(this.buildError) || rustInputFingerprint([...state.watchedRoots, ...state.styleDependencies], state.workspaceRoot, compiler.options.output?.path) !== this.inputFingerprint;
+    });
     compiler.hooks.beforeCompile.tapPromise("vooya", async () => {
+      if (!this.needsBuild) return;
       try {
         const applicationRoot = compiler.context;
         const components = readVooComponents(applicationRoot);
@@ -180,9 +190,13 @@ export class VooyaRspackPlugin implements RspackPluginLike {
           wasmAssetName: versionedRuntime.wasmAssetName,
           styleModules,
           rustModules: rustModules.modules,
-          watchedRoots: result.watchedFiles,
+          workspaceRoot: workspace.root,
+          watchedRoots: [...result.watchedFiles, ...components.map((component) => component.id)],
           styleDependencies: rustModules.dependencies,
         });
+        const state = getBuildState(this.instanceId)!;
+        this.inputFingerprint = rustInputFingerprint([...state.watchedRoots, ...state.styleDependencies], workspace.root, compiler.options.output?.path);
+        this.needsBuild = false;
         this.buildError = undefined;
       } catch (error) {
         // A rejected `beforeCompile` promise stops Rspack's watch cycle after
@@ -212,6 +226,7 @@ export class VooyaRspackPlugin implements RspackPluginLike {
     compiler.hooks.watchClose.tap("vooya", () => {
       deleteBuildState(this.instanceId);
       this.buildId = undefined;
+      this.needsBuild = true;
     });
   }
 

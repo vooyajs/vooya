@@ -74,7 +74,9 @@ The next release adds Webpack/Rspack Rust-file integration. These checks run
 against tarballs built from this checkout, not the existing npm Beta artifacts.
 `npm run test:rust-bundlers` covers Vue and React on Webpack 5.109.2 and Rspack
 2.1.10, including `rust.sourceRoot: "."` with Rust files at the application root.
-Applications retain responsibility for framework transforms, HTML and CSS rules.
+Vue watch fixtures cover invalid Rust and recovery, linked CSS updates, newly
+added `.rs` files, and stable builds after generated output. Applications retain
+responsibility for framework transforms, HTML and CSS rules.
 SSR/Next.js and state-preserving HMR are not implied.
 
 ## Verified bundler/toolchain matrix
@@ -88,8 +90,8 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Vite | `>=7 <9` | `npm run test:vite8` | Vite 8.2.1 is the primary packed compatibility target; Vite 7 remains a required regression path in the repository fixtures and release gate |
 | Vite 8 + Vue Vapor | Vite `8.2.1`; Vue `3.6.0-beta.17` | `npm run test:vite8-vapor` | Rust-file component mounts in a Vapor app with `vaporInteropPlugin`; experimental evidence only |
 | Vite+ | `>=0.2.9` | `npm run test:vite-plus` | Production output and browser WASM loading at 0.2.9 using Vite+'s Vite core alias; the alias currently requires npm legacy peer resolution, and development rebuild and HMR behavior are not claimed |
-| Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Rust-file watch and other frameworks remain unverified. |
-| Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Rust-file watch and other frameworks remain unverified. |
+| Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
+| Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 
 ## Not verified / not supported yet
 

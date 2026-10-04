@@ -56,5 +56,7 @@ normal live reload behavior after successful Rust rebuilds.
 Rust-file acceptance runs with `npm run test:rust-bundlers`: packed packages,
 Webpack 5.109.2, Vue/React, scoped CSS, Store actions, props/events, and
 unmount/remount. Solid/Svelte are accepted framework selections but do not yet
-have Webpack browser acceptance. This is production-build evidence; the older
-`.voo` fixtures retain separate watch/recovery coverage.
+have Webpack browser acceptance. The Vue Rust-file fixture also checks watch
+error recovery, stylesheet edits, newly added Rust modules, and that generated
+assets do not cause a rebuild loop. The older `.voo` fixtures retain separate
+watch/recovery coverage.

@@ -1,5 +1,6 @@
 type BuildState = {
   runtimeModule: string;
+  workspaceRoot: string;
   rustModules: Map<string, string>;
   watchedRoots: string[];
   styleDependencies: string[];

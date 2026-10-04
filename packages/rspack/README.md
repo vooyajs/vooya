@@ -84,6 +84,8 @@ uses Rspack 2.1.10.
 Rust source roots, manifests, path dependencies, and referenced styles are
 registered with Rspack's watcher. Rust-file production acceptance runs with
 `npm run test:rust-bundlers` against packed packages and Rspack 2.1.10: Vue/React,
-scoped CSS, Store actions, props/events, and unmount/remount. Rust-file watch
-recovery, Rsbuild/Rslib parity, and Solid/Svelte browser acceptance are not yet
-verified; the older `.voo` fixtures retain their separate evidence.
+scoped CSS, Store actions, props/events, and unmount/remount. The Vue Rust-file
+fixture also checks watch error recovery, stylesheet updates, newly added Rust
+modules, and that generated assets do not cause a rebuild loop. Rust-file
+Rsbuild/Rslib parity and Solid/Svelte browser acceptance are not yet verified;
+the older `.voo` fixtures retain their separate evidence.

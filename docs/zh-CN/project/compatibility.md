@@ -60,7 +60,8 @@ SvelteKit、SSR/hydration、Rspack/Webpack 或其他浏览器已经兼容。fixt
 `test:rust-bundlers` 从当前源码打包，在干净项目中验证 Webpack 5.109.2、
 Rspack 2.1.10 与 Vue/React 的 `.rs` Component、Store、props/event、scoped CSS、
 卸载重建，以及应用根目录 `rust.sourceRoot: "."`。这是下一版代码的验证，
-不代表已发布 Beta 包具备此能力。Rust-file watch、Next.js/SSR、Webpack/Rspack
+不代表已发布 Beta 包具备此能力。Vue 的 Rust-file watch 还覆盖错误恢复、
+CSS 更新、新增 `.rs` 和产物不会造成循环重建。Next.js/SSR、Webpack/Rspack
 下的 Solid/Svelte 尚未完成验收。
 
 ## 尚未支持或未验证

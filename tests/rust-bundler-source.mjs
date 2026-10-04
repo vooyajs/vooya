@@ -1,6 +1,6 @@
 // Install packed public packages into independent applications: no workspace aliases.
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -56,6 +56,7 @@ try {
       assert.match(readFileSync(resolve(project, ".vooya/types/Store.d.rs.ts"), "utf8"), /useCart/);
       assert.ok(readdirSync(resolve(project, "dist")).some((name) => name.endsWith(".wasm")));
       await verify(project);
+      if (framework === "vue") await verifyWatch(project, bundler);
       console.log(`Verified packed ${bundler} ${framework}: .rs component, scoped CSS, Store, props/events, unmount/remount, sourceRoot dot.`);
     }
   }
@@ -109,7 +110,7 @@ function run(command, args, cwd, capture = false) {
   if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed: ${result.stderr ?? result.status}`);
   return result.stdout;
 }
-async function verify(project) {
+async function verify(project, label = "Count", color = "rgb(5, 103, 89)") {
   const server = createServer((request, response) => {
     const url = request.url === "/" ? "/index.html" : request.url.split("?")[0];
     try {
@@ -126,18 +127,104 @@ async function verify(project) {
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     await page.goto(`http://127.0.0.1:${server.address().port}`);
-    await page.getByRole("button", { name: "Count: 0", exact: true }).waitFor();
-    assert.equal(await page.locator(".rust-counter").evaluate((node) => getComputedStyle(node).color), "rgb(5, 103, 89)");
+    await page.getByRole("button", { name: `${label}: 0`, exact: true }).waitFor();
+    assert.equal(await page.locator(".rust-counter").evaluate((node) => getComputedStyle(node).color), color);
     await page.locator("#add").click();
-    await page.getByRole("button", { name: "Count: 1", exact: true }).waitFor();
+    await page.getByRole("button", { name: `${label}: 1`, exact: true }).waitFor();
     await page.getByText("Selected 1", { exact: true }).waitFor();
     await page.locator("#toggle").click();
     await page.locator(".rust-counter").waitFor({ state: "detached" });
     await page.locator("#toggle").click();
-    await page.getByRole("button", { name: "Count: 0", exact: true }).waitFor();
+    await page.getByRole("button", { name: `${label}: 0`, exact: true }).waitFor();
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();
     await new Promise((done) => server.close(done));
   }
+}
+
+
+async function verifyWatch(project, bundler) {
+  const api = bundler === "webpack" ? 'import build from "webpack";' : 'import { rspack as build } from "@rspack/core";';
+  writeFileSync(resolve(project, "watch.mjs"), `${api}
+import config from "./bundler.config.mjs";
+const compiler = build({ ...config, mode: "development" });
+const watcher = compiler.watch({ aggregateTimeout: 100 }, (error, stats) => {
+  if (error || stats.hasErrors()) console.log("WATCH_ERROR", error?.message ?? stats.toString({ all: false, errors: true }));
+  else console.log("WATCH_SUCCESS");
+});
+process.on("SIGTERM", () => watcher.close(() => compiler.close(() => process.exit(0))));
+`);
+  const sourcePath = resolve(project, "Counter.rs");
+  const original = readFileSync(sourcePath, "utf8");
+  let output = "";
+  const processHandle = spawn(process.execPath, ["watch.mjs"], { cwd: project, stdio: ["ignore", "pipe", "pipe"] });
+  processHandle.stdout.on("data", (chunk) => { output += chunk; });
+  processHandle.stderr.on("data", (chunk) => { output += chunk; });
+  const successes = () => output.match(/WATCH_SUCCESS/g)?.length ?? 0;
+  try {
+    await waitFor(() => successes() > 0, () => output);
+    await settle(successes, () => output);
+    const initial = successes();
+    await new Promise((done) => setTimeout(done, 1200));
+    assert.equal(successes(), initial, `${bundler} rebuilt its own generated assets without an authored edit.\n${output}`);
+    writeFileSync(sourcePath, `${original}\ninvalid Rust\n`);
+    await waitFor(() => output.includes("WATCH_ERROR"), () => output);
+    assert.equal(processHandle.exitCode, null, `${bundler} watch exited after Rust error.`);
+    const beforeRecovery = successes();
+    writeFileSync(sourcePath, original.replace("Count: {}", "Recovered: {}"));
+    await waitFor(() => successes() > beforeRecovery, () => output);
+    await verify(project, "Recovered");
+    await settle(successes, () => output);
+    const recovered = successes();
+    await new Promise((done) => setTimeout(done, 1200));
+    assert.equal(successes(), recovered, `${bundler} did not settle after Rust recovery.\n${output}`);
+    const stylePath = resolve(project, "Counter.css");
+    writeFileSync(stylePath, ".rust-counter { color: rgb(90, 30, 70); }\n");
+    await waitFor(() => successes() > recovered, () => output);
+    await verify(project, "Recovered", "rgb(90, 30, 70)");
+    await settle(successes, () => output);
+    const styled = successes();
+    await new Promise((done) => setTimeout(done, 1200));
+    assert.equal(successes(), styled, `${bundler} did not settle after stylesheet edit.\n${output}`);
+    const errorsBeforeNewFile = output.match(/WATCH_ERROR/g)?.length ?? 0;
+    const extraSource = resolve(project, "Extra.rs");
+    writeFileSync(extraSource, "invalid new Rust module\n");
+    await waitFor(() => (output.match(/WATCH_ERROR/g)?.length ?? 0) > errorsBeforeNewFile, () => output);
+    const beforeNewFileRecovery = successes();
+    writeFileSync(extraSource, "pub fn value() -> u32 { 1 }\n");
+    await waitFor(() => successes() > beforeNewFileRecovery, () => output);
+    await settle(successes, () => output);
+    const errorsBeforeUndo = output.match(/WATCH_ERROR/g)?.length ?? 0;
+    const undoSource = resolve(project, "Undo.rs");
+    writeFileSync(undoSource, "invalid new Rust module\n");
+    await waitFor(() => (output.match(/WATCH_ERROR/g)?.length ?? 0) > errorsBeforeUndo, () => output);
+    const beforeUndo = successes();
+    rmSync(undoSource);
+    await waitFor(() => successes() > beforeUndo, () => output);
+    await settle(successes, () => output);
+    console.log(`Verified ${bundler} Rust-file watch: invalid Rust, recovery, stylesheet update, new .rs detection/recovery, undo by deletion, and no generated-file rebuild loop.`);
+  } finally {
+    processHandle.kill("SIGTERM");
+    await Promise.race([new Promise((done) => processHandle.once("exit", done)), new Promise((done) => setTimeout(done, 3000))]);
+    if (processHandle.exitCode === null) processHandle.kill("SIGKILL");
+  }
+}
+async function waitFor(predicate, detail) {
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  throw new Error(`Timed out waiting for Rust watch compilation.\n${detail()}`);
+}
+
+async function settle(count, detail) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    const before = count();
+    await new Promise((done) => setTimeout(done, 800));
+    if (count() === before) return;
+  }
+  throw new Error(`Bundler did not settle after generated output.\n${detail()}`);
 }

@@ -2,12 +2,13 @@
 // on a specific Webpack 5 minor. The supported boundary is verified separately.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   buildApplication,
   prepareRustModules,
+  rustInputFingerprint,
   resolveVooyaWorkspace,
   resolveToolchain,
   writeVooDeclarations,
@@ -58,6 +59,7 @@ interface WebpackCompilerLike {
   modifiedFiles?: ReadonlySet<string>;
   options: {
     mode?: string;
+    output?: { path?: string };
     devServer?: { liveReload?: boolean };
   };
   hooks: {
@@ -92,6 +94,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
   readonly instanceId: string;
   private buildError?: Error;
   private needsBuild = true;
+  private inputFingerprint?: string;
   private generation = 0;
 
   constructor({
@@ -124,16 +127,10 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
 
   apply(input: unknown): void {
     const compiler = input as WebpackCompilerLike;
-    compiler.hooks.watchRun.tap("vooya", (watchCompiler) => {
-      const modifiedFiles = watchCompiler.modifiedFiles ?? new Set();
-      const watchedRoots = getBuildState(this.instanceId)?.watchedRoots ?? [];
-      if (
-        [...modifiedFiles].some(
-          (path) => path.endsWith(".voo") || path.endsWith(".rs") || watchedRoots.some((root) => isPathInside(path, root)),
-        )
-      ) {
-        this.needsBuild = true;
-      }
+    compiler.hooks.watchRun.tap("vooya", () => {
+      const state = getBuildState(this.instanceId);
+      if (!state) return;
+      this.needsBuild = Boolean(this.buildError) || rustInputFingerprint(state.watchedRoots, state.workspaceRoot, compiler.options.output?.path) !== this.inputFingerprint;
     });
     compiler.hooks.beforeCompile.tapPromise("vooya", async () => {
       if (!this.needsBuild) return;
@@ -193,6 +190,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     }) : { modules: new Map<string, string>(), dependencies: [] };
     setBuildState(this.instanceId, {
       runtimeModule: result.runtimeModule,
+      workspaceRoot: workspace.root,
       rustModules: rustModules.modules,
       generationFile,
       styleModules: writeGeneratedStyles({
@@ -201,8 +199,9 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
         result,
         stylesRoot: resolve(workspace.cache, "webpack/styles"),
       }),
-      watchedRoots: [...result.watchedFiles, ...rustModules.dependencies],
+      watchedRoots: [...result.watchedFiles, ...components.map((component) => component.id), ...rustModules.dependencies],
     });
+    this.inputFingerprint = rustInputFingerprint(getBuildState(this.instanceId)!.watchedRoots, workspace.root, compiler.options.output?.path);
   }
 }
 
@@ -254,14 +253,6 @@ function writeGeneratedStyles({
     styles.set(component.id, stylePath);
   }
   return styles;
-}
-
-function isPathInside(path: string, directory: string): boolean {
-  const nested = relative(resolve(directory), resolve(path));
-  return (
-    nested === "" ||
-    (!isAbsolute(nested) && nested !== ".." && !nested.startsWith("../") && !nested.startsWith("..\\"))
-  );
 }
 
 function writeIfChanged(path: string, content: string): void {
