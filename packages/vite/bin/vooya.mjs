@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { formatToolchainReport, inspectToolchain } from "../dist/doctor.js";
+import { createToolchainJsonReport, formatToolchainReport, inspectToolchain } from "../dist/doctor.js";
 import { cleanVooyaWorkspace } from "@vooya/build-core";
 
 const parsed = parseDoctorArguments(process.argv.slice(2));
@@ -15,9 +15,10 @@ if (parsed.help) {
 } else {
   const report = inspectToolchain({
     cargoPath: parsed.cargoPath,
+    mode: parsed.mode,
     workspaceRoot: parsed.workspaceRoot,
   });
-  console.log(formatToolchainReport(report));
+  console.log(parsed.json ? JSON.stringify(createToolchainJsonReport(report), null, 2) : formatToolchainReport(report));
   if (!report.ok) process.exitCode = 1;
 }
 
@@ -25,11 +26,24 @@ export function parseDoctorArguments(args) {
   if (args[0] === "--help" || args[0] === "-h") return { help: true };
   if (args[0] !== "doctor" && args[0] !== "clean") return { error: "Unknown command." };
 
+  let json = false;
   let cargoPath;
+  let mode;
   let workspaceRoot;
   for (let index = 1; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help" || argument === "-h") return { help: true };
+    if (argument === "--json") {
+      if (args[0] !== "doctor") return { error: "--json is only available for vooya doctor." };
+      json = true;
+      continue;
+    }
+    if (argument === "--toolchain") {
+      const value = args[++index];
+      if (args[0] !== "doctor" || !["auto", "system", "managed"].includes(value) || mode !== undefined) return { error: "--toolchain requires auto, system, or managed and may be used once with doctor." };
+      mode = value;
+      continue;
+    }
     if (argument === "--cargo-path") {
       const value = args[index + 1];
       if (!value || value.startsWith("--")) return { error: "--cargo-path requires a path." };
@@ -65,13 +79,13 @@ export function parseDoctorArguments(args) {
   if (args[0] === "clean" && cargoPath !== undefined) {
     return { error: "--cargo-path is only available for vooya doctor." };
   }
-  return { command: args[0], cargoPath, workspaceRoot };
+  return { command: args[0], cargoPath, workspaceRoot, json, ...(mode ? { mode } : {}) };
 }
 
 function usage() {
   return [
     "Usage:",
-    "  vooya doctor [--cargo-path <path>] [--workspace-root <path>]",
+    "  vooya doctor [--toolchain auto|system|managed] [--json] [--cargo-path <path>] [--workspace-root <path>]",
     "  vooya clean [--workspace-root <path>]",
   ].join("\n");
 }

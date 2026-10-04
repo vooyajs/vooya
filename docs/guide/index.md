@@ -38,7 +38,7 @@ problem this layer is intended to solve.
 4. Author an ordinary `.rs` component or store.
 5. Run `vooya doctor` before the first development build.
 
-Vooya is currently an alpha source-authoring toolchain. A clean consumer still
+Vooya is currently an beta source-authoring toolchain. A clean consumer still
 needs the Rust toolchain; a supported precompiled component distribution is a
 future product, not an implicit feature of this package set. The current
 supported first-party framework adapters are Vue and React. Solid and Svelte

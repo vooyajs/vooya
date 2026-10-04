@@ -1,14 +1,33 @@
 # Project Status
 
-Vooya is a public alpha and an architecture-validation project. It is not a
-stable compiler or a production compatibility promise. Use each package's npm `alpha` tag to resolve its latest published version.
-The main branch may include changes queued for a later prerelease.
+The first Vooya beta, `0.1.0-beta.0`, was published for all ten public packages.
+The current npm `beta` channel has `@vooya/vite`, `@vooya/react`, `@vooya/solid`,
+and `@vooya/svelte` at `0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`.
+The other five packages (`@vooya/core`, `@vooya/compiler`, `@vooya/build-core`,
+`@vooya/rspack`, and `@vooya/webpack`) remain at `0.1.0-beta.0`. Use each package's npm `beta` tag. It remains a prerelease, not a stable compiler or a
+production compatibility promise. The main branch may contain unreleased work.
 
-The next release is being prepared as `0.1.0-beta.0`; it is not yet a published
-beta. Its first version plan includes all ten public packages, then later beta
-releases return to package-scoped changesets and independent versions. This
-preparation neither publishes packages nor expands the compatibility claims
-below. Installation examples continue to use the published `alpha` channel.
+Vue and React are supported first-party adapters. Solid and Svelte are shipped
+experimental adapters, not unfinished package placeholders: their Rust-file
+components, events, Store actions, reactive snapshots, and declarations have
+browser evidence. Their tested scope is narrower; see the
+[framework capability matrix](compatibility.md#beta-framework-capabilities).
+
+The [beta.0 release workflow](https://github.com/vooyajs/vooya/actions/runs/36614375254)
+passed the full release gate, all four framework browser fixtures, and clean
+Vue/React consumers using both packed artifacts and exact npm versions.
+Solid/Svelte do not yet have that separate clean npm-consumer acceptance step.
+
+The [beta.1 release run](https://github.com/vooyajs/vooya/actions/runs/36997152925)
+passed the release gate, exact registry-consumer verification, and GitHub Release
+publication for the updated package set. This is release evidence for those
+versions; it does not expand the framework compatibility matrix.
+
+The current versions include two fixes found while integrating Vooya Lab:
+Vite preserves explicit [`?raw` Rust source imports](https://github.com/vooyajs/vooya/pull/142),
+and the four adapters accept [generated Store interfaces](https://github.com/vooyajs/vooya/pull/143)
+without an arbitrary string index signature. The Store type fix is available
+since Vue beta.1 and React/Solid/Svelte beta.2; the raw import fix requires Vite beta.2.
 
 The ten public packages share one release workflow:
 
@@ -54,6 +73,9 @@ See [the release guide](../maintainers/releases.md).
   mount/unmount behavior in both Vue and React browser fixtures.
 - Ship `vooya doctor` for coherent Cargo-selected Rust target, CLI-version, and rustup-path diagnostics.
 - Demonstrate a Vue-hosted 150,000-point Rust/WASM Canvas scatter plot.
+- Use [Vooya Lab](https://vooyajs.github.io/vooya-lab/) as a
+  self-hosting and evidence program; Lab findings that affect product contracts
+  return here as focused issues and fixes.
 - Build packed npm artifacts from a project outside the repository checkout.
 - Verify a test-only precompiled Vue WASM consumer in a clean Vite project
   without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
@@ -101,6 +123,9 @@ See [the release guide](../maintainers/releases.md).
 - Vite+ has a compatibility smoke path because it aliases Vite to its bundled
   Vite core; it is not a separate Vooya bundler integration or a promise that
   every Vite+ workflow is supported.
+- Turbopack has no compatibility claim. Its loader API evidence and unverified integration requirements are
+  recorded in [Turbopack research](turbopack-research.md); Webpack and Rspack
+  evidence must not be generalized to Turbopack.
 - No precompiled component product is currently published; the retained Vue
   fixture is build-contract evidence, not a user-facing package.
 - A non-trivial component still uses some direct `web_sys` APIs.
@@ -133,27 +158,30 @@ See [the release guide](../maintainers/releases.md).
 - The default CI browser evidence is a small Chromium smoke suite plus the
   bundler integration fixtures. Extended DataGrid, scatter, trace, and Firefox
   checks remain available through explicit manual commands.
+- Vooya Lab cases are evidence and product discovery, not a separate support
+  matrix or an automatic beta gate; see [RFC 0011](../rfcs/0011-lab-self-hosting-program.md).
 
 ## Next milestones
 
-Beta preparation requires clean Rust-file Vue and React consumers to pass
-strict TypeScript checks and Chromium interaction with locally packed artifacts
-before publication, and with exact registry versions afterward. These are
-separate acceptance steps; local evidence cannot prove a registry publication.
+Beta.0 passed strict TypeScript checks and Chromium interaction for clean
+Rust-file Vue and React consumers, first with packed artifacts and then with
+exact registry versions. Future releases retain these separate acceptance steps.
+Extending clean packed/registry consumer coverage to Solid and Svelte is follow-up
+work before considering a broader support claim.
 Managed toolchain installation through `@vooya/preset` remains a separate
 `0.2` workstream in [#129](https://github.com/vooyajs/vooya/issues/129), not a
 prerequisite for this beta. Source consumers still need the Rust/WASM toolchain.
 
-1. Extend the Rust view layer from explicit `Signal::get()` text bindings into
-   full declarative trees, keyed updates, and broader effect cleanup.
+1. Extend the existing `rsx!` conditional/keyed rendering and owned cleanup
+   with evidence from more real component use cases.
 2. Design a supported, explicitly named component product on top of the generic
    precompiled Vue producer.
 3. Define state-preserving HMR semantics.
-4. Emit standalone schema records and precise declarations for user-defined
-   struct/enum payloads; keep recursive and borrowed values explicitly out of
-   the ABI until their ownership model is designed.
-5. Expand the established browser and framework compatibility matrix with
-   named Vue 3.6/Vapor evidence before changing its support claims.
+4. Extend the shipped owned struct/unit-enum declarations and scoped-name
+   lookup where real consumers need richer Rust type resolution; recursive and
+   borrowed values still require an ownership design.
+5. Expand browser and framework coverage beyond the named fixtures. The existing
+   Vue 3.6/Vapor smoke remains experimental; it does not establish full support.
 
 The benchmark result remains deliberately modest: the first 100,000-row case
 showed approximate parity with its Vue baseline. See the

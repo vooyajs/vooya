@@ -30,7 +30,7 @@ Vooya 把宿主应用连接到一个边界明确的 Rust/WASM capability island�
 lifecycle、disposal、diagnostics 和 bundler output。因此它是 **WASM 集成层**，
 不是另一个 UI framework。
 
-当前 alpha 采用 host-first 模式：现有 Web 应用的 renderer 拥有 host element
+当前 beta 采用 host-first 模式：现有 Web 应用的 renderer 拥有 host element
 和应用，Rust 只拥有它下面的局部 DOM 与资源。Vue、React、Solid 和 Svelte 是当前
 first-party adapter，不是架构上限；其中 Vue、React 为 supported，Solid、Svelte
 目前是 Vite 7 Rust-file 路径上的 experimental evidence。
@@ -73,10 +73,10 @@ Vooya 并不替代 `wasm-bindgen` 或 `wasm-pack`，而是把这些底层工具�
 
 ## 当前范围与未来层
 
-当前 alpha 聚焦于传统 Web host 中的 client-side、边界清晰的能力岛。普通布局、
+当前 beta 聚焦于传统 Web host 中的 client-side、边界清晰的能力岛。普通布局、
 路由、表单、设计系统组件和全局业务状态在集成过程中继续由宿主负责。
 
-SSR、hydration 和 standalone Rust renderer 尚未进入当前 alpha 路径，但它们是路线图
+SSR、hydration 和 standalone Rust renderer 尚未进入当前 beta 路径，但它们是路线图
 中可能继续建设的未来层，而不是永久不做的 non-goal。Vooya 也不等于“WASM 一定更快”；
 具体 workload 仍应和真实宿主基线测量。
 

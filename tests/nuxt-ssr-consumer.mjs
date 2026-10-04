@@ -59,6 +59,7 @@ try {
 
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
+  page.setDefaultTimeout(30_000);
   const errors = [], wasmResponses = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {

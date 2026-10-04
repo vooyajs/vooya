@@ -12,6 +12,6 @@ Vooya 的核心是一个清晰的 WASM 集成层边界：宿主应用继续管�
 | [生命周期与事件（英文设计记录）](../../rfcs/0005-island-events-lifecycle-diagnostics.md) | props、events、错误和 disposal 如何跨边界？ |
 | [ABI v1（英文设计记录）](../../rfcs/0007-rust-file-authoring-and-abi-v1.md) | 哪些值可以安全地跨 Rust/JavaScript？ |
 
-当前 alpha 的 Vooya 是 Rust 能力与传统 Web host 之间的集成层。SSR、hydration
-和 standalone Rust renderer 还没有进入这条 alpha 路径，但它们是未来可以继续
+当前 beta 的 Vooya 是 Rust 能力与传统 Web host 之间的集成层。SSR、hydration
+和 standalone Rust renderer 还没有进入这条 beta 路径，但它们是未来可以继续
 评估的层，不是永久 non-goal。决定一个能力是否放进 Rust 前，先看[组件边界](./component-boundary.md)。

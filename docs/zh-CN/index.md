@@ -53,13 +53,15 @@ framework adapter、生命周期、事件、dispose、diagnostics、声明文件
 的工具链表面，而不是每个项目重新拼一套 glue。
 
 Canvas/WebGL、编辑器、解析器、数据密集型控件、局部 store，以及其他边界清晰的
-能力都适合作为起点。当前 alpha 聚焦于能力岛边界，普通页面布局、路由、表单和
+能力都适合作为起点。当前 beta 聚焦于能力岛边界，普通页面布局、路由、表单和
 全局状态继续由宿主 renderer 管理。
 
-SSR、hydration 和 standalone Rust renderer 尚未进入当前 alpha 路径，但它们是未来
+SSR、hydration 和 standalone Rust renderer 尚未进入当前 beta 路径，但它们是未来
 可以继续评估和建设的层，不是永久排除项。Vooya 也不承诺 WASM 自动更快，具体
 workload 仍应与真实宿主基线测量。
 
-当前版本为 `v0.1.0-alpha.10`。Vite Rust-file 路径是主要 source-authoring
+首个 Beta 的十个公开包均为 `0.1.0-beta.0`。当前 npm `beta` 渠道中，
+`@vooya/vite`、`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 已为
+`0.1.0-beta.2`，`@vooya/vue` 为 `0.1.0-beta.1`，其余五个仍为 beta.0。请按包使用 `beta` 标签，不要强制同版。Vite Rust-file 路径是主要 source-authoring
 路径，Rspack 与 Webpack 仍是 experimental；预编译组件产品尚未正式发布。
 请从[快速开始](guide/getting-started.md)开始，再看[项目状态](project/status.md)。

@@ -1,7 +1,7 @@
 # SSR and the 0.2 provider boundary
 
 SSR integration and Rust provider extraction are the next **0.2.0 feature
-workstream**. They are not part of the published 0.1.0-beta.0 support promise.
+workstream**. They are not part of the published 0.1 Beta support promise.
 Bug fixes remain patch changes; new SSR behavior and provider architecture use
 minor changesets. Do not edit package versions or publish 0.2 before acceptance.
 
@@ -61,7 +61,8 @@ navigation, Rust component/Store disposal, and fresh state after returning.
 The dedicated PR CI job runs this fixture; it is also in `verify:e2e`.
 This fixture does not establish Next.js, Edge runtime, or Rust server HTML support.
 Nuxt sets Vite's root to `app` in this fixture, so Rust files live in `app/src`.
-The separate `sourceRoot: "."` schema matching issue remains open work.
+The build core also supports `sourceRoot: "."`; it normalizes source paths and
+excludes dependency and generated directories from discovery.
 
 ## Next.js acceptance before claiming support
 
@@ -69,10 +70,11 @@ Use an actual App Router fixture with a server-rendered parent and a client
 island. Next.js client components can still be prerendered on the server;
 `use client` does not make module evaluation browser-only.
 
-The source-loading route is still open work. Vooya's current Webpack adapter
-handles legacy `.voo` fixtures, not `.rs`, and Next's Turbopack does not apply
-Webpack configuration. Choose and document a tested prebuild/artifact route or
-a real `.rs` bundler integration before publishing Next setup instructions.
+The Next-specific source-loading route is still open work. Vooya's Webpack
+adapter supports `.rs` inputs for Vue and React, but this alone does not validate
+Next.js integration. Next's Turbopack does not apply Webpack configuration.
+Choose and document a tested prebuild/artifact route or a Next-specific `.rs`
+bundler integration before publishing Next setup instructions.
 Do not silently require users to abandon the default bundler.
 
 The fixture must verify production build, HTML before JavaScript, real WASM

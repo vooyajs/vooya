@@ -12,6 +12,14 @@ published as a VitePress site. Markdown remains the canonical content format;
 the site adds navigation, search, version context, and deployable static output
 without creating a second documentation repository.
 
+The current npm `beta` channel uses independent package versions:
+`@vooya/vite`, `@vooya/react`, `@vooya/solid`, and `@vooya/svelte` are at
+`0.1.0-beta.2`, and `@vooya/vue` is at `0.1.0-beta.1`; the other five packages
+remain at `0.1.0-beta.0`. See
+[project status](project/status.md) for release context. The first beta.0
+release remains the historical baseline, not a requirement to keep all packages
+at the same version.
+
 ## Explore the interactive lab
 
 The [Vooya Lab](https://vooyajs.github.io/vooya-lab/) turns these authoring and
@@ -35,17 +43,17 @@ semantics instead of browser WebAssembly.
 
 - [Contributing](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md): project scope, development setup, testing,
   and pull request expectations.
-- [Getting started](guide/getting-started.md): install the alpha toolchain and
+- [Getting started](guide/getting-started.md): install the beta toolchain and
   run a first component through a current Vue, React, Solid, or Svelte adapter path.
 - [Rust-file authoring](guide/rust-file-authoring.md): component/store roles,
   schema records, generated bindings, and the current first-party Vite path.
 - [API reference](reference/api.md): public package exports, options, and
-  current alpha boundaries.
+  current beta boundaries.
 - [The component boundary](concepts/component-boundary.md): what the host
   framework owns, what WASM owns, and why that boundary exists.
 - [Tooling reference](reference/tooling.md): Vite options, generated files,
   Rust dependencies, and development rebuilds.
-- [Maintainer releases](maintainers/releases.md): release state, alpha
+- [Maintainer releases](maintainers/releases.md): release state, prerelease
   publication, and the stable-release lifecycle.
 - [Project status](project/status.md): what works, what remains experimental,
   and the next milestones.
@@ -55,6 +63,8 @@ semantics instead of browser WebAssembly.
   the limits of their conclusions.
 - [Beta boundary](project/beta-boundary.md): the current product scope,
   authoring decision, and remaining contract gate.
+- [Lab self-hosting program](rfcs/0011-lab-self-hosting-program.md): the
+  ongoing evidence loop between Vooya Lab and the owning product layers.
 - [Language provider research](project/language-provider-research.md): the
   post-beta artifact/provider seam; it does not expand Rust-only beta support.
 - [Scatter-plot demo](guide/scatter-plot.md): a repeatable browser check for a
@@ -70,7 +80,7 @@ substitute for the current guides.
 Open a GitHub issue titled `RFC: <proposal>` first. The issue is where options,
 compatibility effects, acceptance gates, and the maintainer decision are
 recorded. After a decision, maintainers may add a numbered document here; bugs,
-chores, and implementation tasks do not consume RFC numbers. RFC 0009 is the
+chores, and implementation tasks do not consume RFC numbers. RFC 0012 is the
 next available number.
 
 - [RFC 0001: component islands](rfcs/0001-component-islands.md)
@@ -80,6 +90,8 @@ next available number.
 - [RFC 0006: precompiled Vue artifacts](rfcs/0006-precompiled-vue-artifacts.md)
 - [RFC 0007: Rust-file authoring and ABI v1](rfcs/0007-rust-file-authoring-and-abi-v1.md)
 - [RFC 0008: layer boundary and version roadmap](rfcs/0008-layer-boundary-and-roadmap.md)
+- [RFC 0010: opt-in in-place component updates](rfcs/0010-in-place-component-updates.md)
+- [RFC 0011: Vooya Lab alpha self-hosting program](rfcs/0011-lab-self-hosting-program.md)
 
 Performance work is recorded separately:
 

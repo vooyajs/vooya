@@ -67,8 +67,21 @@ consumer 仍属于未来方向。
 
 ```sh
 npx vooya doctor
+# 自 @vooya/vite@0.1.0-beta.1 起支持；beta.0 不支持
+npx vooya doctor --json
 npx vooya doctor --cargo-path /opt/custom-rust/bin/cargo
 ```
+
+::: info 版本范围
+`doctor --json` 自 `@vooya/vite@0.1.0-beta.1` 起支持。
+`@vooya/vite@0.1.0-beta.0` 不支持该参数；beta.0 请使用不带参数的 `vooya doctor`。
+:::
+
+`--json` 输出一份 `schemaVersion: 1` 的 JSON 报告，包含 `ok`、`results`、
+`workspaceRoot`，以及 `cargo`、`rustc`、`target`、`wasmBindgen` 的诊断字段。
+可用的路径与版本会包含在报告中，不可用的可选字段省略。报告通过白名单选择字段，
+不输出内部构建对象或进程环境变量。检查失败时仍以状态码 1 退出，CI 可以分别读取
+stdout 和退出状态。不加参数时保留原来的文本格式。`--json` 仅用于 `doctor`。
 
 ## 仓库验证层级
 

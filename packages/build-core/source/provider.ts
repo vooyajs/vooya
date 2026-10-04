@@ -6,7 +6,7 @@ export interface WasmAsset { path: string; bytes: Uint8Array }
 export interface GeneratedCss { componentId: string; code: string }
 export interface GeneratedDeclaration {
   componentId: string;
-  framework: "vue" | "react" | "solid" | "svelte";
+  framework: "vue" | "react" | "solid" | "svelte" | "octane";
   code: string;
 }
 export interface BuildArtifact {

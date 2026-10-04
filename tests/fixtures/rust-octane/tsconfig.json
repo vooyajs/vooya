@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "allowArbitraryExtensions": true,
+    "jsx": "preserve",
+    "jsxImportSource": "octane",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDirs": [
+      ".",
+      ".vooya/types"
+    ],
+    "strict": true,
+    "target": "ES2022",
+    "types": [
+      "vite/client"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".vooya/types/**/*.ts"
+  ]
+}

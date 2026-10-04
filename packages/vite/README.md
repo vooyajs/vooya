@@ -6,8 +6,8 @@ path remains in repository regression fixtures only and is not a supported
 authoring format.
 
 ```sh
-npm install --save-dev @vooya/vite@alpha
-npm install @vooya/vue@alpha
+npm install --save-dev @vooya/vite@beta
+npm install @vooya/vue@beta
 ```
 
 ```js

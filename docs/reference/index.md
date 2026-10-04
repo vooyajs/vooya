@@ -5,7 +5,7 @@
   behavior.
 
 Reference pages describe the interfaces that are useful when a project moves
-beyond the first example. They are intentionally precise about alpha behavior;
+beyond the first example. They are intentionally precise about beta behavior;
 experimental integrations are marked as such instead of being presented as a
 universal bundler promise.
 
@@ -22,6 +22,7 @@ universal bundler promise.
 
 ## Versioning rule
 
-All `@vooya/*` packages are released as one coordinated unit. Use one exact
-version across the package set and prefer the npm `alpha` tag while the project
-is in prerelease. Alpha ABI changes can be breaking.
+Install from the npm `beta` channel and retain the lockfile. All ten packages
+started at `0.1.0-beta.0`; subsequent versions are independent, with exact
+internal dependencies maintained by the release workflow. Prerelease ABI
+changes can still be breaking.

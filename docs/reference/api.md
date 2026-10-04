@@ -1,7 +1,7 @@
 # API Reference
 
 This page lists the public consumption paths verified from the package exports.
-The alpha ABI may change between prereleases. Internal `@vooya/build-core`
+The beta ABI may change between prereleases. Internal `@vooya/build-core`
 helpers are implementation details unless a package page explicitly exports
 them.
 
@@ -48,6 +48,7 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | Command / option | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
 | `vooya doctor` | CLI command | — | Diagnose Cargo, rustc, target, wasm-bindgen, linker, and generated types | Diagnostic only; it does not install a toolchain |
+| `--json` | flag | off | Emit a versioned JSON diagnostic report | Only valid for `doctor`; available since `@vooya/vite@0.1.0-beta.1`, not beta.0 |
 | `--cargo-path` | filesystem path | PATH discovery | Pair with an explicit toolchain | Only valid for `doctor`; `vooya doctor --cargo-path /opt/rust/bin/cargo` |
 | `--workspace-root` | filesystem path | `.vooya/` | Inspect a workspace override | Valid for `doctor` and `clean` |
 | `vooya clean` | CLI command | — | Remove generated Vooya state | It removes the selected generated workspace, not source files |
@@ -68,6 +69,16 @@ the primary Store API for Vue application code; `state` is a readonly reactive
 
 ### `useVooyaStore(source, options?)` (advanced)
 
+The following type compatibility is available since `@vooya/vue@0.1.0-beta.1`
+and `0.1.0-beta.2` of `@vooya/react`, `@vooya/solid`, and `@vooya/svelte`.
+Earlier releases still require an index signature and do not include this fix.
+
+The Store contract requires `getSnapshot`, `subscribe`, and `dispose`; generated
+Store interfaces do not need a string index signature. Vue accepts the generated
+factory's Promise directly. React, Solid, and Svelte accept the factory plus props
+and infer the snapshot and declared actions from its Store type. Prefer generated
+`use<Name>` hooks for ordinary application code.
+
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
 | `useVooyaStore` | `(store \| PromiseLike<store>, options?)` | — | Custom integration or shared-instance ownership | Vue `>=3.5.2 <4`; not the primary generated hook |
@@ -76,8 +87,9 @@ the primary Store API for Vue application code; `state` is a readonly reactive
 | `onError` | `(cause: unknown) => void` | — | Receive async creation failures | It does not retry or hide action errors |
 
 `useVooyaStore` is an adapter-level API, not the primary cross-framework Store
-entry point and not Vapor-only. React applications use the generated hook below;
-Vapor applications additionally require
+entry point and not Vapor-only. This section shows the Vue signature; the other
+adapters also export low-level hooks with the signatures listed in their sections.
+Prefer the generated hook for ordinary application code. Vapor applications additionally require
 Vue's own `createVaporApp` and `vaporInteropPlugin` setup.
 
 The return value is `{ snapshot, dispatch, unsubscribe }`. `dispatch(name,
@@ -137,7 +149,7 @@ not cover Svelte 3/4, SvelteKit, SSR, hydration, Vite 8, Rspack, or Webpack.
 
 ## `@vooya/rspack`
 
-The alpha.10 Rspack and Webpack implementations still expose a legacy `.voo`
+The beta.0 Rspack and Webpack implementations still expose a legacy `.voo`
 loader rule for their experimental fixtures. `.voo` is retired as a new
 authoring format and is scheduled for removal; use Rust-file authoring through
 the primary Vite path until those adapters are migrated.

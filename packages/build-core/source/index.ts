@@ -6,8 +6,11 @@ import type { BuildApplicationOptions, BuildApplicationResult } from "./rust-pro
 export * from "./errors.js";
 export * from "./cargo-manifest.js";
 export * from "./schema.js";
+export * from "./rust-modules.js";
+export * from "./rust-bundler.js";
 export * from "./schema-declarations.js";
 export * from "./toolchain.js";
+export type { ToolchainMode } from "./managed-toolchain.js";
 export * from "./workspace.js";
 export type { MappedDiagnostic, BuildAsset, WasmAsset, GeneratedCss, GeneratedDeclaration } from "./provider.js";
 export type { BuildMetadata, BuildSpawnResult, BuildSpawn, BuildExec, BuildApplicationOptions, BuildApplicationResult } from "./rust-provider.js";

@@ -1,6 +1,6 @@
 # API 参考
 
-这里列的是从包的公开导出和已验证消费路径中整理出的 API。alpha ABI 可能在
+这里列的是从包的公开导出和已验证消费路径中整理出的 API。prerelease ABI 可能在
 预发布版本间 breaking。没有公开导出的内部 `@vooya/build-core` helper 不在这里
 冒充稳定 API。
 
@@ -33,6 +33,7 @@ vooya({ framework: "vue", toolchain: { cargoPath: "/opt/rust/bin/cargo" } });
 | 命令/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
 | `vooya doctor` | CLI command | — | 检查 Cargo、rustc、target、wasm-bindgen、linker 和 types | 只诊断，不安装 toolchain |
+| `--json` | flag | 关闭 | 输出带版本号的 JSON 诊断报告 | 仅 doctor；自 `@vooya/vite@0.1.0-beta.1` 起支持，beta.0 不支持 |
 | `--cargo-path` | 文件路径 | PATH discovery | 指定 doctor 使用的 Cargo | 只对 doctor 有效 |
 | `--workspace-root` | 文件路径 | `.vooya/` | 检查 workspace override | doctor 与 clean 均支持 |
 | `vooya clean` | CLI command | — | 清理 generated Vooya state | 不删除源码 |
@@ -53,9 +54,17 @@ Vue 应用消费 Store 的主入口，返回 `{ state, ...typedActions }`；`sta
 
 ### `useVooyaStore(source, options?)`（高级 API）
 
-`useVooyaStore` 是 Vue 专用 composable，不是普通用户的主入口，也不是跨框架的
-Vooya 通用 API或 Vapor 专属 API；React 请使用生成的 `useName()` hook。使用 Vue
-Vapor 时，仍需由宿主自行配置 `createVaporApp` 和 `vaporInteropPlugin`。
+以下类型兼容性修复自 `@vooya/vue@0.1.0-beta.1` 以及
+`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 的 `0.1.0-beta.2` 起可用。
+更早版本仍要求索引签名，未包含修复。
+
+Store 契约要求 `getSnapshot`、`subscribe` 和 `dispose`，不要求生成的接口声明任意字符串索引。
+Vue 可直接接收生成 factory 的 Promise；React、Solid 和 Svelte 接收 factory 与 props，
+并从 Store 类型推断 snapshot 和已声明 action 的类型。普通业务代码仍优先使用生成的 `use<Name>` hook。
+
+本节表格描述 Vue 的 `useVooyaStore` 签名。React、Solid 和 Svelte 也导出同名的公共底层 hook，
+参数形式见各适配器小节；普通业务代码优先使用生成的 `useName()` hook。使用 Vue Vapor 时，
+仍需由宿主自行配置 `createVaporApp` 和 `vaporInteropPlugin`。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
@@ -118,7 +127,7 @@ Vite 8、Rspack 或 Webpack。
 
 ## `@vooya/rspack`
 
-alpha.10 的 Rspack 和 Webpack 实现仍为 experimental fixture 暴露 legacy `.voo`
+beta.0 的 Rspack 和 Webpack 实现仍为 experimental fixture 暴露 legacy `.voo`
 loader rule。`.voo` 已作为新 authoring format 退休并计划移除；在这些 adapter
 完成迁移前，请使用主要的 Vite Rust-file 路径。
 

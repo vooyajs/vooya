@@ -81,7 +81,7 @@ export function defineVooyaComponent(
         return { name: `vooya-${event.name}`, receive };
       });
 
-      void loadBindings()
+      void Promise.resolve().then(loadBindings)
         .then((bindings) => {
           if (!active) return;
           const startedAt = performance.now();
@@ -174,7 +174,6 @@ export interface VooyaStore<TSnapshot> {
   snapshot?(): TSnapshot;
   subscribe(listener: () => void): (() => void) | void;
   dispose(): void;
-  [method: string]: unknown;
 }
 
 export interface VooyaStoreOptions {
@@ -204,7 +203,7 @@ export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
       ...Object.fromEntries(bridge.actions.map((action) => [
         action,
         (...args: unknown[]) => {
-          const candidate = consumed.store?.[action];
+          const candidate: unknown = consumed.store && Reflect.get(consumed.store, action);
           if (typeof candidate === "function") return candidate.apply(consumed.store, args);
         },
       ])),
@@ -217,6 +216,17 @@ export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
  * Store creation is an effect because the WASM module may load asynchronously;
  * the snapshot remains `undefined` until that instance is ready.
  */
+export function useVooyaStore<TProps, TStore extends VooyaStore<unknown>>(
+  factory: (props: TProps, options?: VooyaStoreOptions) => TStore | Promise<TStore>,
+  props: TProps,
+  options?: VooyaStoreOptions,
+): { state: ReturnType<TStore["getSnapshot"]> | undefined; store: TStore | undefined };
+/** Preserve explicit snapshot/props/store type arguments for existing callers. */
+export function useVooyaStore<TSnapshot, TProps, TStore extends VooyaStore<TSnapshot>>(
+  factory: (props: TProps, options?: VooyaStoreOptions) => TStore | Promise<TStore>,
+  props: TProps,
+  options?: VooyaStoreOptions,
+): { state: TSnapshot | undefined; store: TStore | undefined };
 export function useVooyaStore<
   TSnapshot,
   TProps,

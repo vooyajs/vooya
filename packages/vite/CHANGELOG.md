@@ -5,6 +5,25 @@ snapshots; see [release history evidence](../../docs/maintainers/release-history
 
 Versions before alpha.9 were published as `@vooya/vite-plugin`, not `@vooya/vite`.
 
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- 1515841: Preserve Vite's explicit `?raw` imports of Rust and Voo files as source strings, including eager source-preview globs, instead of compiling them into component or Store modules. Normal component and Store imports continue to compile.
+
+## 0.1.0-beta.1
+
+### Patch Changes
+
+- 30f215b: Add `vooya doctor --json` for machine-readable toolchain diagnostics. The
+  versioned report explicitly selects public diagnostic fields and excludes
+  internal build objects and the process environment. Failed checks retain a
+  nonzero exit status. Reject `clean --json` before removing generated files.
+- 83c2127: Keep an already verified WASM target marked as installed when toolchain
+  resolution fails because wasm-bindgen is missing or has the wrong version.
+  The doctor report still fails overall and identifies the CLI problem without
+  incorrectly asking authors to install the Rust target again.
+
 ## 0.1.0-beta.0
 
 ### Patch Changes

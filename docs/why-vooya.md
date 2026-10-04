@@ -36,7 +36,7 @@ keeps the application shell; Vooya coordinates the source build, ABI, typed
 props and events, stores, lifecycle, disposal, diagnostics, and bundler output.
 That is why Vooya is an **integration layer**, not another UI framework.
 
-The current alpha is host-first: the existing Web application's renderer owns
+The current beta is host-first: the existing Web application's renderer owns
 the host element and application; Rust owns the local subtree and resources
 below it. Vue, React, Solid, and Svelte are the first-party adapters today, not
 the architectural limit. Vue and React are supported; Solid and Svelte are
@@ -83,11 +83,11 @@ right choice for a different ownership model.
 
 ## Current scope and future layers
 
-The alpha focuses on client-side, bounded islands in a traditional Web host.
+The beta focuses on client-side, bounded islands in a traditional Web host.
 Ordinary layout, routing, forms, design-system components, and global business
 state remain in the host while those capabilities are being integrated.
 
-SSR, hydration, and a standalone Rust renderer are not part of the current alpha
+SSR, hydration, and a standalone Rust renderer are not part of the current beta
 path; they remain possible future layers in the roadmap rather than permanent
 non-goals. Vooya also does not imply that moving code to WASM makes it faster:
 measure a real workload against a real host baseline.

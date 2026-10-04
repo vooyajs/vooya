@@ -1,7 +1,7 @@
 # Contributing to Vooya
 
 Thank you for helping make Rust-backed components easier to use in web
-applications. Vooya is still a public alpha, so focused changes with clear
+applications. Vooya is still a public beta, so focused changes with clear
 evidence are more useful than broad framework promises.
 
 This document is the canonical contribution guide for the repository.
@@ -30,7 +30,7 @@ You need:
   dependencies or preparing a release lockfile; see [release guidance](docs/maintainers/releases.md));
 - a stable Rust toolchain managed by [rustup](https://rustup.rs/);
 - the `wasm32-unknown-unknown` target; and
-- `wasm-bindgen-cli` `0.2.115` for the current alpha.
+- `wasm-bindgen-cli` `0.2.115` for the current beta.
 
 ```sh
 npm install
@@ -213,7 +213,7 @@ the description and bump severity match the change.
 
 Do not hand-edit package versions, generated changelogs, or internal dependency
 versions. The **Release** workflow opens or updates a release PR on `main`;
-merging that PR publishes the reviewed alpha versions and creates a GitHub
+merging that PR publishes the reviewed prerelease versions and creates a GitHub
 Release for each newly published package. Keep source changes separate from
 the generated version/changelog PR. See [the release workflow](docs/maintainers/releases.md)
 for the full gate, registry acceptance, and partial-publication recovery.

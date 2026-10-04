@@ -66,17 +66,20 @@ can be tested and evolved across projects.
 
 Canvas, WebGL, editors, parsers, data-heavy widgets, local stores, and other
 bounded capabilities are reasonable starting points. Keep ordinary page layout,
-routing, forms, and application state in the host renderer while the alpha
+routing, forms, and application state in the host renderer while the beta
 focuses on the island boundary.
 
 SSR, hydration, and a standalone Rust renderer are not implemented in the
-current alpha path. They remain possible future layers, not permanent exclusions.
+current beta path. They remain possible future layers, not permanent exclusions.
 Vooya also does not imply that moving code to WASM makes it faster; measure a
 real workload against a real host baseline.
 
 ## Current state
 
-Vooya is at `v0.1.0-alpha.10`. The Vite Rust-file path is the primary source
+Vooya first published all ten packages at `0.1.0-beta.0`. The npm `beta` channel
+now has `@vooya/vite`, `@vooya/react`, `@vooya/solid`, and `@vooya/svelte` at
+`0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`; the other five remain at beta.0. Use each package's `beta` tag,
+not a forced shared version. The Vite Rust-file path is the primary source
 authoring route; Rspack and Webpack adapters are experimental. Source authors
 install the Rust/WASM toolchain. A supported precompiled component product is
 not published yet. Read [Project status](project/status.md) for the evidence

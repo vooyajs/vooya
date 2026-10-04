@@ -29,12 +29,13 @@ export function inspectToolchain({
   exists = existsSync,
   probeManifestPath = undefined,
   cargoPath = undefined,
+  mode = "auto" as import("@vooya/build-core").ToolchainMode,
   workspaceRoot = undefined,
 } = {}) {
   let toolchain;
   let resolutionError;
   try {
-    toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath });
+    toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath, mode });
   } catch (error) {
     resolutionError = error;
   }
@@ -58,7 +59,7 @@ export function inspectToolchain({
   const cargo = toolchain?.cargo ?? attempt?.cargo;
   const rustc = toolchain?.rustc ?? attempt?.rustc;
   const wasmBindgen = toolchain?.wasmBindgen ?? attempt?.wasmBindgen;
-  const target = toolchain?.target;
+  const target = toolchain?.target ?? attempt?.target;
 
   results.push(
     check(
@@ -121,7 +122,7 @@ export function inspectToolchain({
 
   if (toolchain) {
     const paths = platform === "win32" ? win32 : posix;
-    const rustupHome = env.RUSTUP_HOME ?? paths.resolve(home, ".rustup");
+    const rustupHome = toolchain.environment.RUSTUP_HOME ?? paths.resolve(home, ".rustup");
     const sysrootIsRustup = Boolean(rustc.sysroot && isPathInside(rustc.sysroot, paths.resolve(rustupHome, "toolchains"), paths));
     results.push({
       name: "cargo/rustc toolchain",
@@ -161,6 +162,29 @@ export function inspectToolchain({
     results,
     workspaceRoot: workspace.root,
     ok: results.every((result) => result.status !== "error"),
+  };
+}
+
+/** Public, versioned diagnostics for CLI consumers; never serialize build internals. */
+export function createToolchainJsonReport(report: ReturnType<typeof inspectToolchain>) {
+  return {
+    schemaVersion: 1,
+    ok: report.ok,
+    results: report.results.map(({ name, status, detail }) => ({ name, status, detail })),
+    workspaceRoot: report.workspaceRoot,
+    cargo: {
+      path: report.cargoPath,
+      version: report.cargo,
+      candidates: report.cargoCandidates,
+      selection: report.cargoSelection,
+    },
+    rustc: {
+      path: report.rustcPath,
+      version: report.rustc,
+      sysroot: report.sysroot,
+    },
+    target: { triple: WASM_TARGET, libdir: report.targetLibdir },
+    wasmBindgen: { path: report.wasmBindgenPath, version: report.wasmBindgen },
   };
 }
 

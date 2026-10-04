@@ -3,8 +3,8 @@
 Vue `>=3.5.2 <4` lifecycle adapter for Rust components compiled by Vooya.
 
 ```sh
-npm install @vooya/vue@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/vue@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Configure `vooya()` after `@vitejs/plugin-vue`, then import a Rust-file `.rs`
@@ -16,5 +16,9 @@ React snapshot, Solid `Accessor`, or Svelte `Readable`. The lower-level
 `useVooyaStore` composable remains available for custom integrations; generated
 instances are disposed safely on unmount.
 
-This package is an alpha and must use the same version as the other `@vooya`
-packages.
+This package is published on the `beta` channel. Package versions are
+independent; install the adapter and Vite integration from the same channel
+and retain your lockfile.
+
+See the [framework capability matrix](https://github.com/vooyajs/vooya/blob/main/docs/project/compatibility.md#beta-framework-capabilities)
+for the beta support level and tested consumer paths.

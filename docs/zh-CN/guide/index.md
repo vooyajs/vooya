@@ -19,7 +19,7 @@
 | 选择 Vite/Rspack/Webpack | [Bundler 指南](./bundlers.md) |
 | 排查本地构建 | [排错](./troubleshooting.md) 与 [FAQ](../faq.md) |
 
-当前 alpha 的 source consumer 需要 Rust/Cargo、`wasm32-unknown-unknown` 和
+当前 beta 的 source consumer 需要 Rust/Cargo、`wasm32-unknown-unknown` 和
 指定版本的 `wasm-bindgen-cli`。Vue、React 是当前 supported first-party adapter；
 Solid、Svelte 是 experimental first-party adapter，目前只声明 Vite 7 Rust-file 路径的
 证据。其他 host renderer 需要单独适配和证据。预编译消费者路线仍是未来产品，

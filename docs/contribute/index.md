@@ -1,6 +1,6 @@
 # Contributing
 
-Vooya is an open-source alpha. Contributions are welcome, including bug
+Vooya is an open-source beta. Contributions are welcome, including bug
 reports, compatibility evidence, documentation improvements, and proposals that
 show a current direction is wrong.
 
@@ -46,7 +46,7 @@ implementation tasks should remain issues.
 See the repository [contribution guide](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md)
 for commands, licensing, and pull-request checks.
 
-## Scope for the current alpha
+## Scope for the current beta
 
 The most useful contributions right now are source-authoring ergonomics,
 clean-machine Rust diagnostics, Vite/Rspack/Webpack evidence, browser QA,

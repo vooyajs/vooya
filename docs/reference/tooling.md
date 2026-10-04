@@ -90,15 +90,31 @@ by the Vite process:
 
 ```sh
 npx vooya doctor
+# Since @vooya/vite@0.1.0-beta.1; not available in beta.0
+npx vooya doctor --json
 npx vooya doctor --cargo-path /opt/custom-rust/bin/cargo
 ```
+
+::: info Availability
+`doctor --json` is available since `@vooya/vite@0.1.0-beta.1`.
+`@vooya/vite@0.1.0-beta.0` does not support this flag; use `vooya doctor`
+without it on beta.0.
+:::
+
+`--json` writes one JSON report with `schemaVersion: 1`, `ok`, `results`,
+`workspaceRoot`, and diagnostic records for `cargo`, `rustc`, `target`, and
+`wasmBindgen`. Records contain the available executable paths and versions;
+unavailable optional fields are omitted. This public report excludes internal
+build objects and the process environment. A failed check still exits with code
+1, so CI can parse stdout and check the exit status independently. Without the
+flag, the existing text report is unchanged. `--json` is only valid for `doctor`.
 
 It checks every `cargo` found on `PATH` in order unless `--cargo-path` explicitly
 selects one Cargo. An explicit path is authoritative: if it is incomplete,
 doctor fails instead of selecting another PATH candidate. For each candidate, Cargo's
 verbose `cargo rustc` invocation identifies the rustc that Cargo will use; that
 rustc must provide the `wasm32-unknown-unknown` standard library, and the
-selected `wasm-bindgen-cli` must be exactly the version required by the alpha.
+selected `wasm-bindgen-cli` must be exactly the version required by the beta.
 The report prints all selected executable paths. A non-rustup sysroot is a
 warning rather than an error. If a later Cargo candidate is selected because
 the first one is incomplete, doctor also warns that this may differ from the

@@ -1,6 +1,6 @@
 # Rust-file authoring
 
-Rust-file authoring is the alpha path for components and stores. It uses
+Rust-file authoring is the beta path for components and stores. It uses
 ordinary `.rs` files; `.voo.rs` is not part of the contract.
 
 ## Vooya attribute markers

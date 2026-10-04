@@ -8,7 +8,7 @@ code normally imports generated `.rs` components/stores instead of importing
 this package directly. Retired `.voo` inputs remain only in repository
 regression fixtures and are not a supported authoring format.
 
-This package is an alpha. Rust-file source compilation requires Cargo, the
+This package is a beta. Rust-file source compilation requires Cargo, the
 `wasm32-unknown-unknown` target, and the matching `wasm-bindgen` CLI.
 
 The Rust runtime exposes owned DOM views, signals, an opt-in `tracked_effect`

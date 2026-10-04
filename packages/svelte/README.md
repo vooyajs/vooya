@@ -9,8 +9,8 @@ disposal after a child component is unmounted. It does not imply Svelte 3/4,
 SvelteKit, SSR, hydration, Vite 8, Rspack, Webpack, or other browser support.
 
 ```sh
-npm install @vooya/svelte@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/svelte@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Configure `@sveltejs/vite-plugin-svelte` before Vooya:
@@ -52,3 +52,6 @@ implementation output, not a stable public IR for applications to author.
 
 `useVooyaStore(factory, props, options?)` is an advanced adapter API for custom
 ownership. The generated `useName()` entry is the normal application path.
+
+See the [framework capability matrix](https://github.com/vooyajs/vooya/blob/main/docs/project/compatibility.md#beta-framework-capabilities)
+for the beta support level and tested consumer paths.

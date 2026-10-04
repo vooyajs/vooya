@@ -1,7 +1,8 @@
 # Security Policy
 
-Vooya is currently in public alpha. Only the latest published prerelease is
-eligible for security fixes.
+Vooya is currently in public beta. Only the latest published prerelease is
+eligible for security fixes. Install supported packages from the npm `beta`
+channel; the `latest` tag remains reserved for a future stable release.
 
 ## Reporting a vulnerability
 

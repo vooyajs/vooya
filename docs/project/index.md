@@ -1,20 +1,24 @@
 # Project
 
-Vooya is a public alpha focused on validating the WASM integration-layer
+Vooya is a public beta focused on validating the WASM integration-layer
 boundary. This section separates shipped evidence from planned work so that a
 passing fixture is not mistaken for a broad support promise.
 
 ## Project pages
 
-- [Status](./status.md): what the current alpha can do and where it is limited.
+- [Status](./status.md): what the current beta can do and where it is limited.
 - [Compatibility matrix](./compatibility.md): framework, bundler, browser, and
   toolchain evidence.
+- [Lab self-hosting program](../rfcs/0011-lab-self-hosting-program.md): the
+  ongoing evidence and ownership loop between this repository and Vooya Lab.
+- [Turbopack research](./turbopack-research.md): loader API evidence and open
+  integration questions for a future Next.js source integration.
 - [Language provider research](./language-provider-research.md): the post-beta
   provider and normalized artifact boundary; Rust remains the only beta source
   language.
 - [Roadmap](../rfcs/0008-layer-boundary-and-roadmap.md): version-level direction
   from the integration foundation toward a stable layer contract.
-- [Releases](../maintainers/releases.md): coordinated package release rules.
+- [Releases](../maintainers/releases.md): independent package versions and release acceptance.
 - [Benchmarks](../benchmarks/data-grid.md): workload-specific measurements and
   their limits.
 

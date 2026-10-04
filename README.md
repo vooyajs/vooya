@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@vooya/vite"><img src="https://img.shields.io/npm/v/@vooya/vite/alpha?label=alpha" alt="npm alpha version"></a>
+  <a href="https://www.npmjs.com/package/@vooya/vite"><img src="https://img.shields.io/npm/v/@vooya/vite/beta?label=beta" alt="npm beta version"></a>
   <a href="https://github.com/vooyajs/vooya/actions/workflows/verify.yml"><img src="https://github.com/vooyajs/vooya/actions/workflows/verify.yml/badge.svg?branch=main" alt="build status"></a>
   <a href="LICENSE-MIT"><img src="https://img.shields.io/github/license/vooyajs/vooya" alt="license"></a>
   <a href="https://deepwiki.com/vooyajs/vooya"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
@@ -34,18 +34,27 @@ Vooya generates the framework adapter, TypeScript declarations, WASM lifecycle,
 event forwarding, and diagnostic mappings.
 
 > [!IMPORTANT]
-> Vooya is a public alpha. Rust-file (`.rs`) authoring targets Vite `>=7 <9`, with
+> Vooya is a public beta. Rust-file (`.rs`) authoring targets Vite `>=7 <9`.
 > Rspack `>=2.1.10` and Webpack `>=5` currently have transitional fixture
 > evidence only, not a supported Rust-file authoring path. The retired `.voo`
 > format remains in regression fixtures only. Source authoring requires a local
 > Rust/WASM toolchain.
-> Published alpha APIs may still change.
+> Published beta APIs may still change.
 
-The next release is being prepared as `0.1.0-beta.0`; this preparation does not
-mean a beta has been published. The installation examples below continue to use
-the published `alpha` channel. The first beta will coordinate all ten packages;
-subsequent releases retain independent package versions and exact internal
-dependencies. See the [release guide](docs/maintainers/releases.md).
+The first beta, `0.1.0-beta.0`, was published for all ten public packages.
+The current npm `beta` channel has `@vooya/vite`, `@vooya/react`, `@vooya/solid`,
+and `@vooya/svelte` at `0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`;
+the other five packages remain at `0.1.0-beta.0`. Install each package from the `beta`
+channel rather than forcing a shared version. Vue and React are the
+supported paths; Solid and Svelte remain experimental, with Vite 7 + Chromium
+evidence. Publishing an adapter does not imply framework-wide compatibility.
+See the [framework capability matrix](docs/project/compatibility.md#beta-framework-capabilities).
+Subsequent releases use independent package versions and exact internal
+dependencies; see the [release guide](docs/maintainers/releases.md).
+
+For your first component, start with the [Vue guide](docs/guide/getting-started.md#vue)
+or [React guide](docs/guide/getting-started.md#react). Each path ends with a visible
+Greeting component. [中文快速开始](docs/zh-CN/guide/getting-started.md)。
 
 ## Why Vooya?
 
@@ -91,7 +100,7 @@ runtime and compatibility promises separate.
 - Node.js `^20.19.0` or `>=22.12.0`;
 - a current stable Rust toolchain managed by [rustup](https://rustup.rs/);
 - the `wasm32-unknown-unknown` target;
-- `wasm-bindgen-cli` `0.2.115` for the current alpha.
+- `wasm-bindgen-cli` `0.2.115` for the current beta.
 
 ```sh
 rustup target add wasm32-unknown-unknown
@@ -100,7 +109,7 @@ cargo install wasm-bindgen-cli --version 0.2.115 --locked
 
 ### 2. Create a Vite application
 
-The current Vooya alpha requires Vite `>=7`. This guide pins the currently
+The current Vooya beta requires Vite `>=7`. This guide pins the currently
 verified Vite 8 toolchain so the generated project matches the example.
 
 Using npm:
@@ -109,8 +118,8 @@ Using npm:
 npm create vite@8 vooya-demo -- --template vue-ts
 cd vooya-demo
 npm install
-npm install @vooya/vue@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/vue@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Using pnpm:
@@ -119,8 +128,8 @@ Using pnpm:
 pnpm create vite@8 vooya-demo --template vue-ts
 cd vooya-demo
 pnpm install
-pnpm add @vooya/vue@alpha
-pnpm add --save-dev @vooya/vite@alpha
+pnpm add @vooya/vue@beta
+pnpm add --save-dev @vooya/vite@beta
 ```
 
 If pnpm reports that the `esbuild` install script was blocked, run
@@ -227,8 +236,8 @@ Create a Vite 8 React project and install the React adapter:
 npm create vite@8 vooya-react-demo -- --template react-ts
 cd vooya-react-demo
 npm install
-npm install @vooya/react@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/react@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Use the React mode in `vite.config.ts`:
@@ -258,8 +267,8 @@ export default function App() {
 Install the experimental Solid adapter in an existing Vite + Solid project:
 
 ```sh
-npm install @vooya/solid@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/solid@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Select it after `vite-plugin-solid`:
@@ -291,8 +300,8 @@ export function CartButton() {
 Install the experimental Svelte 5 adapter and Vite integration:
 
 ```sh
-npm install @vooya/svelte@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/svelte@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Configure the Svelte plugin before Vooya:
@@ -472,7 +481,7 @@ The consumer requirements in the quick start remain unchanged.
 | [`@vooya/svelte`](packages/svelte) | Experimental Svelte 5 lifecycle, callback, and Readable Store adapter |
 
 Public packages are versioned independently with exact internal dependencies. Install the framework
-adapter and selected bundler integration from the same `alpha` channel.
+adapter and selected bundler integration from the same `beta` channel.
 Changesets generates per-package changelogs through a release PR. The **Release**
 workflow publishes reviewed prerelease versions and creates per-package
 [GitHub Releases](https://github.com/vooyajs/vooya/releases). See the

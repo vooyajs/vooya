@@ -3,8 +3,8 @@
 React `>=19` lifecycle adapter for Rust components compiled by Vooya.
 
 ```sh
-npm install @vooya/react@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/react@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Configure `vooya({ framework: "react" })` after `@vitejs/plugin-react`, then
@@ -39,5 +39,9 @@ The same resolution applies to later prop updates: if a consumer removes a
 previously set prop, the declared default is passed again. This matches the
 `@vooya/vue` adapter's semantics.
 
-This package is an alpha and must use the same version as the other `@vooya`
-packages.
+This package is published on the `beta` channel. Package versions are
+independent; install the adapter and Vite integration from the same channel
+and retain your lockfile.
+
+See the [framework capability matrix](https://github.com/vooyajs/vooya/blob/main/docs/project/compatibility.md#beta-framework-capabilities)
+for the beta support level and tested consumer paths.

@@ -8,7 +8,7 @@ npm exec -- vooya doctor
 
 ## Rust or WASM target errors
 
-Install the target and the exact CLI version used by the current alpha:
+Install the target and the exact CLI version used by the current beta:
 
 ```sh
 rustup target add wasm32-unknown-unknown

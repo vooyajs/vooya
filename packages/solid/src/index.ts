@@ -114,7 +114,7 @@ export function defineVooyaComponent(
     onMount(() => {
       for (const listener of listeners) host.addEventListener(listener.name, listener.receive);
 
-      void loadBindings().then(
+      void Promise.resolve().then(loadBindings).then(
         (bindings) => {
           if (!active) return;
           const startedAt = performance.now();
@@ -166,7 +166,6 @@ export interface VooyaStore<TSnapshot> {
   getSnapshot(): TSnapshot;
   subscribe(listener: () => void): (() => void) | void;
   dispose(): void;
-  [method: string]: unknown;
 }
 
 export interface VooyaStoreOptions {
@@ -202,7 +201,7 @@ export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
       ...Object.fromEntries(bridge.actions.map((action) => [
         action,
         (...args: unknown[]) => {
-          const candidate = consumed.store?.[action];
+          const candidate: unknown = consumed.store && Reflect.get(consumed.store, action);
           if (typeof candidate === "function") return candidate.apply(consumed.store, args);
         },
       ])),
@@ -214,6 +213,17 @@ export function defineVooyaStore<TStore extends VooyaStore<unknown>>(
  * Connect an instance-scoped Rust store to the current Solid owner. Store
  * notifications update a signal and owner disposal releases the Rust handle.
  */
+export function useVooyaStore<TProps, TStore extends VooyaStore<unknown>>(
+  factory: (props: TProps, options?: VooyaStoreOptions) => TStore | Promise<TStore>,
+  props: TProps,
+  options?: VooyaStoreOptions,
+): { state: Accessor<ReturnType<TStore["getSnapshot"]> | undefined>; readonly store: TStore | undefined };
+/** Preserve explicit snapshot/props/store type arguments for existing callers. */
+export function useVooyaStore<TSnapshot, TProps, TStore extends VooyaStore<TSnapshot>>(
+  factory: (props: TProps, options?: VooyaStoreOptions) => TStore | Promise<TStore>,
+  props: TProps,
+  options?: VooyaStoreOptions,
+): VooyaStoreBinding<TSnapshot, TStore>;
 export function useVooyaStore<
   TSnapshot,
   TProps,
@@ -229,7 +239,13 @@ export function useVooyaStore<
   let createdStore: TStore | undefined;
   let unsubscribe: (() => void) | undefined;
 
-  Promise.resolve(factory(props, options)).then(
+  let pending: TStore | Promise<TStore>;
+  try {
+    pending = factory(props, options);
+  } catch (cause) {
+    pending = Promise.reject(cause);
+  }
+  Promise.resolve(pending).then(
     (resolved) => {
       createdStore = resolved;
       if (!active) {

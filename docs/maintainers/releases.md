@@ -5,8 +5,10 @@ per-package changelogs. Public packages are independently versioned:
 `.changeset/config.json` keeps `fixed` and `linked` empty. Do not hand-edit
 versions or generated changelogs.
 
-The current preparation targets the first `0.1.0-beta.0` release. A one-time
-changeset names all ten public packages and `.changeset/pre.json` selects
+The first `0.1.0-beta.0` release is published for all ten public packages;
+[its release workflow](https://github.com/vooyajs/vooya/actions/runs/36614375254)
+completed package and registry-consumer acceptance. The initial one-time
+changeset named all ten public packages, and `.changeset/pre.json` selects
 `beta`. Changesets 3 carries each alpha version's numeric prerelease counter
 into a new tag, so changing `pre.json` alone does not produce `beta.0`.
 `version:packages` uses the pinned official release-plan assembler, verifies
@@ -16,9 +18,9 @@ The official applier still writes package versions, dependency pins, changelogs,
 and consumed-entry archives. Incomplete or mixed first-beta cohorts fail before
 application; later beta version operations use the unmodified Changesets CLI.
 `fixed` and `linked` remain empty, so later beta changes are
-versioned independently. Preparing or pushing this source change does not
-publish beta or replace the published alpha installation path. Versioning and
-publication remain separate reviewed steps.
+versioned independently. Installation guides now use the published `beta`
+channel. Preparing a future source or version change does not publish it;
+versioning and publication remain separate reviewed steps.
 
 Use Node.js 22.12 or newer on the 22.x line with npm 10.9.x for release
 preparation, matching the release workflow. The current rehearsal uses Node.js

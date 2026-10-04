@@ -435,3 +435,17 @@ test("discovers ordinary Rust modules while excluding crate roots", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+
+test("sourceRoot dot selects top-level Rust modules and ignores installed packages", () => {
+  assert.match(generateRustSourceRoot(["rust/Counter.rs"], [], "rust/."), /mod Counter;/);
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-source-dot-"));
+  try {
+    mkdirSync(resolve(root, "node_modules/library"), { recursive: true });
+    writeFileSync(resolve(root, "Counter.rs"), "// authored");
+    writeFileSync(resolve(root, "node_modules/library/Internal.rs"), "// dependency");
+    assert.deepEqual(discoverRustSourceFiles(root, "."), [resolve(root, "Counter.rs")]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

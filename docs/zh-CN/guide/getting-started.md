@@ -1,82 +1,46 @@
 # 快速开始
 
-Vooya 的使用顺序很简单：在 Rust 中编写一个局部 Component，配置宿主应用的 bundler，
-然后通过对应 adapter 像使用普通宿主组件一样导入它。页面、路由和周围的业务状态仍由
-宿主应用负责，Rust 只拥有这个局部能力边界。
+在已有的 Vite 应用中接入一个 Rust 组件。先选择你正在使用的框架：
 
-当前主路径是 Vite `>=7 <9`，supported adapter 是 Vue `>=3.5.2 <4` 和 React `>=19`。
-Solid `>=1.9 <2` 是 experimental adapter，目前证据来自 Vite 7 Rust-file fixture。
-Svelte `>=5 <6` 同样是 experimental adapter，证据边界也是 Vite 7 Rust-file fixture。
-Rust-file component 会在应用作者的机器上编译，因此需要同时准备 Node.js 和 Rust 工具链。
+- [Vue 3](#vue)：安装 adapter，配置 Vue 插件。
+- [React 19](#react)：安装 adapter，配置 React 插件。
 
-## 1. 准备环境
+两条路径使用同一个 [Greeting 组件](#first-component)，最后[启动并检查结果](#run)。
+本页面向 Vite 7 或 8、Vue `>=3.5.2 <4` 或 React `>=19`，假设应用已有正常工作的
+入口与 `dev`、`build` 脚本。如果还没有应用，请先[创建对应框架的 Vite 项目](https://vite.dev/guide/#scaffolding-your-first-vite-project)。
 
-- Node.js：按所用 Vite 版本选择；Vite 8 要求 `^20.19.0 || >=22.12.0`。
-- 稳定版 Rust toolchain 和 Cargo。
-- Rust target：`wasm32-unknown-unknown`。
-- `wasm-bindgen-cli`：当前 alpha 使用 `0.2.115`。
+[Solid、Svelte 与其他 bundler](./other-integrations.md) 使用单独的配置入口，选择前请查看支持边界。
+
+## 环境要求 {#prerequisites}
+
+- Node.js 版本符合所用 Vite 的要求；Vite 8 要求 `^20.19.0 || >=22.12.0`。
+- 稳定版 Rust 和 Cargo。
+- Rust 的 `wasm32-unknown-unknown` target，以及 `wasm-bindgen-cli` `0.2.115`。
+
+Windows 使用 `*-pc-windows-msvc` 工具链时，先安装 Visual Studio Build Tools，勾选
+**Desktop development with C++**、MSVC C++ build tools 和 Windows SDK，然后重新打开
+终端。Cargo 编译 CLI 需要其中的 `link.exe`。
 
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.115 --locked
+wasm-bindgen --version
 ```
 
-如果 Windows 上使用的是 Rust 的 `*-pc-windows-msvc` toolchain，除了 Rust 本身，还需要
-安装 Visual Studio Build Tools。安装器中请勾选 **Desktop development with C++** 工作负载，
-并确认包含 MSVC C++ build tools 和 Windows SDK；它们会提供 Cargo 编译所需的
-MSVC linker（`link.exe`）。这里只说“MSVC”并不代表安装一个单独的运行库就足够。
+下面从 `beta` 渠道安装 Vooya，并保留 lockfile。首个 Beta 是 `0.1.0-beta.0`，后续按包
+独立发版，内部依赖由发布流程锁定。不要混用未发布的 main 源码与已发布 adapter。
+本路径在本地编译 Rust；Vooya 当前不会代为安装 Rust。具体支持范围见[兼容性矩阵](../project/compatibility.md)。
 
-这是当前 source authoring alpha 的现实前置条件。Vooya 后续会持续减少 Rust、WASM 和
-平台 linker 的手工配置，朝更接近开箱即用的体验演进；未来可能通过预编译产物、自动
-诊断和更完善的工具链管理降低门槛，但当前版本不会替用户安装 Rust 或 Visual Studio。
+## Vue {#vue}
 
-## 2. 编写第一个 Rust Component
+应用应已安装 `vue`、`vite` 和 `@vitejs/plugin-vue`。
 
-在项目中创建 `src/Greeting.rs`：
-
-```rust
-use wasm_bindgen::JsValue;
-use vooya as voo;
-
-#[voo::props]
-#[derive(voo::FromJs)]
-pub struct GreetingProps {
-    pub name: String,
-}
-
-#[voo::component]
-pub fn Greeting(
-    view: &voo::View,
-    props: GreetingProps,
-) -> Result<voo::ViewElement, JsValue> {
-    let label = format!("Hello, {}.", props.name);
-    Ok(voo::rsx!(view, <p>{label}</p>)?)
-}
-```
-
-这里的几个标记分别表示：
-
-| 标记 | 作用 |
-| --- | --- |
-| `#[voo::props]` | 声明宿主可以传入的 props 结构 |
-| `#[derive(voo::FromJs)]` | 生成从 JavaScript 值到 Rust props 的转换 |
-| `#[voo::component]` | 声明这是一个可被宿主导入的 Component |
-| `voo::rsx!` | 描述由 Rust 拥有的局部 DOM 子树 |
-
-Rust Component 不负责页面布局、路由或整个应用的渲染；它只创建自己的局部内容。
-
-## 3. 配置宿主应用的 bundler
-
-以下配置都基于已有的 Vite 项目。选择你正在使用的宿主框架，并保持 Vooya
-相关包使用相同的 alpha 版本。
-
-### Vue 3
 
 安装依赖：
 
 ```sh
-npm install @vooya/vue@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/vue@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 在 `vite.config.ts` 中把 `vooya()` 放在 Vue 插件之后：
@@ -91,13 +55,20 @@ export default defineConfig({
 });
 ```
 
-### React 19
+pnpm 用户使用 `pnpm add @vooya/vue@beta` 和 `pnpm add --save-dev @vooya/vite@beta`。
+
+接下来[创建 Greeting 组件](#first-component)。
+
+## React {#react}
+
+应用应已安装 `react`、`react-dom`、`vite` 和 `@vitejs/plugin-react`。
+
 
 安装依赖：
 
 ```sh
-npm install @vooya/react@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/react@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 在 `vite.config.ts` 中选择 React adapter：
@@ -112,53 +83,47 @@ export default defineConfig({
 });
 ```
 
-### Solid 1.9
+pnpm 用户使用 `pnpm add @vooya/react@beta` 和 `pnpm add --save-dev @vooya/vite@beta`。
 
-安装依赖：
+接下来[创建 Greeting 组件](#first-component)。
 
-```sh
-npm install @vooya/solid@alpha
-npm install --save-dev @vooya/vite@alpha
+## 创建第一个组件 {#first-component}
+
+创建 `src/Greeting.rs`：
+
+```rust
+use wasm_bindgen::JsValue;
+use vooya as voo;
+
+#[voo::props]
+#[derive(voo::FromJs)]
+pub struct GreetingProps {
+    pub name: String,
+}
+
+#[voo::component]
+#[voo::style("./Greeting.css", scoped)]
+pub fn Greeting(
+    view: &voo::View,
+    props: GreetingProps,
+) -> Result<voo::ViewElement, JsValue> {
+    let label = format!("Hello, {}.", props.name);
+    Ok(voo::rsx!(view, <p class="greeting">{label}</p>)?)
+}
 ```
 
-在 `vite.config.ts` 中把 Vooya 放在 `vite-plugin-solid` 之后：
+创建相邻的 `src/Greeting.css`：
 
-```ts
-import { vooya } from "@vooya/vite";
-import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
-
-export default defineConfig({
-  plugins: [solid(), vooya({ framework: "solid" })],
-});
+```css
+.greeting {
+  font-weight: 600;
+}
 ```
 
-### Svelte 5
+Rust 创建组件的局部内容，宿主仍负责页面和路由。插件会根据 Rust schema 生成 adapter
+和类型声明；CSS 由 bundler 处理，不需要手工初始化 WASM。
 
-安装 adapter 与 Vite plugin：
-
-```sh
-npm install @vooya/svelte@alpha
-npm install --save-dev @vooya/vite@alpha
-```
-
-在 `vite.config.ts` 中把 Vooya 放在 `@sveltejs/vite-plugin-svelte` 之后：
-
-```ts
-import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { vooya } from "@vooya/vite";
-import { defineConfig } from "vite";
-
-export default defineConfig({
-  plugins: [svelte(), vooya({ framework: "svelte" })],
-});
-```
-
-## 4. 在应用入口导入并消费
-
-### Vue 应用
-
-在 `src/App.vue` 中导入 Rust Component：
+Vue 用户在 `src/App.vue` 中引用：
 
 ```vue
 <script setup lang="ts">
@@ -166,104 +131,25 @@ import Greeting from "./Greeting.rs";
 </script>
 
 <template>
-  <main>
-    <h1>我的 Vue 应用</h1>
-    <Greeting name="Vooya" />
-  </main>
+  <Greeting name="world" />
 </template>
 ```
 
-你的 `src/main.ts` 仍然使用标准 Vue 启动方式：
-
-```ts
-import { createApp } from "vue";
-import App from "./App.vue";
-
-createApp(App).mount("#app");
-```
-
-### React 应用
-
-在 `src/App.tsx` 中导入 Rust Component：
+React 用户在 `src/App.tsx` 中引用：
 
 ```tsx
 import Greeting from "./Greeting.rs";
 
 export default function App() {
-  return (
-    <main>
-      <h1>我的 React 应用</h1>
-      <Greeting name="Vooya" />
-    </main>
-  );
+  return <Greeting name="Rust" />;
 }
 ```
 
-你的 `src/main.tsx` 仍然使用标准 React 启动方式：
+保留应用已有的 `src/main.ts` 或 `src/main.tsx` 启动入口。
 
-```tsx
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
+## 检查环境、启动并查看结果 {#run}
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
-```
-
-### Solid 应用
-
-在 `src/App.tsx` 中导入 Rust Component 和 Store。生成名称与 Vue/React 一致，
-但 `state` 遵循 Solid 习惯，是 accessor：
-
-```tsx
-import Greeting from "./Greeting.rs";
-import { useCart } from "./Cart.rs";
-
-export default function App() {
-  const { state, add } = useCart();
-  return (
-    <main>
-      <Greeting name="Vooya" />
-      <button onClick={() => add(1)}>Store {state()?.count ?? 0}</button>
-    </main>
-  );
-}
-```
-
-### Svelte 应用
-
-在 `.svelte` 文件中导入 Rust Component 和 Store。callback event 使用
-`onEventName` prop；`state` 是 Svelte `Readable`，模板中使用 `$state`：
-
-```svelte
-<script>
-  import Counter from "./Counter.rs";
-  import { useCart } from "./Store.rs";
-
-  const { state, add } = useCart();
-  let selected;
-</script>
-
-<Counter count={$state?.count ?? 0} onSelected={(value) => selected = value} />
-<button onclick={() => add(1)}>Store {$state?.count ?? 0}</button>
-```
-
-对宿主应用来说，`Greeting.rs` 的使用方式和普通宿主 Component 一样；不需要在
-页面中手动调用 WASM 初始化函数，也不需要自己编写 mount、事件监听或销毁逻辑。
-
-## 5. 启动、构建与类型配置
-
-先检查 Vooya 将要使用的 Rust 工具链：
-
-```sh
-npm exec -- vooya doctor
-```
-
-TypeScript 项目需要让 `tsc` 和编辑器能够找到 Vooya 生成的声明文件。将以下选项合并
-到项目实际使用的 tsconfig（新建 Vite 项目通常是 `tsconfig.app.json`）：
+TypeScript 项目需要把以下选项合并到应用实际使用的 tsconfig，通常是 `tsconfig.app.json`：
 
 ```json
 {
@@ -274,20 +160,54 @@ TypeScript 项目需要让 `tsc` 和编辑器能够找到 Vooya 生成的声明�
 }
 ```
 
-然后运行宿主应用自己的脚本：
+启动前检查 Rust 工具链：
+
+```sh
+npm exec -- vooya doctor
+# pnpm: pnpm exec vooya doctor
+```
+
+有错误时先修复再继续。Cargo 选择规则和诊断解释见[工具参考](../reference/tooling.md)，
+安装或编译失败见[排错指南](./troubleshooting.md)。
+
+先启动开发服务器：
 
 ```sh
 npm run dev
-npm run build
+# pnpm: pnpm run dev
 ```
 
-生成的应用本地 Rust crate、WASM、框架适配器和 TypeScript 声明位于 `.vooya/`。这些
-都是可重新生成的状态，可以使用以下命令清理：
+打开 Vite 输出的本地地址。Vue 页面应显示加粗的 **Hello, world.**，React 应显示
+**Hello, Rust.**。修改宿主中的 `name` prop，确认它能传入 Rust 组件。
+首次运行会编译 Rust，可能比后续运行慢；等页面成功显示后，再停止服务器并检查生产构建：
+
+```sh
+npm run build
+# pnpm: pnpm run build
+```
+
+先运行 dev 会生成 `.vooya/types` 中的声明。默认 Vite 模板的 build 可能先执行
+`tsc` 或 `vue-tsc`，所以首次接入时要按以上顺序操作。
+
+生成的 Rust crate、WASM、adapter 和声明都在 `.vooya/` 中，可随时清理后重新生成：
 
 ```sh
 npm exec -- vooya clean
 ```
 
-如果构建失败，请先查看[排错指南](./troubleshooting.md)，再运行
-`npm exec -- vooya doctor` 检查工具链。需要 Store 时，参见 [Store 概念](../concepts/store.md)；
-需要更完整的 Rust role 语法时，参见 [Rust 编写](./rust-file-authoring.md)。
+## pnpm 安装提示
+
+如果 pnpm 11 提示阻止了 `esbuild` 的安装脚本，再执行：
+
+```sh
+pnpm approve-builds esbuild
+```
+
+这会允许运行 esbuild 用于检查或安装本机可执行文件的脚本。只在提示被阻止时操作；
+可用 `pnpm ignored-builds` 查看当前被阻止的包。
+
+## 下一步
+
+- 只想将状态和计算交给 Rust、保留宿主界面：阅读 [Store](../concepts/store.md)。
+- 需要 props、事件、样式等语法：阅读 [Rust 编写](./rust-file-authoring.md)。
+- 其他框架或 bundler：查看[其他集成](./other-integrations.md)和[兼容性矩阵](../project/compatibility.md)。

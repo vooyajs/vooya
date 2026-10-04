@@ -7,8 +7,8 @@ end-to-end evidence is the Vite 7 Rust-file fixture; this README does not imply
 Rspack/Webpack, SSR, or hydration support.
 
 ```sh
-npm install @vooya/solid@alpha
-npm install --save-dev @vooya/vite@alpha
+npm install @vooya/solid@beta
+npm install --save-dev @vooya/vite@beta
 ```
 
 Configure it after `vite-plugin-solid`:
@@ -54,3 +54,6 @@ owner cleanup instead of imitating a Vue `Ref`, React snapshot, or Svelte
 custom ownership. The generated `useName()` entry is the normal application
 path. Package unit tests cover snapshot publication, unsubscribe/disposal, and
 a Store that resolves after its owner has already been disposed.
+
+See the [framework capability matrix](https://github.com/vooyajs/vooya/blob/main/docs/project/compatibility.md#beta-framework-capabilities)
+for the beta support level and tested consumer paths.

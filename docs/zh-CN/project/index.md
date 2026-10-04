@@ -1,10 +1,10 @@
 # 项目
 
-Vooya 是一个公开 alpha 项目，正在验证“传统 Web 应用与 WASM 之间的集成层”边界。本节区分已发布证据和未来计划，避免把通过的 fixture 误解成广泛支持承诺。
+Vooya 是一个公开 beta 项目，正在验证“传统 Web 应用与 WASM 之间的集成层”边界。本节区分已发布证据和未来计划，避免把通过的 fixture 误解成广泛支持承诺。
 
 ## 项目页面
 
-- [状态](./status.md)：当前 alpha 已经能做什么，以及仍有哪些限制。
+- [状态](./status.md)：当前 beta 已经能做什么，以及仍有哪些限制。
 - [兼容性矩阵](./compatibility.md)：框架、bundler、浏览器和工具链证据。
 - [路线图与 RFC（英文原文）](../../rfcs/0008-layer-boundary-and-roadmap.md)：从集成基础设施走向稳定 layer 契约的版本方向。
 - [发布说明（英文原文）](../../maintainers/releases.md)：协调各包发布的规则。

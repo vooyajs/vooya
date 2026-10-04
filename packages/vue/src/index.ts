@@ -13,7 +13,6 @@ export interface VooyaStore<TSnapshot = unknown> {
   getSnapshot(): TSnapshot;
   subscribe(listener: () => void): () => void;
   dispose(): void;
-  [action: string]: unknown;
 }
 
 export interface VooyaStoreOptions {
@@ -110,7 +109,7 @@ export function useVooyaStore<TSnapshot>(
     snapshot: readonly(snapshot),
     dispatch(action: string, ...args: unknown[]) {
       if (!store) throw new Error("Vooya store is not ready.");
-      const candidate = store[action];
+      const candidate: unknown = Reflect.get(store, action);
       if (typeof candidate !== "function") throw new Error(`Unknown Vooya store action "${action}".`);
       return candidate.apply(store, args);
     },

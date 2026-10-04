@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { WASM_BINDGEN_VERSION, WASM_TARGET, formatToolchainReport, inspectToolchain } from "../dist/doctor.js";
+import { WASM_BINDGEN_VERSION, WASM_TARGET, createToolchainJsonReport, formatToolchainReport, inspectToolchain } from "../dist/doctor.js";
 
 const probeManifestPath = "/probe/Cargo.toml";
 
@@ -267,6 +267,37 @@ test("doctor explains a missing target and mismatched wasm-bindgen", () => {
   assert.doesNotMatch(output, /\.cargo\/bin before/);
 });
 
+for (const cliFailure of ["missing", "mismatched"]) {
+  test(`doctor preserves an installed target when wasm-bindgen is ${cliFailure}`, () => {
+    const cargoPath = "/opt/rust/bin/cargo";
+    const rustcPath = "/opt/rust/bin/rustc";
+    const wasmBindgenPath = "/opt/rust/bin/wasm-bindgen";
+    const targetLibdir = "/opt/rust/lib/rustlib/wasm32-unknown-unknown/lib";
+    const { runner } = matchingFixture({
+      cargoPath, rustcPath, wasmBindgenPath, targetLibdir,
+      sysroot: "/opt/rust",
+      rustcVerbose: "rustc 1.94.0\nhost: x86_64-unknown-linux-gnu",
+    });
+    const report = inspect({
+      env: { PATH: "/opt/rust/bin" },
+      run: (command, args, options) => {
+        if (command === wasmBindgenPath && args[0] === "--version") {
+          if (cliFailure === "missing") throw new Error("Executable not found");
+          return "wasm-bindgen 0.2.126";
+        }
+        return runner(command, args, options);
+      },
+      exists: (path) => path === targetLibdir,
+    });
+
+    assert.equal(report.ok, false);
+    assert.equal(report.results.find((result) => result.name === `Rust target ${WASM_TARGET}`).status, "ok");
+    assert.equal(report.targetLibdir, targetLibdir);
+    assert.equal(report.results.find((result) => result.name === `wasm-bindgen ${WASM_BINDGEN_VERSION}`).status, "error");
+    assert.doesNotMatch(formatToolchainReport(report), /\[error\] Rust target/);
+  });
+}
+
 test("doctor resolves a Windows rustc path containing spaces", () => {
   const cargoPath = "C:\\Program Files\\Rust\\bin\\cargo.exe";
   const rustcPath = "C:\\Program Files\\Rust\\toolchains\\stable\\bin\\rustc.exe";
@@ -395,3 +426,41 @@ test("doctor explains the Windows Build Tools prerequisite when an MSVC linker i
   assert.match(formatToolchainReport(report), /Visual Studio Build Tools/);
   assert.match(formatToolchainReport(report), /Desktop development with C\+\+/);
 });
+
+for (const complete of [true, false]) {
+  test(`JSON report uses an allowlist for ${complete ? "successful" : "failed"} diagnostics`, () => {
+    const canary = "not-a-real-secret-review-canary";
+    const cargoPath = "/opt/rust/bin/cargo";
+    const rustcPath = "/opt/rust/bin/rustc";
+    const wasmBindgenPath = "/opt/rust/bin/wasm-bindgen";
+    const targetLibdir = "/opt/rust/lib/rustlib/wasm32-unknown-unknown/lib";
+    const { runner } = matchingFixture({
+      cargoPath, rustcPath, wasmBindgenPath, targetLibdir,
+      sysroot: "/opt/rust", rustcVerbose: "rustc 1.94.0\nhost: x86_64-unknown-linux-gnu",
+    });
+    const report = inspect({
+      env: { PATH: "/opt/rust/bin", VOOYA_REVIEW_CANARY: canary },
+      run: (command, args, options) => {
+        if (!complete && command === wasmBindgenPath) return "wasm-bindgen 0.0.0";
+        return runner(command, args, options);
+      },
+      exists: (path) => path === targetLibdir,
+    });
+    assert.equal(report.ok, complete);
+    if (complete) assert.equal(report.toolchain.environment.VOOYA_REVIEW_CANARY, canary);
+    // Internal fields added later must not silently become part of the public report.
+    report.internalCanary = canary;
+    report.results[0].internalCanary = canary;
+    const json = JSON.stringify(createToolchainJsonReport(report));
+    const publicReport = JSON.parse(json);
+    assert.equal(publicReport.schemaVersion, 1);
+    assert.equal(publicReport.ok, complete);
+    assert.equal(publicReport.cargo.path, cargoPath);
+    assert.equal(publicReport.rustc.path, rustcPath);
+    assert.equal(publicReport.target.triple, WASM_TARGET);
+    assert.equal(publicReport.results.some((result) => result.status === "error"), !complete);
+    assert.equal(Object.hasOwn(publicReport, "toolchain"), false);
+    assert.equal(json.includes(canary), false);
+    assert.equal(json.includes("environment"), false);
+  });
+}

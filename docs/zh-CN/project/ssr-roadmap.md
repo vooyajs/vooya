@@ -29,11 +29,11 @@
 
 | 路径 | 实际缺口 | 支持声明前的验收 |
 | --- | --- | --- |
-| Next.js | 现有 Webpack adapter 仅支持旧 `.voo`；Turbopack 不读取 Webpack 配置，需要确定真正可用的 `.rs` 或预构建产物接入 | App Router 生产构建、服务端 HTML、WASM URL、hydration、交互、路由切换与卸载 |
+| Next.js | 现有 Webpack adapter 已支持 Vue/React 的 `.rs`，但还未验证 Next.js；Turbopack 不读取 Webpack 配置，仍需确定 Next 专用的源码或预构建产物接入 | App Router 生产构建、服务端 HTML、WASM URL、hydration、交互、路由切换与卸载 |
 | Nuxt | 验证 Vite 的服务端/客户端两套构建与 Nitro 产物，不能只靠 Vue adapter 测试 | SSR 生产构建启动、HTML、真实 WASM 交互、hydration、路由清理与请求隔离 |
 | Provider | 版本化多资产产物、运行环境约束、缓存身份、进一步收拢 Rust schema/binding 逻辑 | 现有 Rust 回归不退化，预编译 consumer 不依赖 Cargo，再考虑其他语言 canary |
 
-Next/Nuxt 的真实 fixture 和 CI 尚待完成，现在不能宣传已全面支持 SSR。
+Nuxt 的真实 fixture 和 CI 已加入本 PR；Next.js 接入仍待完成，不能宣传已全面支持 SSR。
 详细实施边界、官方参考与发布验收见[英文计划](../../project/ssr-roadmap.md)。
 
 ## 现有 API 的 SSR 行为
@@ -56,4 +56,4 @@ state 为 `undefined` 时不要派发 action。模块顶层共享 Store 不具�
 销毁以及返回页面后的全新状态。由独立 PR CI job 执行，也纳入 `verify:e2e`。
 这不代表 Next.js、Edge runtime 或 Rust 服务端 HTML 已经支持。
 此 fixture 中 Nuxt 传入的 Vite root 是 `app`，Rust 文件放在 `app/src`；
-另行发现的 `sourceRoot: "."` schema 路径匹配问题仍待处理。
+构建核心也已修复 `sourceRoot: "."` 的路径匹配，并排除依赖和生成目录的扫描。
