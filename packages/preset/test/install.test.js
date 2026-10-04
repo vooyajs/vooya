@@ -61,3 +61,25 @@ test("tool versions, platform selection and bootstrap integrity are pinned", () 
   }
   assert.throws(() => platformManifest("win32", "arm64"), /does not support/);
 });
+
+test("interrupted downloads are discarded and can be retried", async () => {
+  const root = temporary();
+  let interrupt = true;
+  const server = createServer((_req, res) => {
+    if (interrupt) {
+      res.writeHead(200, { "content-length": "1000" });
+      res.write("partial");
+      setTimeout(() => res.destroy(), 10);
+    } else res.end("complete");
+  });
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  const url = `http://127.0.0.1:${server.address().port}/tool`;
+  const asset = { url, sha256: createHash("sha256").update("complete").digest("hex") };
+  try {
+    await assert.rejects(downloadVerified(asset, join(root, "tool")));
+    assert.deepEqual(readdirSync(root), []);
+    interrupt = false;
+    await downloadVerified(asset, join(root, "tool"));
+    assert.equal(readFileSync(join(root, "tool"), "utf8"), "complete");
+  } finally { server.close(); rmSync(root, { recursive: true, force: true }); }
+});
