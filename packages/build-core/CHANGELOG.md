@@ -3,6 +3,30 @@
 Historical entries were reconstructed from published package metadata and release
 snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
+## 0.1.0-beta.1
+
+### Minor Changes
+
+- 0c50316: Add an optional managed Rust/WASM toolchain with pinned downloads, an isolated cache, and shared automatic selection for builds and doctor. Projects may explicitly select their system toolchain. Host linker/SDK prerequisites still apply.
+- e17b0cc: Add experimental native Octane 0.9 support for Rust-file components and stores through Vite 8, including generated TypeScript declarations. The adapter ships authored source for Octane's application compiler. Legacy .voo inputs, SSR and older Octane versions are outside this initial scope.
+- 9bb6287: Support Rust-file components and Stores in Webpack/Rspack with shared adapter module generation, scoped CSS and centralized declarations. Keep the legacy .voo path and verify Vue/React in clean packed production consumers.
+  
+  Normalize sourceRoot dot paths when selecting Rust modules and resolving schema imports, and exclude installed node_modules from Rust source discovery. Add clean packed Solid/Svelte browser and strict declaration acceptance on Vite 8.
+  
+  Keep Rust-file watch builds stable by preserving unchanged generated CSS and comparing only authored Rust/Cargo/style inputs. Verify Rust error recovery and new module detection without restarting the watcher.
+- 6859de4: Start the 0.2 SSR integration foundation. Vue generated Store factories now load
+  only after client mount, and the advanced Store composable accepts a lazy factory.
+  React's published entry preserves its client-module directive. Server rendering
+  and host hydration have adapter-level regression coverage; this does not yet
+  claim end-to-end Next.js or Nuxt support or server rendering of Rust DOM content.
+  
+  Extract Rust build mechanics behind the existing buildApplication facade and an
+  internal provider interface, preserving the public build result, locking, staged
+  artifacts, diagnostics, and default Rust configuration. The initial interface
+  still models Rust's single-WASM artifact; it is not a public multi-language API.
+  
+  Route synchronous React Store factory failures through onError, matching asynchronous initialization failures.
+
 ## 0.1.0-beta.0
 
 ### Patch Changes

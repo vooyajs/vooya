@@ -1,6 +1,6 @@
 {
   "name": "@vooya/octane",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Experimental native Octane host adapter for Vooya Rust components and stores.",
   "type": "module",
   "license": "MIT OR Apache-2.0",

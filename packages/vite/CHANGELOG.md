@@ -5,6 +5,27 @@ snapshots; see [release history evidence](../../docs/maintainers/release-history
 
 Versions before alpha.9 were published as `@vooya/vite-plugin`, not `@vooya/vite`.
 
+## 0.1.0-beta.3
+
+### Minor Changes
+
+- 0c50316: Add an optional managed Rust/WASM toolchain with pinned downloads, an isolated cache, and shared automatic selection for builds and doctor. Projects may explicitly select their system toolchain. Host linker/SDK prerequisites still apply.
+- e17b0cc: Add experimental native Octane 0.9 support for Rust-file components and stores through Vite 8, including generated TypeScript declarations. The adapter ships authored source for Octane's application compiler. Legacy .voo inputs, SSR and older Octane versions are outside this initial scope.
+
+### Patch Changes
+
+- 9bb6287: Support Rust-file components and Stores in Webpack/Rspack with shared adapter module generation, scoped CSS and centralized declarations. Keep the legacy .voo path and verify Vue/React in clean packed production consumers.
+  
+  Normalize sourceRoot dot paths when selecting Rust modules and resolving schema imports, and exclude installed node_modules from Rust source discovery. Add clean packed Solid/Svelte browser and strict declaration acceptance on Vite 8.
+  
+  Keep Rust-file watch builds stable by preserving unchanged generated CSS and comparing only authored Rust/Cargo/style inputs. Verify Rust error recovery and new module detection without restarting the watcher.
+- 9153983: Resolve Rust file mappings only when a Rust module is imported, keeping legacy component builds independent of those mappings. Preserve Rust edits made during Webpack and Rspack builds so watch mode compiles the latest source.
+- Updated dependencies [0c50316]
+- Updated dependencies [e17b0cc]
+- Updated dependencies [9bb6287]
+- Updated dependencies [6859de4]
+  - @vooya/build-core@0.1.0-beta.1
+
 ## 0.1.0-beta.2
 
 ### Patch Changes
