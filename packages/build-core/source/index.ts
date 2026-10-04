@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, posix, relative, resolve } from "node:path";
 
 import { acquireBuildLock } from "./build-lock.js";
 import { CargoBuildError, VooyaUserError } from "./errors.js";
@@ -45,8 +45,11 @@ const rustModuleKeywords = new Set([
 export * from "./errors.js";
 export * from "./cargo-manifest.js";
 export * from "./schema.js";
+export * from "./rust-modules.js";
+export * from "./rust-bundler.js";
 export * from "./schema-declarations.js";
 export * from "./toolchain.js";
+export type { ToolchainMode } from "./managed-toolchain.js";
 export * from "./workspace.js";
 
 export type MappedDiagnostic = string;
@@ -55,7 +58,7 @@ export interface WasmAsset { path: string; bytes: Uint8Array }
 export interface GeneratedCss { componentId: string; code: string }
 export interface GeneratedDeclaration {
   componentId: string;
-  framework: "vue" | "react" | "solid" | "svelte";
+  framework: "vue" | "react" | "solid" | "svelte" | "octane";
   code: string;
 }
 export interface BuildMetadata {
@@ -100,7 +103,7 @@ export interface BuildApplicationOptions {
   workspacePath?: string;
   outputDir?: string;
   buildMode?: "production" | "development";
-  framework?: "vue" | "react" | "solid" | "svelte";
+  framework?: "vue" | "react" | "solid" | "svelte" | "octane";
   onRustBuildStart?: () => void;
   toolchain?: ResolvedToolchain;
   spawn?: BuildSpawn;
@@ -157,7 +160,7 @@ export function generateRustSourceRoot(
   publicFiles: string[] = [],
   rootPrefix = "",
 ): string {
-  const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
+  const prefix = posix.normalize(rootPrefix.replaceAll("\\", "/")).replace(/^\.$/, "").replace(/\/$/, "");
   const publicSet = new Set(publicFiles.map((file) => file.replaceAll("\\", "/")));
   const declarations: string[] = [];
   const used = new Set<string>();
@@ -188,7 +191,7 @@ export function generateRustSourceRoot(
 
 /** Keep only files that can be declared directly by a conventional crate root. */
 export function selectRustRootModules(files: string[], rootPrefix = ""): string[] {
-  const prefix = rootPrefix.replaceAll("\\", "/").replace(/\/$/, "");
+  const prefix = posix.normalize(rootPrefix.replaceAll("\\", "/")).replace(/^\.$/, "").replace(/\/$/, "");
   return [...files]
     .map((file) => file.replaceAll("\\", "/"))
     .filter((file) => {
@@ -227,7 +230,7 @@ export function discoverRustSourceFiles(applicationRoot: string, configuredRoot 
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
       const path = resolve(directory, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== "target" && entry.name !== ".vooya") visit(path);
+        if (!["target", ".vooya", "node_modules", ".git"].includes(entry.name)) visit(path);
       } else if (entry.isFile() && entry.name.endsWith(".rs") && entry.name !== "lib.rs" && entry.name !== "main.rs") {
         files.push(path);
       }
@@ -400,7 +403,7 @@ function buildApplicationUnlocked({
   const authoredModule = authoredEntry
     ? `#[path = ${JSON.stringify(`rust/${relative(applicationRoot, authoredEntry).replaceAll("\\", "/")}`)}] pub mod app;\npub use app::*;`
     : (() => {
-        const rootPrefix = `rust/${configuredSourceRoot}`.replaceAll("\\", "/");
+        const rootPrefix = posix.normalize(`rust/${configuredSourceRoot}`.replaceAll("\\", "/"));
         const publicFiles = (rust.public ?? []).map(
           (file) => `${rootPrefix}/${file.replaceAll("\\", "/")}`,
         );
@@ -494,11 +497,14 @@ function buildApplicationUnlocked({
           code: compileVooStyle(component),
         })),
       declarations: components.length > 0
-        ? components.map((component) => ({
-            componentId: component.id ?? component.name,
-            framework,
-            code: generateVooDeclaration(component, framework),
-          }))
+        ? components.map((component) => {
+            if (framework === "octane") throw new Error("Octane supports Rust .rs sources only.");
+            return {
+              componentId: component.id ?? component.name,
+              framework,
+              code: generateVooDeclaration(component, framework),
+            };
+          })
         : [
           ...schemaContracts.map((contract) => ({
             componentId: contract.component.id,

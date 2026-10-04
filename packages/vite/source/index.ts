@@ -2,13 +2,14 @@
 // is TypeScript-authored; its Vite hook boundary remains intentionally loose.
 // @ts-nocheck
 import { readFileSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
   buildApplication,
   clearToolchainCache,
   formatResolvedToolchain,
   isVooyaUserError,
   resolveVooyaWorkspace,
+  resolveRustSchemaGroup,
   resolveRuntimeCrateRoot,
   resolveRustBuildOptions,
   resolveRustDependencyRoots,
@@ -17,7 +18,8 @@ import {
   indexVooyaSchema,
   writeRustSchemaDeclarations,
   writeVooDeclarations,
-  rustTypeToRuntimeType,
+  renderRustComponentModule,
+  renderRustStoreModule,
 } from "@vooya/build-core";
 import type { RustBuildOptions } from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
@@ -26,7 +28,6 @@ import {
   generatedAdapterDefinition,
   generatedComponentBinding,
   parseVooComponent,
-  generatedScopeId,
 } from "@vooya/compiler";
 import { readVooComponents } from "./voo-project.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
@@ -45,12 +46,12 @@ const runtimeId = "virtual:vooya-runtime";
 const stylePrefix = "virtual:vooya-style:";
 const rustStylePrefix = "virtual:vooya-rust-style:";
 
-export type VooyaFramework = "vue" | "react" | "solid" | "svelte";
+export type VooyaFramework = "vue" | "react" | "solid" | "svelte" | "octane";
 
 export interface VooyaPluginOptions {
   framework?: VooyaFramework;
   rust?: RustBuildOptions;
-  toolchain?: { cargoPath?: string };
+  toolchain?: { cargoPath?: string; mode?: "auto" | "system" | "managed" };
   workspace?: { root?: string };
 }
 
@@ -70,6 +71,8 @@ export function vooya({
   let sourceComponents = [];
   let rustContracts = [];
   let rustStores = [];
+  let rustContractsByFile = new Map();
+  let rustStoresByFile = new Map();
   let watchedRustRoots = [];
   let logger;
   let hasInitialBuild = false;
@@ -87,13 +90,15 @@ export function vooya({
   const compile = () => {
     const components = applicationRoot ? readVooComponents(applicationRoot) : [];
     sourceComponents = components.filter((component) => component.format === "source");
-    writeVooDeclarations({ applicationRoot, components, framework, workspaceRoot: workspaceOptions.root });
+    if (framework === "octane" && components.length > 0) throw new Error("Octane supports Rust .rs sources; legacy .voo sources are not supported.");
+    if (framework !== "octane") writeVooDeclarations({ applicationRoot, components, framework, workspaceRoot: workspaceOptions.root });
     const progress = createRustBuildProgress(logger);
     try {
       if (!toolchain) {
         toolchain = resolveToolchain({
           cwd: applicationRoot,
           cargoPath: toolchainOptions?.cargoPath,
+          mode: toolchainOptions?.mode,
         });
         logger?.info(`Vooya: selected Rust/WASM toolchain: ${formatResolvedToolchain(toolchain)}.`);
         if (toolchain.cargoPathWarning) {
@@ -113,6 +118,8 @@ export function vooya({
       const schemaIndex = indexVooyaSchema(buildResult.schema);
       rustContracts = buildRustComponentContracts(schemaIndex);
       rustStores = schemaIndex.stores;
+      rustContractsByFile = new Map(rustContracts.map((contract) => [resolveRustSchemaGroup(applicationRoot, contract.component.group), contract]));
+      rustStoresByFile = new Map(rustStores.map((store) => [resolveRustSchemaGroup(applicationRoot, store.group), store]));
       if (sourceComponents.length === 0) {
         writeRustSchemaDeclarations({
           applicationRoot,
@@ -205,11 +212,11 @@ export function vooya({
       }
       if (cleanId.endsWith(rustExtension)) {
         ensureCompiled();
-        const contract = findRustContract(rustContracts, cleanId, applicationRoot);
+        const contract = rustContractsByFile.get(resolve(cleanId));
         if (contract) {
           return generateRustComponentModule(contract, framework, cleanId);
         }
-        const store = findRustStore(rustStores, cleanId, applicationRoot);
+        const store = rustStoresByFile.get(resolve(cleanId));
         if (store) {
           return generateRustStoreModule(store, framework);
         }
@@ -349,178 +356,34 @@ function componentMetadata(component) {
   };
 }
 
-function findRustContract(contracts, file, applicationRoot) {
-  const normalizedFile = file.replaceAll("\\", "/");
-  return contracts.find((contract) => {
-    const group = contract.component.group;
-    if (!group) return false;
-    const normalizedGroup = group.replaceAll("\\", "/");
-    const groupCandidates = [
-      normalizedGroup,
-      normalizedGroup.replace(/^src\/rust\//, ""),
-      normalizedGroup.replace(/^rust\//, ""),
-    ];
-    const resolvedGroup = isAbsolute(group) ? group : resolve(applicationRoot, group);
-    return file === resolvedGroup || groupCandidates.some((candidate) =>
-      normalizedFile.endsWith(`/${candidate}`) || candidate.endsWith(`/${normalizedFile}`));
-  });
-}
-
-function findRustStore(stores, file, applicationRoot) {
-  const normalizedFile = file.replaceAll("\\", "/");
-  return stores.find((store) => {
-    const group = store.group;
-    if (!group) return false;
-    const normalizedGroup = group.replaceAll("\\", "/");
-    const groupCandidates = [
-      normalizedGroup,
-      normalizedGroup.replace(/^src\/rust\//, ""),
-      normalizedGroup.replace(/^rust\//, ""),
-    ];
-    const resolvedGroup = isAbsolute(group) ? group : resolve(applicationRoot, group);
-    return file === resolvedGroup || groupCandidates.some((candidate) =>
-      normalizedFile.endsWith(`/${candidate}`) || candidate.endsWith(`/${normalizedFile}`));
-  });
-}
-
 export function generateRustComponentModule(contract, framework = "vue", componentId = contract.component.group) {
-  const name = contract.component.name;
-  const stem = rustStem(name);
-  const mount = `voo_${stem}_mount`;
-  const update = `voo_${stem}_update_props`;
-  const dispose = `voo_${stem}_dispose`;
-  const props = contract.props?.fields ?? [];
-  const events = contract.events?.methods ?? [];
   const styles = contract.component.styles ?? [];
-  const styleImport = styles.length
-    ? `import "${rustStylePrefix}${Buffer.from(JSON.stringify({ componentId, name, styles })).toString("base64url")}.css";`
-    : "";
-  const scopeId = styles.some((style) => style.scoped)
-    ? generatedScopeId({ id: componentId, name })
+  const styleModule = styles.length
+    ? `${rustStylePrefix}${Buffer.from(JSON.stringify({ componentId, name: contract.component.name, styles })).toString("base64url")}.css`
     : undefined;
-  const definition = {
-    abiVersion: 1,
-    name,
-    ...(scopeId ? { scopeId } : {}),
-    props: props.map((prop) => ({
-      name: prop.name,
-      type: rustTypeToRuntimeType(prop.type),
-      required: !/^Option\s*</.test(prop.type.replace(/\s+/g, "")),
-    })),
-    events: events.map((event) => ({ name: event.name, parameters: event.params.map((parameter) => parameter.name) })),
-  };
-  const propAssignments = props.map((prop, index) => `${JSON.stringify(prop.name)}: props[${index}]`).join(", ");
-  const updates = props.map((prop) => `update_${rustProperty(prop.name)}(value) { currentProps[${JSON.stringify(prop.name)}] = value; ${update}(handle, currentProps); }`).join(",\n                      ");
-  const adapter = adapterPackage(framework);
-  return `${styleImport}
-import init, { ${mount}, ${update}, ${dispose}, voo_abi_version } from "${runtimeId}";
-import { defineVooyaComponent } from "${adapter}";
-import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
-
-let bindings;
-async function loadBindings() {
-  if (!bindings) {
-    bindings = initializeWasm(init).then(() => {
-      assertVooAbiVersion(voo_abi_version());
-      return {
-        mount(host, ...props) {
-          let currentProps = { ${propAssignments} };
-          const handle = ${mount}(host, currentProps);
-          return {
-            dispose() { ${dispose}(handle); },
-            updateProps(values) { currentProps = { ...currentProps, ...values }; ${update}(handle, currentProps); },
-            ${updates}
-          };
-        }
-      };
-    });
-  }
-  return bindings;
+  return renderRustComponentModule(contract, framework, componentId, {
+    runtimeModule: runtimeId,
+    runtimeHelpers: "@vooya/vite/runtime",
+    styleModule,
+  });
 }
 
-export const metadata = ${JSON.stringify({ name, props, events })};
-export default defineVooyaComponent({
-  contract: ${JSON.stringify(definition)},
-  loadBindings,
-});
-`;
+export function generateRustStoreModule(store, framework = "vue") {
+  return renderRustStoreModule(store, framework, {
+    runtimeModule: runtimeId,
+    runtimeHelpers: "@vooya/vite/runtime",
+  });
 }
 
 export const generateRustVueModule = (contract) => generateRustComponentModule(contract, "vue");
 export const generateRustSolidModule = (contract) => generateRustComponentModule(contract, "solid");
 export const generateRustSvelteModule = (contract) => generateRustComponentModule(contract, "svelte");
-
-export function generateRustStoreModule(store, framework = "vue") {
-  const name = store.name.split("::").at(-1) ?? store.name;
-  const stem = rustStem(name);
-  const create = `voo_${stem}_store_create`;
-  const snapshot = `voo_${stem}_store_snapshot`;
-  const subscribe = `voo_${stem}_store_subscribe`;
-  const unsubscribe = `voo_${stem}_store_unsubscribe`;
-  const dispose = `voo_${stem}_store_dispose`;
-  const actions = store.actions.map((action) => {
-    const exportName = `voo_${stem}_store_${action.name}`;
-    const parameters = action.params.map((parameter) => parameter.name).join(", ");
-    return `${JSON.stringify(action.name)}(...args) { return ${exportName}(handle, ...args); }`;
-  }).join(",\n      " );
-  const imports = ["voo_abi_version", create, snapshot, subscribe, unsubscribe, dispose, ...store.actions.map((action) => `voo_${stem}_store_${action.name}`)];
-  const adapter = framework;
-  const adapterImport = `import { defineVooyaStore } from "@vooya/${adapter}";\n`;
-  return `${adapterImport}import init, { ${imports.join(", ")} } from "${runtimeId}";
-import { assertVooAbiVersion, initializeWasm } from "@vooya/vite/runtime";
-
-let bindings;
-async function loadBindings() {
-  if (!bindings) {
-    bindings = initializeWasm(init).then(() => {
-      assertVooAbiVersion(voo_abi_version());
-      return true;
-    });
-  }
-  return bindings;
-}
-
-export async function create${name}Store() {
-  await loadBindings();
-  const handle = ${create}();
-  const subscriptions = new Map();
-  return {
-    getSnapshot() { return ${snapshot}(handle); },
-    subscribe(listener) {
-      const id = ${subscribe}(handle, listener);
-      subscriptions.set(id, listener);
-      return () => {
-        if (subscriptions.delete(id)) ${unsubscribe}(handle, id);
-      };
-    },
-    ${actions}${actions ? "," : ""}
-    dispose() {
-      for (const id of subscriptions.keys()) ${unsubscribe}(handle, id);
-      subscriptions.clear();
-      ${dispose}(handle);
-    },
-  };
-}
-
-const storeBridge = {
-  name: ${JSON.stringify(name)},
-  create: create${name}Store,
-  actions: ${JSON.stringify(store.actions.map((action) => action.name))},
-};
-
-export const use${name} = defineVooyaStore(storeBridge);
-
-export default create${name}Store;
-export const metadata = ${JSON.stringify({ name, actions: store.actions, snapshot: store.snapshot ?? null })};
-`;
-}
-
 export const generateRustVueStoreModule = (store) => generateRustStoreModule(store, "vue");
 export const generateRustSolidStoreModule = (store) => generateRustStoreModule(store, "solid");
 export const generateRustSvelteStoreModule = (store) => generateRustStoreModule(store, "svelte");
 
 function isSupportedFramework(framework) {
-  return framework === "vue" || framework === "react" || framework === "solid" || framework === "svelte";
+  return framework === "vue" || framework === "react" || framework === "solid" || framework === "svelte" || framework === "octane";
 }
 
 function adapterPackage(framework) {
@@ -528,10 +391,3 @@ function adapterPackage(framework) {
   return `@vooya/${framework}`;
 }
 
-function rustStem(name) {
-  return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^A-Za-z0-9_]/g, "_").toLowerCase();
-}
-
-function rustProperty(name) {
-  return name.replace(/[^A-Za-z0-9_$]/g, "_");
-}

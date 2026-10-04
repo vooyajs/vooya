@@ -1,0 +1,15 @@
+{
+  "name": "@vooya/preset",
+  "version": "0.0.0",
+  "description": "Pinned, isolated Rust/WASM toolchain for Vooya builds.",
+  "type": "module",
+  "license": "MIT OR Apache-2.0",
+  "repository": { "type": "git", "url": "git+https://github.com/vooyajs/vooya.git", "directory": "packages/preset" },
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=20" },
+  "files": ["lib", "LICENSE-MIT", "LICENSE-APACHE"],
+  "types": "./lib/index.d.ts",
+  "exports": { ".": { "types": "./lib/index.d.ts", "import": "./lib/index.js", "default": "./lib/index.js" }, "./prepare": "./lib/prepare.js" },
+  "scripts": { "build": "node --check lib/index.js", "test": "node --test test/*.test.js" },
+  "dependencies": { "tar": "7.5.22" }
+}

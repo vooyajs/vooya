@@ -29,12 +29,13 @@ export function inspectToolchain({
   exists = existsSync,
   probeManifestPath = undefined,
   cargoPath = undefined,
+  mode = "auto" as import("@vooya/build-core").ToolchainMode,
   workspaceRoot = undefined,
 } = {}) {
   let toolchain;
   let resolutionError;
   try {
-    toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath });
+    toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath, mode });
   } catch (error) {
     resolutionError = error;
   }
@@ -121,7 +122,7 @@ export function inspectToolchain({
 
   if (toolchain) {
     const paths = platform === "win32" ? win32 : posix;
-    const rustupHome = env.RUSTUP_HOME ?? paths.resolve(home, ".rustup");
+    const rustupHome = toolchain.environment.RUSTUP_HOME ?? paths.resolve(home, ".rustup");
     const sysrootIsRustup = Boolean(rustc.sysroot && isPathInside(rustc.sysroot, paths.resolve(rustupHome, "toolchains"), paths));
     results.push({
       name: "cargo/rustc toolchain",

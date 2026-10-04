@@ -11,13 +11,13 @@ export function renderVooModule({
   styleModule,
 }: {
   component: SourceComponent;
-  framework: "vue" | "react";
+  framework: "vue" | "react" | "solid" | "svelte";
   runtimeModule: string;
   styleModule?: string;
 }): string {
   const { exportName, disposeName, updateNames } = generatedComponentBinding(component);
   const definition = generatedAdapterDefinition(component);
-  const adapter = framework === "react" ? "@vooya/react" : "@vooya/vue";
+  const adapter = `@vooya/${framework}`;
   const updates = Object.entries(updateNames)
     .map(([prop, name]) => `update_${prop}(value) { ${name}(handle, value); }`)
     .join(",\n      ");
