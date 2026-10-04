@@ -69,8 +69,10 @@ export function resolveToolchain({
   const managed = prepareProjectToolchain({ cwd, env, mode, cargoPath });
   if (managed) cargoPath = managed.cargoPath;
   const environment = managed?.environment ?? { ...env };
+  const cargoSelection = managed ? "managed" : cargoPath === undefined ? "path" : "explicit";
   const cacheKey = getToolchainCacheKey({
     cargoPath,
+    cargoSelection,
     environment,
     cwd,
     home,
@@ -88,7 +90,6 @@ export function resolveToolchain({
       [],
     );
   }
-  const cargoSelection = managed ? "managed" : cargoPath === undefined ? "path" : "explicit";
   const explicitCargoPath =
     cargoSelection !== "path"
       ? paths.isAbsolute(cargoPath)
@@ -549,10 +550,11 @@ function formatResolutionFailure(cargoCandidates, attempts, cargoSelection) {
   return lines.join("\n");
 }
 
-function getToolchainCacheKey({ cargoPath, environment, cwd, home, platform, probeManifestPath, run, exists }) {
+function getToolchainCacheKey({ cargoPath, cargoSelection, environment, cwd, home, platform, probeManifestPath, run, exists }) {
   if (run !== runCommand || exists !== existsSync) return undefined;
   return JSON.stringify({
     cargoPath,
+    cargoSelection,
     cwd,
     home,
     platform,
