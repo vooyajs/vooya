@@ -10,7 +10,7 @@ import { chromium } from "playwright";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const temporary = mkdtempSync(resolve(tmpdir(), "vooya-rust-bundlers-"));
-const packages = ["compiler", "core", "build-core", "vue", "react", "webpack", "rspack"];
+const packages = ["compiler", "core", "provider-rust", "build-core", "vue", "react", "webpack", "rspack"];
 const vueApp = `import { createApp, h, ref } from "vue";
 import Counter from "../Counter.rs";
 import { useCart } from "../Store.rs";

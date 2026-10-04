@@ -1,5 +1,5 @@
-// Internal build seam. Provider-specific options and schema stay with the
-// provider; bundlers consume the common generated assets and watch inputs.
+// Internal Rust artifact seam, not a public multi-language provider protocol.
+// A second implementation must validate a generalized asset/loading contract.
 export type MappedDiagnostic = string;
 export interface BuildAsset { path: string; code: string }
 export interface WasmAsset { path: string; bytes: Uint8Array }

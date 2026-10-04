@@ -18,7 +18,7 @@ try {
   run("npm", ["run", "build", "--workspace", "@vooya/octane"], repositoryRoot);
   mkdirSync(packs);
   cpSync(resolve(repositoryRoot, "tests/fixtures/rust-octane"), fixture, { recursive: true });
-  const tarballs = ["core", "compiler", "build-core", "vite", "octane"].map((name) => {
+  const tarballs = ["core", "compiler", "provider-rust", "build-core", "vite", "octane"].map((name) => {
     const packed = spawnSync("npm", ["pack", "--workspace", `@vooya/${name}`, "--json", "--pack-destination", packs], {
       cwd: repositoryRoot, encoding: "utf8", shell: process.platform === "win32",
     });

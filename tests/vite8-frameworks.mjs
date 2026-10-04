@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const temporary = mkdtempSync(resolve(tmpdir(), "vooya-vite8-frameworks-"));
 try {
   mkdirSync(resolve(temporary, "packages"));
-  const packages = ["compiler", "core", "build-core", "vite", "solid", "svelte"].map((name) => {
+  const packages = ["compiler", "core", "provider-rust", "build-core", "vite", "solid", "svelte"].map((name) => {
     const packed = run("npm", ["pack", "--workspace", `@vooya/${name}`, "--pack-destination", resolve(temporary, "packages"), "--json"], root, {}, true);
     return resolve(temporary, "packages", JSON.parse(packed)[0].filename);
   });

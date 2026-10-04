@@ -19,6 +19,7 @@ try {
     common: [
       pack("@vooya/compiler"),
       pack("@vooya/core"),
+      pack("@vooya/provider-rust"),
       pack("@vooya/build-core"),
       pack("@vooya/vite"),
     ],
