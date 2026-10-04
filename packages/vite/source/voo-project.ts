@@ -5,14 +5,14 @@ import { parseVooComponent } from "@vooya/compiler";
 
 const ignoredDirectories = new Set([".git", ".vooya", "dist", "node_modules", "target"]);
 
-export function readVooComponents(root) {
+export function readVooComponents(root: string) {
   return readVooFiles(root).map((id) => ({
     ...parseVooComponent(readFileSync(id, "utf8"), id),
     id,
   }));
 }
 
-export function readVooFiles(directory) {
+export function readVooFiles(directory: string): string[] {
   const files = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (ignoredDirectories.has(entry.name)) continue;

@@ -1,6 +1,5 @@
 // Documentation parsing reports user-authored content failures; preserve its
 // tolerant runtime error boundary while authoring the script in TypeScript.
-// @ts-nocheck
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +26,7 @@ if (failures.length > 0) throw new Error(`Documentation verification failed:\n${
 
 console.log(`Verified ${files.length} Markdown files, their links, and ${rustExamples} Rust-file examples.`);
 
-function markdownFiles(directory) {
+function markdownFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) return markdownFiles(path);
@@ -35,7 +34,7 @@ function markdownFiles(directory) {
   });
 }
 
-function verifyLinks(file, source) {
+function verifyLinks(file: string, source: string): void {
   for (const match of source.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
     const target = match[1];
     if (/^(?:https?:|mailto:|#)/.test(target)) continue;
@@ -52,6 +51,6 @@ function verifyLinks(file, source) {
   }
 }
 
-function relativePath(file) {
+function relativePath(file: string): string {
   return file.slice(root.length + 1);
 }

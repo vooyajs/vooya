@@ -1,5 +1,4 @@
 // npm pack JSON is external process output and is validated at runtime.
-// @ts-nocheck
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,7 +32,7 @@ assert(apacheLicense.includes("Apache License"), "repository", "LICENSE-APACHE m
 const packDirectory = mkdtempSync(join(tmpdir(), "vooya-pack-check-"));
 
 try {
-  const packedPackages = new Map();
+  const packedPackages = new Map<string, PackedArchive>();
   for (const name of expectedPackages) {
     const manifest = readManifest(name);
     const packed = pack(name);
@@ -53,8 +52,8 @@ try {
     for (const target of exportTargets(manifest.exports)) {
       assert(files.has(target), name, `archive is missing exported file ${target}`);
     }
-    for (const [subpath, definition] of Object.entries(manifest.exports ?? {})) {
-      if (!definition || typeof definition !== "object" || !("import" in definition)) continue;
+    for (const [subpath, definition] of Object.entries(isRecord(manifest.exports) ? manifest.exports : {})) {
+      if (!definition || !isRecord(definition) || !("import" in definition)) continue;
       if (name === "@vooya/octane" && subpath === ".") {
         // Octane assigns native hook slots while compiling the consuming app.
         // Shipping precompiled JS would bypass that required compiler step.
@@ -125,7 +124,7 @@ try {
   rmSync(packDirectory, { force: true, recursive: true });
 }
 
-function verifyTypeConsumer(packedPackages, withOctane) {
+function verifyTypeConsumer(packedPackages: ReadonlyMap<string, PackedArchive>, withOctane: boolean): void {
   const consumer = join(packDirectory, withOctane ? "type-consumer-octane" : "type-consumer");
   const packages = expectedPackages.filter((name) => withOctane || name !== "@vooya/octane");
   mkdirSync(consumer, { recursive: true });
@@ -135,7 +134,11 @@ function verifyTypeConsumer(packedPackages, withOctane) {
       private: true,
       type: "module",
       dependencies: Object.fromEntries(
-        packages.map((name) => [name, `file:${packedPackages.get(name).archivePath}`]),
+        packages.map((name) => {
+          const packed = packedPackages.get(name);
+          assert(packed, name, "missing packed archive for type consumer");
+          return [name, `file:${packed.archivePath}`];
+        }),
       ),
       devDependencies: {
         typescript: withOctane ? "5.9.3" : "~5.5.4",
@@ -265,12 +268,19 @@ for (const name of Object.keys(provider)) assert.equal(legacy[name], provider[na
   console.log(`Verified packed package declarations in a clean TypeScript ${withOctane ? "5.9 Octane" : "5.5"} consumer.`);
 }
 
-function readManifest(name) {
+function readManifest(name: string) {
   const directory = name.replace("@vooya/", "");
-  return JSON.parse(readFileSync(join(root, "packages", directory, "package.json"), "utf8"));
+  const value: unknown = JSON.parse(readFileSync(join(root, "packages", directory, "package.json"), "utf8"));
+  assert(isRecord(value), name, "package manifest must be an object");
+  return {
+    license: value.license,
+    repository: isRecord(value.repository) ? value.repository : undefined,
+    publishConfig: isRecord(value.publishConfig) ? value.publishConfig : undefined,
+    exports: value.exports,
+  };
 }
 
-function pack(name) {
+function pack(name: string): PackedArchive {
   const result = spawnSync("npm", ["pack", "--json", "--pack-destination", packDirectory, "--workspace", name], {
     cwd: root,
     encoding: "utf8",
@@ -278,12 +288,18 @@ function pack(name) {
   if (result.status !== 0) {
     throw new Error(`${name}: npm pack --dry-run failed:\n${result.stderr || result.stdout}`);
   }
-  const archives = JSON.parse(result.stdout);
-  assert(archives.length === 1, name, `expected one archive, received ${archives.length}`);
-  return { ...archives[0], archivePath: join(packDirectory, archives[0].filename) };
+  const archives: unknown = JSON.parse(result.stdout);
+  assert(Array.isArray(archives) && archives.length === 1, name, "expected one archive in npm pack JSON");
+  const archive: unknown = archives[0];
+  assert(isRecord(archive) && typeof archive.filename === "string" && typeof archive.version === "string" && Array.isArray(archive.files), name, "invalid npm pack archive metadata");
+  const files = archive.files.map((file: unknown) => {
+    assert(isRecord(file) && typeof file.path === "string", name, "invalid npm pack file entry");
+    return { path: file.path };
+  });
+  return { version: archive.version, files, archivePath: join(packDirectory, archive.filename) };
 }
 
-function readArchiveFile(archivePath, path) {
+function readArchiveFile(archivePath: string, path: string): string {
   const result = spawnSync("tar", ["-xOf", archivePath, path], { encoding: "utf8" });
   if (result.status !== 0) {
     throw new Error(`could not read ${path} from ${archivePath}:\n${result.stderr || result.stdout}`);
@@ -291,16 +307,26 @@ function readArchiveFile(archivePath, path) {
   return result.stdout;
 }
 
-function exportTargets(value) {
+function exportTargets(value: unknown): string[] {
   if (typeof value === "string") return [stripPrefix(value)];
   if (!value || typeof value !== "object") return [];
   return [...new Set(Object.values(value).flatMap(exportTargets))];
 }
 
-function stripPrefix(path) {
+function stripPrefix(path: string): string {
   return path.replace(/^\.\//, "");
 }
 
-function assert(condition, name, message) {
+function assert(condition: unknown, name: string, message: string): asserts condition {
   if (!condition) throw new Error(`${name}: ${message}`);
+}
+
+interface PackedArchive {
+  version: string;
+  files: { path: string }[];
+  archivePath: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

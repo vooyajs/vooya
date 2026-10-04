@@ -5,7 +5,7 @@ import { setTimeout } from "node:timers/promises";
 
 // Publish an initialized nonempty directory. Reapers only unlink the exact
 // dead owner's file; they never recursively remove a possibly replaced lock.
-export async function acquireInstallLock(path, timeoutMs = 30 * 60_000) {
+export async function acquireInstallLock(path: string, timeoutMs = 30 * 60_000): Promise<() => void> {
   const owner = `${process.pid}-${randomUUID()}.owner`;
   const candidate = `${path}.candidate-${owner}`;
   mkdirSync(candidate);
@@ -17,14 +17,14 @@ export async function acquireInstallLock(path, timeoutMs = 30 * 60_000) {
         renameSync(candidate, path);
         return () => removeOwner(path, owner);
       } catch (error) {
-        if (!["EEXIST", "ENOTEMPTY", "EPERM", "EACCES"].includes(error.code)) throw error;
-        let owners = [];
-        try { owners = readdirSync(path); } catch (cause) { if (cause.code !== "ENOENT") throw cause; }
+        if (!["EEXIST", "ENOTEMPTY", "EPERM", "EACCES"].includes(errorCode(error))) throw error;
+        let owners: string[] = [];
+        try { owners = readdirSync(path); } catch (cause) { if (errorCode(cause) !== "ENOENT") throw cause; }
         for (const name of owners) {
           const pid = /^([1-9]\d*)-[0-9a-f-]+\.owner$/.exec(name)?.[1];
           if (!pid) continue;
           try { process.kill(Number(pid), 0); } catch (cause) {
-            if (cause.code === "ESRCH") removeOwner(path, name);
+            if (errorCode(cause) === "ESRCH") removeOwner(path, name);
           }
         }
         if (Date.now() >= deadline) throw new Error(`Timed out waiting for managed toolchain installation at ${path}.`);
@@ -33,7 +33,11 @@ export async function acquireInstallLock(path, timeoutMs = 30 * 60_000) {
     }
   } finally { removeOwner(candidate, owner); }
 }
-function removeOwner(path, owner) {
-  try { unlinkSync(join(path, owner)); } catch (error) { if (error.code !== "ENOENT") throw error; }
-  try { rmdirSync(path); } catch (error) { if (!["ENOENT", "ENOTEMPTY", "EEXIST"].includes(error.code)) throw error; }
+function removeOwner(path: string, owner: string): void {
+  try { unlinkSync(join(path, owner)); } catch (error) { if (errorCode(error) !== "ENOENT") throw error; }
+  try { rmdirSync(path); } catch (error) { if (!["ENOENT", "ENOTEMPTY", "EEXIST"].includes(errorCode(error))) throw error; }
+}
+
+function errorCode(error: unknown): string {
+  return typeof error === "object" && error !== null && "code" in error && typeof error.code === "string" ? error.code : "";
 }

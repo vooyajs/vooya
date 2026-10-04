@@ -107,6 +107,15 @@ try {
   await fails("missing candidate version in receipt", /missing exact candidate/);
   assert.equal(state.requests.length, 0);
 
+  // Corrupt extra entries must fail before any request, even when every
+  // reviewed candidate is otherwise present in the receipt.
+  for (const malformed of [null, "invalid", { name: "@vooya/other", version: 1 }]) {
+    reset();
+    write(receiptPath(), JSON.stringify({ commit: sha, channel, packages: [...packages, malformed] }));
+    await fails("malformed receipt package cannot be ignored", /Invalid release receipt package/);
+    assert.equal(state.requests.length, 0);
+  }
+
   reset();
   state.failRelease = tags[1];
   await fails("partial failure retains completed releases", /HTTP 503/);

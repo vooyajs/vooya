@@ -11,10 +11,12 @@ for (let i = 0; i < args.length; i += 2) {
   if (!["--root", "--base"].includes(args[i]) || !args[i + 1] || options.has(args[i])) throw new Error("Usage: verify-change-policy --base ref [--root path]");
   options.set(args[i], args[i + 1]);
 }
-if (!options.has("--base")) throw new Error("--base is required; use the PR base commit or a release base.");
-const root = options.has("--root") ? resolve(options.get("--root")) : fileURLToPath(new URL("../..", import.meta.url));
+const baseOption = options.get("--base");
+const rootOption = options.get("--root");
+if (!baseOption) throw new Error("--base is required; use the PR base commit or a release base.");
+const root = rootOption ? resolve(rootOption) : fileURLToPath(new URL("../..", import.meta.url));
 const git = (...values: string[]) => execFileSync("git", values, { cwd: root, encoding: "utf8" }).trim();
-const base = git("merge-base", options.get("--base"), "HEAD");
+const base = git("merge-base", baseOption, "HEAD");
 const changed = git("diff", "--name-only", "--no-renames", base, "--").split("\n").filter(Boolean);
 const model = readReleaseModel(root);
 const entries = readChangesets(root, model);

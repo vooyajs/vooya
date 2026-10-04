@@ -54,12 +54,16 @@ tools, and a Windows SDK.
 
 The compiler and JavaScript tooling are authored in TypeScript under
 `packages/*/source` (or the package's documented source directory). Package
-builds emit executable JavaScript and declarations into `dist/`.
+builds emit executable JavaScript and declarations into `dist/` (or the
+existing `lib/` entry points for `@vooya/preset`).
 
 - Edit the TypeScript source, not generated `dist/` files.
 - Do not commit generated package JavaScript as a second source tree.
 - Published packages must contain JavaScript and accurate `.d.ts` declarations;
   consumers do not need TypeScript installed at runtime.
+- Keep package implementations and repository tooling under strict type
+  checking. See [code and test conventions](docs/contribute/code-conventions.md)
+  for executable JavaScript tests, typed helpers, and language statistics.
 
 ### Name bundler integrations by toolchain
 

@@ -308,7 +308,10 @@ export default defineConfig({
       "/contribute/": [
         {
           text: "Contributing",
-          items: [{ text: "Overview", link: "/contribute/" }],
+          items: [
+            { text: "Overview", link: "/contribute/" },
+            { text: "Code and tests", link: "/contribute/code-conventions" },
+          ],
         },
       ],
       "/benchmarks/": [

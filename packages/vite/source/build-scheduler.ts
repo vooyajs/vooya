@@ -1,19 +1,23 @@
-// Scheduling is generic over a caller's build error value; the current public
-// JavaScript API deliberately accepts any thrown value.
-// @ts-nocheck
+export interface BuildSchedulerOptions {
+  build: () => unknown | Promise<unknown>;
+  onSuccess?: () => void;
+  onError?: (error: unknown) => void;
+  delay?: number;
+}
+
 export function createBuildScheduler({
   build,
   onSuccess = () => {},
   onError = () => {},
   delay = 75,
-}) {
+}: BuildSchedulerOptions) {
   let dirty = false;
   let disposed = false;
   let running = false;
-  let timer;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let currentBuild = Promise.resolve();
 
-  const run = async () => {
+  const run = async (): Promise<void> => {
     if (running || disposed) return currentBuild;
     running = true;
     try {

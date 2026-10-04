@@ -1,7 +1,4 @@
-// The build core accepts user-owned Vite/Rust configuration whose shape is
-// intentionally open-ended. Keep that boundary untyped while the emitted
-// public JavaScript surface is migrated to TypeScript source.
-// @ts-nocheck
+import type { SourceComponent } from "@vooya/compiler";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,7 +37,7 @@ export {
  * explicit artifact package. It deliberately has no package discovery or
  * registry behavior: callers name their package root and component source.
  */
-export function buildPrecompiledVueArtifact({ packageRoot, source, outputDir } = {}) {
+export function buildPrecompiledVueArtifact({ packageRoot, source, outputDir }: { packageRoot?: string; source?: string; outputDir?: string } = {}) {
   const root = resolveArtifactPackageRoot(packageRoot);
   const metadata = readArtifactPackageMetadata(root);
   const sourcePath = resolveArtifactSource(root, source);
@@ -88,7 +85,7 @@ export function buildPrecompiledVueArtifact({ packageRoot, source, outputDir } =
   return manifest;
 }
 
-function resolveArtifactPackageRoot(packageRoot) {
+function resolveArtifactPackageRoot(packageRoot: unknown) {
   if (typeof packageRoot !== "string" || !packageRoot) {
     throw new Error("Vooya precompiled Vue artifacts require an explicit packageRoot directory.");
   }
@@ -101,22 +98,25 @@ function resolveArtifactPackageRoot(packageRoot) {
   return root;
 }
 
-function readArtifactPackageMetadata(packageRoot) {
+function readArtifactPackageMetadata(packageRoot: string) {
   const packageJson = resolve(packageRoot, "package.json");
   if (!existsSync(packageJson)) {
     throw new Error(`Vooya precompiled Vue artifact packageRoot is missing package.json: ${packageRoot}.`);
   }
-  const metadata = JSON.parse(readFileSync(packageJson, "utf8"));
-  if (typeof metadata.name !== "string" || !metadata.name.trim()) {
+  const metadata: unknown = JSON.parse(readFileSync(packageJson, "utf8"));
+  if (!metadata || typeof metadata !== "object") throw new Error("Vooya precompiled Vue artifact package.json must declare a package name.");
+  if (!("name" in metadata) || typeof metadata.name !== "string" || !metadata.name.trim()) {
     throw new Error("Vooya precompiled Vue artifact package.json must declare a package name.");
   }
-  if (typeof metadata.version !== "string" || !isSemverVersion(metadata.version)) {
+  if (!("version" in metadata) || typeof metadata.version !== "string" || !isSemverVersion(metadata.version)) {
     throw new Error(`${metadata.name} must declare a valid package version.`);
   }
-  return metadata;
+  const dependencies = "dependencies" in metadata && metadata.dependencies && typeof metadata.dependencies === "object"
+    ? metadata.dependencies as Record<string, unknown> : undefined;
+  return { name: metadata.name, version: metadata.version, dependencies };
 }
 
-function resolveArtifactSource(packageRoot, source) {
+function resolveArtifactSource(packageRoot: string, source: unknown) {
   if (typeof source !== "string" || !source.endsWith(".voo")) {
     throw new Error("Vooya precompiled Vue artifacts require an explicit source .voo file.");
   }
@@ -132,7 +132,7 @@ function resolveArtifactSource(packageRoot, source) {
   return sourcePath;
 }
 
-function resolveArtifactOutput(packageRoot, outputDir) {
+function resolveArtifactOutput(packageRoot: string, outputDir?: string) {
   const expected = resolve(packageRoot, "dist");
   const output = resolve(outputDir ?? expected);
   if (output !== expected) {
@@ -141,15 +141,16 @@ function resolveArtifactOutput(packageRoot, outputDir) {
   return output;
 }
 
-export function validatePrecompiledVueArtifactOutput(outputDir) {
+export function validatePrecompiledVueArtifactOutput(outputDir: string) {
   const expected = ["manifest.json", "index.js", "index.d.ts", "wasm/vooya_app.js", "wasm/vooya_app_bg.wasm"];
   for (const file of expected) {
     if (!existsSync(resolve(outputDir, file))) {
       throw new Error(`Vooya precompiled Vue artifact build did not produce expected output ${file}.`);
     }
   }
-  const manifest = JSON.parse(readFileSync(resolve(outputDir, "manifest.json"), "utf8"));
-  for (const [name, path] of Object.entries({ wasm: manifest.wasm, types: manifest.types })) {
+  const manifest: unknown = JSON.parse(readFileSync(resolve(outputDir, "manifest.json"), "utf8"));
+  if (!manifest || typeof manifest !== "object") throw new Error("Vooya precompiled Vue artifact manifest must be an object.");
+  for (const [name, path] of Object.entries({ wasm: "wasm" in manifest ? manifest.wasm : undefined, types: "types" in manifest ? manifest.types : undefined })) {
     if (typeof path !== "string" || !path.startsWith("./") || !isArtifactRelativePath(path)) {
       throw new Error(`Vooya precompiled Vue artifact manifest ${name} must be a package-relative path.`);
     }
@@ -169,31 +170,31 @@ export function validatePrecompiledVueArtifactOutput(outputDir) {
   }
 }
 
-function isFile(path) {
+function isFile(path: string) {
   try { return statSync(path).isFile(); } catch { return false; }
 }
 
-function artifactFiles(directory, prefix = "") {
+function artifactFiles(directory: string, prefix = ""): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = `${prefix}${entry.name}`;
     return entry.isDirectory() ? artifactFiles(resolve(directory, entry.name), `${path}/`) : [path];
   });
 }
 
-function isArtifactRelativePath(path) {
+function isArtifactRelativePath(path: string) {
   return !path.includes("\\") && !path.split("/").includes("..") && !isAbsolute(path);
 }
 
-function isSemverVersion(version) {
+function isSemverVersion(version: string) {
   return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(version);
 }
 
-function isPathInside(path, directory) {
+function isPathInside(path: string, directory: string) {
   const relativePath = relative(directory, path);
   return relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath));
 }
 
-function generatePrecompiledVueEntry({ manifest, definition, binding }) {
+function generatePrecompiledVueEntry({ manifest, definition, binding }: { manifest: { component: string }; definition: ReturnType<typeof generatedAdapterDefinition>; binding: ReturnType<typeof generatedComponentBinding> }) {
   const imports = [binding.exportName, binding.disposeName, ...Object.values(binding.updateNames), "voo_abi_version"];
   const updates = Object.entries(binding.updateNames)
     .map(([prop, name]) => `update_${prop}(value) { ${name}(handle, value); }`)
@@ -231,7 +232,7 @@ export default defineVooyaComponent({ contract: definition, loadBindings });
 `;
 }
 
-function generatePrecompiledVueDeclaration(component, manifest) {
+function generatePrecompiledVueDeclaration(component: SourceComponent, manifest: { component: string }) {
   const declaration = generateVooDeclaration(component, "vue").replace(
     "// Generated by @vooya/vite. Do not edit.",
     "// Generated by @vooya/vite/build. Do not edit.",

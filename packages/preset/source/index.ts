@@ -9,13 +9,27 @@ import { acquireInstallLock } from "./lock.js";
 import { platformManifest, RUST_VERSION, RUSTUP_VERSION, WASM_BINDGEN_VERSION, WASM_TARGET } from "./manifest.js";
 export { RUST_VERSION, WASM_BINDGEN_VERSION } from "./manifest.js";
 
-function defaultCache(env) {
+export interface ManagedToolchain {
+  cargoPath: string;
+  environment: Record<string, string | undefined>;
+  cacheRoot: string;
+  rustVersion: string;
+  wasmBindgenVersion: string;
+}
+export interface PrepareToolchainOptions {
+  /** Absolute or cwd-relative Vooya-owned cache; defaults to the user's cache directory. */
+  cacheDirectory?: string;
+  env?: Record<string, string | undefined>;
+}
+
+function defaultCache(env: NodeJS.ProcessEnv) {
   if (process.platform === "win32") return join(env.LOCALAPPDATA || join(homedir(), "AppData", "Local"), "vooya", "toolchains");
   if (process.platform === "darwin") return join(homedir(), "Library", "Caches", "vooya", "toolchains");
   return join(env.XDG_CACHE_HOME || join(homedir(), ".cache"), "vooya", "toolchains");
 }
 
-export async function prepareToolchain({ cacheDirectory, env = process.env } = {}) {
+/** Prepares pinned tools without modifying shell configuration or system Rust. */
+export async function prepareToolchain({ cacheDirectory, env = process.env }: PrepareToolchainOptions = {}): Promise<ManagedToolchain> {
   const manifest = platformManifest();
   const cache = resolve(cacheDirectory || env.VOOYA_CACHE_DIR || defaultCache(env));
   const root = join(cache, manifest.cacheKey);
@@ -40,18 +54,18 @@ export async function prepareToolchain({ cacheDirectory, env = process.env } = {
   } finally { release(); }
 }
 
-function isReady(root, manifest) {
+function isReady(root: string, manifest: ReturnType<typeof platformManifest>) {
   try {
     return JSON.parse(readFileSync(join(root, "ready.json"), "utf8")).key === manifest.cacheKey
       && ["cargo", "rustc"].every(name => existsSync(join(root, "rustup", "toolchains", `${RUST_VERSION}-${manifest.host}`, "bin", `${name}${manifest.executableSuffix}`)))
       && existsSync(join(root, "bin", `wasm-bindgen${manifest.executableSuffix}`));
   } catch { return false; }
 }
-function toolchainAt(root, manifest, env) {
+function toolchainAt(root: string, manifest: ReturnType<typeof platformManifest>, env: NodeJS.ProcessEnv) {
   const rustBin = join(root, "rustup", "toolchains", `${RUST_VERSION}-${manifest.host}`, "bin");
   // Absolute compiler plus an explicit toolchain override prevent the consumer's
   // rust-toolchain.toml/RUSTC from silently selecting a different compiler.
-  const environment = {
+  const environment: NodeJS.ProcessEnv & { RUSTC: string } = {
     ...env, CARGO_HOME: join(root, "cargo"), RUSTUP_HOME: join(root, "rustup"),
     RUSTUP_TOOLCHAIN: `${RUST_VERSION}-${manifest.host}`,
     RUSTC: join(rustBin, `rustc${manifest.executableSuffix}`),
@@ -61,7 +75,7 @@ function toolchainAt(root, manifest, env) {
   if (process.platform === "win32") delete environment.Path;
   return { cargoPath: join(rustBin, `cargo${manifest.executableSuffix}`), environment, cacheRoot: root, rustVersion: RUST_VERSION, wasmBindgenVersion: WASM_BINDGEN_VERSION };
 }
-async function install(root, manifest, env) {
+async function install(root: string, manifest: ReturnType<typeof platformManifest>, env: NodeJS.ProcessEnv) {
   const installer = join(root, `rustup-init${manifest.executableSuffix}`);
   process.stderr.write(`Vooya: preparing Rust ${RUST_VERSION} and wasm-bindgen ${WASM_BINDGEN_VERSION} (${manifest.host}).\n`);
   await downloadVerified(manifest.rustup, installer);
@@ -78,7 +92,7 @@ async function install(root, manifest, env) {
   const bin = join(root, "bin");
   mkdirSync(bin);
   const member = `${manifest.bindgenName}/wasm-bindgen${manifest.executableSuffix}`;
-  await extract({ file: archive, cwd: bin, strip: 1, strict: true, filter: (path, entry) => path === member && entry.type === "File" });
+  await extract({ file: archive, cwd: bin, strip: 1, strict: true, filter: (path, entry) => path === member && "type" in entry && entry.type === "File" });
   const executable = join(bin, `wasm-bindgen${manifest.executableSuffix}`);
   chmodSync(executable, 0o755);
   const tools = toolchainAt(root, manifest, env);
@@ -90,8 +104,8 @@ async function install(root, manifest, env) {
 }
 
 
-function run(command, args, env) {
-  return new Promise((resolve, reject) => {
+function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, { env, stdio: ["ignore", "pipe", "pipe"] });
     child.stdout.pipe(process.stderr);
     child.stderr.pipe(process.stderr);

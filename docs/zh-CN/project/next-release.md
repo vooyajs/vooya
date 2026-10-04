@@ -43,7 +43,8 @@
 ## Rust provider 抽离
 
 [PR #148](https://github.com/vooyajs/vooya/pull/148) 将 Rust 构建实现拆到
-`@vooya/provider-rust`，`@vooya/build-core` 保持兼容入口。该方案保留导出函数、
+`@vooya/provider-rust`，已通过 [PR #149](https://github.com/vooyajs/vooya/pull/149)
+合入 main；`@vooya/build-core` 保持兼容入口。该实现保留导出函数、
 类型身份和构建产物，不新增公共多语言 provider 注册机制或产物协议。新包与这项
 抽离均不属于已发布的 0.1 Beta。
 

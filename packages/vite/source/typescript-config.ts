@@ -1,6 +1,3 @@
-// TypeScript belongs to the consuming application, not Vooya's runtime
-// dependencies. Resolve it from that application only when a tsconfig exists.
-// @ts-nocheck
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { platform } from "node:os";
@@ -9,11 +6,11 @@ import { relative, resolve } from "node:path";
 import { resolveVooyaWorkspace } from "@vooya/build-core";
 
 export function inspectGeneratedTypesConfiguration(
-  applicationRoot,
-  workspaceRoot,
+  applicationRoot: string,
+  workspaceRoot?: string,
 ) {
   const root = resolve(applicationRoot);
-  let typescript;
+  let typescript: typeof import("typescript");
   try {
     typescript = createRequire(resolve(root, "package.json"))("typescript");
   } catch {
@@ -50,8 +47,8 @@ export function inspectGeneratedTypesConfiguration(
   };
 }
 
-function samePath(left, right) {
-  const normalize = (value) =>
+function samePath(left: string, right: string) {
+  const normalize = (value: string) =>
     platform() === "win32" ? resolve(value).toLowerCase() : resolve(value);
   return normalize(left) === normalize(right);
 }

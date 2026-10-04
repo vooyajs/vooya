@@ -3,8 +3,10 @@ import { createWriteStream, renameSync, rmSync } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+export interface VerifiedDownload { url: string; sha256: string }
+
 // Stream to a private partial file; never execute or extract before verification.
-export async function downloadVerified({ url, sha256 }, destination) {
+export async function downloadVerified({ url, sha256 }: VerifiedDownload, destination: string): Promise<void> {
   const partial = `${destination}.partial-${randomUUID()}`;
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(5 * 60_000) });

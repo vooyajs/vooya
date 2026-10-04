@@ -52,7 +52,8 @@ instructions to combine unpublished features with npm beta packages.
 
 [PR #148](https://github.com/vooyajs/vooya/pull/148) separates the Rust build
 implementation into `@vooya/provider-rust`. `@vooya/build-core` remains a
-compatibility entry point. The proposal preserves exported functions, type
+compatibility entry point. The extraction is merged through
+[PR #149](https://github.com/vooyajs/vooya/pull/149) and preserves exported functions, type
 identity and build artifacts; it does not add a public multi-language provider
 registry or a new artifact protocol. Neither the new package nor this
 extraction is part of the published 0.1 beta.

@@ -70,7 +70,7 @@
     "test:e2e:scatter": "VOOYA_E2E_TARGET=scatter playwright test",
     "test:e2e:trace": "VOOYA_E2E_TARGET=trace playwright test",
     "test:rsx": "npm run build:rsx-browser && VOOYA_E2E_TARGET=rsx playwright test",
-    "verify:ci": "npm run verify:branding && npm run verify:docs && npm run test:release-contract && npm run verify:release-metadata && npm run format:voo:check && cargo test -p vooya-core && npm run test:preset && npm run test:build-core && npm run test:compiler && npm run test:voo && npm run test:vue && npm run test:react && npm run test:solid && npm run test:svelte && npm run typecheck && npm run typecheck:react && npm run typecheck:tasks && npm run typecheck:benchmark && npm run typecheck:scatter && npm run typecheck:trace && npm run test:quickstart && npm run test:portable && npm run pack:check",
+    "verify:ci": "npm run verify:branding && npm run verify:docs && npm run test:release-contract && npm run build --workspace @vooya/vite && npm run typecheck:test-helpers && npm run verify:release-metadata && npm run format:voo:check && cargo test -p vooya-core && npm run test:preset && npm run test:build-core && npm run test:compiler && npm run test:voo && npm run test:vue && npm run test:react && npm run test:solid && npm run test:svelte && npm run typecheck && npm run typecheck:react && npm run typecheck:tasks && npm run typecheck:benchmark && npm run typecheck:scatter && npm run typecheck:trace && npm run test:quickstart && npm run test:portable && npm run pack:check",
     "verify:e2e": "npm run test:compat && npm run test:rust-vue && npm run test:rust-react && npm run test:rust-solid && npm run test:rust-svelte && npm run test:rust-hmr && npm run test:astro-math && npm run test:nuxt-ssr && npm run test:rspack && npm run test:webpack && npm run test:precompiled-vue && npm run test:hmr && npm run test:e2e && npm run test:rsx && npm run test:rust-octane && npm run test:rust-bundlers && npm run test:vite8-frameworks",
     "verify:release": "npm run verify:ci && npm run verify:e2e && npm run test:packed-release && npm run build:scripts && node scripts/generated/sync-alpha-dist-tags.js --check-published",
     "release:alpha": "npm run build:scripts && node scripts/generated/publish-alpha.js --channel alpha",
@@ -83,13 +83,14 @@
     "test:packed-release": "npm run build:packages && node tests/packed-release-consumer.mjs",
     "release:beta": "npm run build:scripts && node scripts/generated/publish-alpha.js --channel beta",
     "test:preset": "npm test --workspace @vooya/preset",
-    "test:preset-consumer": "npm run build --workspace @vooya/vite && node tests/preset-consumer.mjs",
+    "test:preset-consumer": "npm run build --workspace @vooya/preset && npm run build --workspace @vooya/vite && node tests/preset-consumer.mjs",
     "test:rust-octane": "node tests/rust-octane-source.mjs",
     "test:rust-bundlers": "npm run build:packages && node tests/rust-bundler-source.mjs",
     "test:vite8-frameworks": "npm run build:packages && node tests/vite8-frameworks.mjs",
     "test:build-core": "npm run test:provider-rust && npm test --workspace @vooya/build-core",
     "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs",
-    "test:provider-rust": "npm test --workspace @vooya/provider-rust"
+    "test:provider-rust": "npm test --workspace @vooya/provider-rust",
+    "typecheck:test-helpers": "tsc -p tests/tsconfig.helpers.json"
   },
   "devDependencies": {
     "@changesets/apply-release-plan": "8.1.1",
