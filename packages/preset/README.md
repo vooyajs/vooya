@@ -31,3 +31,12 @@ Supported download targets: macOS x64/arm64, glibc Linux x64/arm64, and Windows 
 These are not installed automatically. Additional native dependencies required by user-selected crates remain the application's responsibility. First use needs access to `static.rust-lang.org`, GitHub release downloads, and the Cargo registry. Later tool selection reuses the cache, while a new project may still fetch Cargo dependencies.
 
 `prepareToolchain({ cacheDirectory?, env? })` is available for explicit integrations and returns the selected Cargo path and subprocess environment. Pass that environment to child processes rather than changing `process.env` globally.
+
+## Package development
+
+Run `npm run build --workspace @vooya/preset` to type-check every implementation
+module and generate `lib/*.js` and declarations from `source/*.ts`. The generated
+`lib` directory is ignored by Git and included in npm packages. Consumers load
+ordinary JavaScript through the existing package exports; no TypeScript loader
+is required. `npm test --workspace @vooya/preset` builds before running the
+installer regression tests.

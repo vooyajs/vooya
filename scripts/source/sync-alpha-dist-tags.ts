@@ -17,7 +17,9 @@ for (let i = 0; i < args.length; i++) {
 }
 if (flags.size + Number(values.has("--capture-latest")) > 1) throw new Error("Choose only one release verification mode.");
 if (values.has("--latest-before") && !flags.has("--check") && !flags.has("--check-baseline") && !flags.has("--sync")) throw new Error("--latest-before requires --check, --sync or --check-baseline.");
-const root = values.has("--root") ? resolve(values.get("--root")) : fileURLToPath(new URL("../..", import.meta.url));
+const rootOption = values.get("--root");
+const capturePath = values.get("--capture-latest");
+const root = rootOption ? resolve(rootOption) : fileURLToPath(new URL("../..", import.meta.url));
 if (flags.has("--check-baseline") && !values.has("--latest-before")) throw new Error("--check-baseline requires --latest-before.");
 const channel = readReleaseChannel(root);
 const line = readReleaseLine(root);
@@ -54,7 +56,7 @@ if (flags.has("--dry-run")) {
       }
     }
   }
-  if (values.has("--capture-latest")) {
+  if (capturePath) {
     // A missing baseline after a partial publication cannot be reconstructed:
     // latest may already have moved. Only a wholly unpublished candidate set
     // can establish a fresh baseline, including in a new workflow run.
@@ -68,7 +70,7 @@ if (flags.has("--dry-run")) {
     const protectedTag = channel === "beta" ? "alpha" : "beta";
     const other = Object.fromEntries(packages.map(({ manifest }) => [manifest.name, metadata.get(manifest.name)?.["dist-tags"]?.[protectedTag] ?? null]));
     const unchanged = Object.fromEntries(packages.filter(({ manifest }) => !reviewed.some((entry: any) => entry.name === manifest.name)).map(({ manifest }) => [manifest.name, metadata.get(manifest.name)?.["dist-tags"]?.[channel] ?? null]));
-    writeFileSync(resolve(values.get("--capture-latest")), `${JSON.stringify({ channel, latest, [protectedTag]: other, ...(line ? { line, candidates: reviewed, unchanged } : {}) }, null, 2)}\n`, { flag: "wx" });
+    writeFileSync(resolve(capturePath), `${JSON.stringify({ channel, latest, [protectedTag]: other, ...(line ? { line, candidates: reviewed, unchanged } : {}) }, null, 2)}\n`, { flag: "wx" });
     console.log("Captured npm latest tags before publication.");
   } else if (flags.has("--check-baseline")) {
     verifyBaseline(metadata);
@@ -120,7 +122,9 @@ async function readMetadata(name: string) {
 }
 
 function verifyBaseline(metadata: Map<string, any>) {
-  const before = JSON.parse(readFileSync(resolve(values.get("--latest-before")), "utf8"));
+  const baselinePath = values.get("--latest-before");
+  if (!baselinePath) throw new Error("Protected tag verification requires --latest-before.");
+  const before = JSON.parse(readFileSync(resolve(baselinePath), "utf8"));
   if (before.channel !== channel && !(channel === "alpha" && before.channel === undefined)) throw new Error("Protected tag snapshot channel does not match this release.");
   if (line) {
     if (JSON.stringify(before.line) !== JSON.stringify(line) || JSON.stringify(before.candidates) !== JSON.stringify(reviewed)) throw new Error("Protected tag baseline does not match the release line and candidates.");

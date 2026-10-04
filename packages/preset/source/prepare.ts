@@ -6,6 +6,6 @@ try {
   const keys = ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN", "RUSTC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "PATH"];
   console.log(JSON.stringify({ ...result, environment: Object.fromEntries(keys.map(key => [key, result.environment[key] ?? null])) }));
 } catch (error) {
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 }

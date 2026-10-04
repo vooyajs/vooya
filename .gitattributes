@@ -1,0 +1,8 @@
+# Show implementation languages in the repository overview. Exclude standalone
+# tests and fixtures consistently across languages; keep their diffs visible.
+tests/** linguist-detectable=false
+packages/**/test/** linguist-detectable=false
+packages/**/tests/** linguist-detectable=false
+crates/**/tests/** linguist-detectable=false
+*.test.* linguist-detectable=false
+*.spec.* linguist-detectable=false

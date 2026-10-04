@@ -7,9 +7,11 @@ Vooya 的 npm 包目前仍为独立版本的 `0.1.0-beta.N`，准确版本见[�
 
 ## 0.1：维护已发布行为
 
-只从已发布基线挑选可复现缺陷及其回归测试。本轮有两个回补候选：React Store
+只从已发布基线挑选可复现缺陷及其回归测试。本轮两个修复已通过
+[PR #150](https://github.com/vooyajs/vooya/pull/150) 回补到 `release/0.1`：React Store
 factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化及依赖目录排除。
-它们尚未回补发布，不能复制整个 SSR 或 bundler 功能 PR 来代替最小修复。
+回归测试、打包消费验收与该候选 CI 已通过，但 npm 尚未发布。
+不能复制整个 SSR 或 bundler 功能 PR 来代替最小修复。
 
 显式 `?raw` 源码导入和生成 Store 接口类型修复已经发布，不属于本轮新增工作。
 已发布用户继续按照[快速开始](../guide/getting-started.md)安装 `@beta` 并保留 lockfile。
@@ -29,6 +31,10 @@ factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化�
 这些能力目前只在源码中，不能由当前 `@beta` 安装获得。Go/TinyGo、新框架、
 多语言 preset、Rust 服务端 HTML 和保留状态的 Rust HMR 不在本批范围。
 历史实验与 RFC 可以保留，但不是本批发布要求。
+
+[PR #149](https://github.com/vooyajs/vooya/pull/149) 已将发布线工具和 Rust provider
+抽离合入 main，并通过候选 CI。后续类型检查和测试工具整理留在 main，不扩大维护线。
+源码合并不等于 npm 发布或文档网站部署。
 
 先审查范围并冻结新增能力，再完成内部测试、干净消费、浏览器生命周期和失败恢复验收。
 Alpha 仍是预发布；Beta 与稳定版需要各自的消费反馈和发布门禁，不会因 CI 通过自动晋级。

@@ -257,3 +257,13 @@ test("alpha candidates can consume unchanged beta packages without moving their 
   assert.throws(() => verifyRegistrySnapshot(wrong, "alpha", expected, candidates), /expected candidate|snapshot version exactly/);
   assert.throws(() => verifyRegistrySnapshot(snapshot, "alpha", undefined, candidates), /requires exact manifests/);
 });
+
+test("packed lock verification rejects missing integrity even when both sides omit it", () => {
+  for (const dist of [undefined, {}, { integrity: "" }]) {
+    const snapshot = packedRelease();
+    const lock = packedConsumer(snapshot);
+    snapshot["@vooya/core"].dist = dist;
+    delete lock.packages["node_modules/@vooya/core"].integrity;
+    assert.throws(() => verifyPackedLockfile(lock, "vue", snapshot, resolve("consumer")), /candidate tarball and integrity/);
+  }
+});

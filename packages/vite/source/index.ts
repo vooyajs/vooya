@@ -1,6 +1,6 @@
-// Vite supplies hook contexts dynamically. The public plugin implementation
-// is TypeScript-authored; its Vite hook boundary remains intentionally loose.
-// @ts-nocheck
+import type { Plugin, Logger } from "vite";
+import type { RustComponentContract, RustStoreSchema, ResolvedToolchain } from "@vooya/build-core";
+import type { SourceComponent } from "@vooya/compiler";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
@@ -60,25 +60,25 @@ export function vooya({
   rust = {},
   toolchain: toolchainOptions = {},
   workspace: workspaceOptions = {},
-}: VooyaPluginOptions = {}) {
+}: VooyaPluginOptions = {}): Plugin {
   if (!isSupportedFramework(framework)) {
     throw new Error(`Unknown Vooya framework ${framework}.`);
   }
-  let applicationRoot;
-  let buildScheduler;
-  let runtimeModule;
-  let toolchain;
-  let sourceComponents = [];
-  let rustContracts = [];
-  let rustStores = [];
-  let rustContractsByFile = new Map();
-  let rustStoresByFile = new Map();
-  let watchedRustRoots = [];
-  let logger;
+  let applicationRoot: string;
+  let buildScheduler: ReturnType<typeof createBuildScheduler> | undefined;
+  let runtimeModule: string | undefined;
+  let toolchain: ResolvedToolchain | undefined;
+  let sourceComponents: SourceComponent[] = [];
+  let rustContracts: RustComponentContract[] = [];
+  let rustStores: RustStoreSchema[] = [];
+  let rustContractsByFile = new Map<string, RustComponentContract>();
+  let rustStoresByFile = new Map<string, RustStoreSchema>();
+  let watchedRustRoots: string[] = [];
+  let logger: Logger | undefined;
   let hasInitialBuild = false;
-  let generatedWorkspaceRoot;
+  let generatedWorkspaceRoot: string | undefined;
 
-  const handleVooyaHotUpdate = ({ file }) => {
+  const handleVooyaHotUpdate = ({ file }: { file: string }) => {
     if (!isVooyaSourceChange(file, generatedWorkspaceRoot, watchedRustRoots)) return;
     buildScheduler?.schedule();
     // The generated WASM module owns live component handles. Letting the
@@ -121,7 +121,7 @@ export function vooya({
       rustContractsByFile = new Map();
       rustStoresByFile = new Map();
       if (sourceComponents.length === 0) {
-        rustContractsByFile = indexRustRecordsByFile(applicationRoot, rustContracts, (contract) => contract.component.group);
+        rustContractsByFile = indexRustRecordsByFile(applicationRoot, rustContracts, (contract: RustComponentContract) => contract.component.group);
         rustStoresByFile = indexRustRecordsByFile(applicationRoot, rustStores, (store) => store.group);
         writeRustSchemaDeclarations({
           applicationRoot,
@@ -169,7 +169,7 @@ export function vooya({
       // They share one generated browser artifact and must not race rebuilding it.
       ensureCompiled();
     },
-    resolveId(source, importer, options = {}) {
+    resolveId(source, importer, options) {
       if (source === runtimeId) return runtimeModule;
       if (source.startsWith(stylePrefix)) return source;
       if (source.startsWith(rustStylePrefix)) return source;
@@ -191,10 +191,12 @@ export function vooya({
       if (cleanId.startsWith(stylePrefix)) {
         const componentId = decodeURIComponent(cleanId.slice(stylePrefix.length, -4));
         const component = parseVooComponent(readFileSync(componentId, "utf8"), componentId);
+        if (component.format !== "source") this.error("Vooya style modules require source components.");
         return compileVooStyle({ ...component, id: componentId });
       }
       if (cleanId.startsWith(rustStylePrefix)) {
-        const payload = JSON.parse(Buffer.from(cleanId.slice(rustStylePrefix.length, -4), "base64url").toString("utf8"));
+        const payload: unknown = JSON.parse(Buffer.from(cleanId.slice(rustStylePrefix.length, -4), "base64url").toString("utf8"));
+        if (!isRustStylePayload(payload)) this.error("Invalid Vooya Rust style module payload.");
         const componentId = payload.componentId;
         const componentName = payload.name;
         const styles = payload.styles ?? [];
@@ -321,35 +323,35 @@ export function vooya({
   };
 }
 
-function formatBuildDuration(duration) {
+function formatBuildDuration(duration: number) {
   return `${Math.max(0, Math.round(duration))}ms`;
 }
 
-export function createRustBuildProgress(logger, now = () => performance.now()) {
-  let startedAt;
-  const elapsed = () => formatBuildDuration(now() - startedAt);
+export function createRustBuildProgress(logger: Pick<Logger, "info"> | undefined, now = () => performance.now()) {
+  let startedAt: number | undefined;
+  const elapsed = (start: number) => formatBuildDuration(now() - start);
   return {
     start() {
       startedAt = now();
       logger?.info("Vooya: building Rust/WASM source…");
     },
     complete() {
-      if (startedAt !== undefined) logger?.info(`Vooya: Rust/WASM build complete in ${elapsed()}.`);
+      if (startedAt !== undefined) logger?.info(`Vooya: Rust/WASM build complete in ${elapsed(startedAt)}.`);
     },
     fail() {
-      if (startedAt !== undefined) logger?.info(`Vooya: Rust/WASM build failed after ${elapsed()}.`);
+      if (startedAt !== undefined) logger?.info(`Vooya: Rust/WASM build failed after ${elapsed(startedAt)}.`);
     },
   };
 }
 
-function isToolchainExecutionError(error) {
+function isToolchainExecutionError(error: unknown) {
   return (
-    (error && ["EACCES", "ENOENT", "EPERM"].includes(error.code)) ||
+    (error instanceof Error && "code" in error && typeof error.code === "string" && ["EACCES", "ENOENT", "EPERM"].includes(error.code)) ||
     (isVooyaUserError(error) && ["cargo-start", "wasm-bindgen"].includes(error.kind))
   );
 }
 
-function componentMetadata(component) {
+function componentMetadata(component: SourceComponent) {
   return {
     abiVersion: generatedAdapterDefinition(component).abiVersion,
     name: component.name,
@@ -358,7 +360,7 @@ function componentMetadata(component) {
   };
 }
 
-export function generateRustComponentModule(contract, framework = "vue", componentId = contract.component.group) {
+export function generateRustComponentModule(contract: RustComponentContract, framework: VooyaFramework = "vue", componentId = contract.component.group ?? contract.component.name) {
   const styles = contract.component.styles ?? [];
   const styleModule = styles.length
     ? `${rustStylePrefix}${Buffer.from(JSON.stringify({ componentId, name: contract.component.name, styles })).toString("base64url")}.css`
@@ -370,26 +372,33 @@ export function generateRustComponentModule(contract, framework = "vue", compone
   });
 }
 
-export function generateRustStoreModule(store, framework = "vue") {
+export function generateRustStoreModule(store: RustStoreSchema, framework: VooyaFramework = "vue") {
   return renderRustStoreModule(store, framework, {
     runtimeModule: runtimeId,
     runtimeHelpers: "@vooya/vite/runtime",
   });
 }
 
-export const generateRustVueModule = (contract) => generateRustComponentModule(contract, "vue");
-export const generateRustSolidModule = (contract) => generateRustComponentModule(contract, "solid");
-export const generateRustSvelteModule = (contract) => generateRustComponentModule(contract, "svelte");
-export const generateRustVueStoreModule = (store) => generateRustStoreModule(store, "vue");
-export const generateRustSolidStoreModule = (store) => generateRustStoreModule(store, "solid");
-export const generateRustSvelteStoreModule = (store) => generateRustStoreModule(store, "svelte");
+export const generateRustVueModule = (contract: RustComponentContract) => generateRustComponentModule(contract, "vue");
+export const generateRustSolidModule = (contract: RustComponentContract) => generateRustComponentModule(contract, "solid");
+export const generateRustSvelteModule = (contract: RustComponentContract) => generateRustComponentModule(contract, "svelte");
+export const generateRustVueStoreModule = (store: RustStoreSchema) => generateRustStoreModule(store, "vue");
+export const generateRustSolidStoreModule = (store: RustStoreSchema) => generateRustStoreModule(store, "solid");
+export const generateRustSvelteStoreModule = (store: RustStoreSchema) => generateRustStoreModule(store, "svelte");
 
-function isSupportedFramework(framework) {
+function isSupportedFramework(framework: unknown): framework is VooyaFramework {
   return framework === "vue" || framework === "react" || framework === "solid" || framework === "svelte" || framework === "octane";
 }
 
-function adapterPackage(framework) {
+function adapterPackage(framework: VooyaFramework) {
   if (!isSupportedFramework(framework)) throw new Error(`Unknown Vooya framework ${framework}.`);
   return `@vooya/${framework}`;
 }
 
+
+interface RustStylePayload { componentId: string; name: string; styles?: { path: string; scoped: boolean }[] }
+function isRustStylePayload(value: unknown): value is RustStylePayload {
+  if (!value || typeof value !== "object" || !("componentId" in value) || typeof value.componentId !== "string" || !("name" in value) || typeof value.name !== "string") return false;
+  if (!("styles" in value) || value.styles === undefined) return true;
+  return Array.isArray(value.styles) && value.styles.every((style: unknown) => !!style && typeof style === "object" && "path" in style && typeof style.path === "string" && "scoped" in style && typeof style.scoped === "boolean");
+}

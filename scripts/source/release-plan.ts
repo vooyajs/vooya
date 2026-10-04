@@ -35,7 +35,7 @@ export async function readReviewedReleasePlan(root: string) {
   if (firstBeta) {
     if (!before.every(({ version }) => /^0\.1\.0-alpha\.\d+$/.test(version))) throw new Error("The first beta transition requires the entire public package set to be on 0.1.0-alpha.N.");
     const expected = new Set(before.map(({ name }) => name));
-    if (plan.releases.length !== expected.size || plan.releases.some((release) => !expected.delete(release.name) || !/^0\.1\.0-beta\.\d+$/.test(release.newVersion)) || expected.size) {
+    if (plan.releases.length !== expected.size || plan.releases.some((release) => !expected.delete(release.name) || !/^0\.1\.0-beta\.\d+$/.test(release.newVersion ?? "")) || expected.size) {
       throw new Error("The first beta plan must include every public package at base version 0.1.0. Add a changeset for the missing packages; do not edit package versions by hand.");
     }
     // Changesets 3 carries alpha's numeric counter into a different pre tag.
@@ -50,9 +50,9 @@ export async function readReviewedReleasePlan(root: string) {
 /** Keep Changesets summaries/application, but review target versions explicitly.
  * Recheck dependents against FINAL versions, not Changesets' old-base guesses.
  */
-function applyLineToPlan(plan, workspace, line: ReleaseLine): void {
-  const packages = new Map<string, any>(workspace.packages.filter((pkg) => !pkg.packageJson.private).map((pkg) => [pkg.packageJson.name, pkg]));
-  const releases = new Map<string, any>(plan.releases.map((release) => [release.name, release]));
+function applyLineToPlan(plan: ReturnType<typeof assembleReleasePlan>, workspace: Awaited<ReturnType<typeof getPackages>>, line: ReleaseLine): void {
+  const packages = new Map(workspace.packages.filter((pkg) => !pkg.packageJson.private).map((pkg) => [pkg.packageJson.name, pkg]));
+  const releases = new Map(plan.releases.map((release) => [release.name, release]));
   const target = (oldVersion: string): string => {
     const version = validateReleaseVersion(oldVersion, line.channel, line)
       ? `${line.baseVersion}-${line.channel}.${BigInt(oldVersion.split(".").at(-1)!) + 1n}`
@@ -68,13 +68,13 @@ function applyLineToPlan(plan, workspace, line: ReleaseLine): void {
   while (changed) {
     changed = false;
     for (const [name, { packageJson: manifest }] of packages) {
-      const needsRelease = ["dependencies", "optionalDependencies", "peerDependencies"].some((field) =>
+      const needsRelease = (["dependencies", "optionalDependencies", "peerDependencies"] as const).some((field) =>
         Object.entries(manifest[field] ?? {}).some(([dependency, range]) => {
           const release = releases.get(dependency);
           return release?.type !== "none" && release?.newVersion
             && !semverSatisfies(release.newVersion, String(range));
         }));
-      if (needsRelease && (!releases.has(name) || releases.get(name).type === "none")) {
+      if (needsRelease && (!releases.has(name) || releases.get(name)?.type === "none")) {
         releases.set(name, { name, type: "patch", oldVersion: manifest.version, newVersion: target(manifest.version), changesets: [] });
         changed = true;
       }

@@ -244,3 +244,12 @@ test("Rust-file lookup omits schema records without a source group", () => {
     assert.deepEqual([...map], [[id, records[2]]]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("rejects malformed Rust style metadata before reading files", () => {
+  const plugin = vooya();
+  for (const payload of [null, [], { componentId: 3, name: "Counter" },
+    { componentId: "/Counter.rs", name: "Counter", styles: [{ path: 3, scoped: true }] }]) {
+    const id = `virtual:vooya-rust-style:${Buffer.from(JSON.stringify(payload)).toString("base64url")}.css`;
+    assert.throws(() => plugin.load.call({ error(message) { throw new Error(message); } }, id), /Invalid Vooya Rust style module payload/);
+  }
+});

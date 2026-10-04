@@ -1,3 +1,4 @@
+import type { ResolveToolchainOptions, ToolchainRun, ToolchainEnvironment, ResolvedToolchain } from "@vooya/build-core";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform as hostPlatform } from "node:os";
@@ -29,11 +30,11 @@ export function inspectToolchain({
   exists = existsSync,
   probeManifestPath = undefined,
   cargoPath = undefined,
-  mode = "auto" as import("@vooya/build-core").ToolchainMode,
+  mode = "auto",
   workspaceRoot = undefined,
-} = {}) {
+}: ResolveToolchainOptions & { workspaceRoot?: string } = {}) {
   let toolchain;
-  let resolutionError;
+  let resolutionError: unknown;
   try {
     toolchain = resolveToolchain({ env, run, platform, home, cwd, exists, probeManifestPath, cargoPath, mode });
   } catch (error) {
@@ -55,7 +56,8 @@ export function inspectToolchain({
       detail: generatedTypesProblem.message,
     });
   }
-  const attempt = resolutionError?.attempts?.[0];
+  const resolutionFailure = readResolutionDetails(resolutionError);
+  const attempt: ToolchainAttempt | undefined = resolutionFailure?.attempts?.[0];
   const cargo = toolchain?.cargo ?? attempt?.cargo;
   const rustc = toolchain?.rustc ?? attempt?.rustc;
   const wasmBindgen = toolchain?.wasmBindgen ?? attempt?.wasmBindgen;
@@ -123,13 +125,13 @@ export function inspectToolchain({
   if (toolchain) {
     const paths = platform === "win32" ? win32 : posix;
     const rustupHome = toolchain.environment.RUSTUP_HOME ?? paths.resolve(home, ".rustup");
-    const sysrootIsRustup = Boolean(rustc.sysroot && isPathInside(rustc.sysroot, paths.resolve(rustupHome, "toolchains"), paths));
+    const sysrootIsRustup = Boolean(rustc?.sysroot && isPathInside(rustc.sysroot, paths.resolve(rustupHome, "toolchains"), paths));
     results.push({
       name: "cargo/rustc toolchain",
       status: sysrootIsRustup ? "ok" : "warning",
       detail: sysrootIsRustup
-        ? `rustup sysroot: ${rustc.sysroot}`
-        : `rustc sysroot: ${rustc.sysroot ?? "unavailable"}. Vooya uses the rustc selected by Cargo, and this is not a rustup toolchain. If builds cannot find ${WASM_TARGET}, install and select a rustup toolchain, then make sure Cargo, rustc, and wasm-bindgen resolve from the intended PATH.`,
+        ? `rustup sysroot: ${rustc?.sysroot}`
+        : `rustc sysroot: ${rustc?.sysroot ?? "unavailable"}. Vooya uses the rustc selected by Cargo, and this is not a rustup toolchain. If builds cannot find ${WASM_TARGET}, install and select a rustup toolchain, then make sure Cargo, rustc, and wasm-bindgen resolve from the intended PATH.`,
     });
     if (toolchain.cargoPathWarning) {
       results.push({
@@ -142,15 +144,15 @@ export function inspectToolchain({
     results.push({
       name: "cargo/rustc toolchain",
       status: "error",
-      detail: resolutionError?.message ?? "Vooya could not resolve a coherent Rust/WASM toolchain.",
+      detail: (resolutionError instanceof Error ? resolutionError.message : undefined) ?? "Vooya could not resolve a coherent Rust/WASM toolchain.",
     });
   }
 
   return {
     toolchain,
     cargo: cargo?.version,
-    cargoPath: toolchain?.cargo.path ?? cargo?.path ?? resolutionError?.cargoCandidates?.[0],
-    cargoCandidates: toolchain?.cargoCandidates ?? resolutionError?.cargoCandidates ?? [],
+    cargoPath: toolchain?.cargo.path ?? cargo?.path ?? resolutionFailure?.cargoCandidates?.[0],
+    cargoCandidates: toolchain?.cargoCandidates ?? resolutionFailure?.cargoCandidates ?? [],
     cargoSelection: toolchain?.cargoSelection,
     rustc: rustc?.version,
     rustcPath: toolchain?.rustc.path ?? rustc?.path,
@@ -188,7 +190,7 @@ export function createToolchainJsonReport(report: ReturnType<typeof inspectToolc
   };
 }
 
-export function formatToolchainReport(report) {
+export function formatToolchainReport(report: ReturnType<typeof inspectToolchain>) {
   const lines = ["Vooya doctor", ""];
   for (const result of report.results) {
     const label = result.status === "ok" ? "ok" : result.status === "warning" ? "warning" : "error";
@@ -206,11 +208,11 @@ export function formatToolchainReport(report) {
   return lines.join("\n");
 }
 
-function check(name, passed, detail) {
+function check(name: string, passed: boolean, detail?: string) {
   return { name, status: passed ? "ok" : "error", detail: detail ?? "available" };
 }
 
-function findExecutable(command, env, run, platform, cwd) {
+function findExecutable(command: string, env: ToolchainEnvironment, run: ToolchainRun, platform: string, cwd: string) {
   const path = platform === "win32" ? env.Path ?? env.PATH : env.PATH;
   if (!path) return undefined;
   try {
@@ -221,7 +223,7 @@ function findExecutable(command, env, run, platform, cwd) {
   }
 }
 
-function runCommand(command, args, { cwd = undefined, env = undefined } = {}) {
+const runCommand: ToolchainRun = (command, args, { cwd, env } = {}) => {
   const result = spawnSync(command, args, {
     cwd,
     env,
@@ -242,21 +244,52 @@ function runCommand(command, args, { cwd = undefined, env = undefined } = {}) {
   return output;
 }
 
-function firstProblem(attempt, pattern) {
+function firstProblem(attempt: ToolchainAttempt | undefined, pattern: RegExp) {
   return attempt?.problems?.find((problem) => pattern.test(problem));
 }
 
-function isPathInside(path, directory, paths) {
+function isPathInside(path: string, directory: string, paths: typeof posix) {
   const normalizedPath = normalizePath(paths.resolve(path), paths);
   const normalizedDirectory = normalizePath(paths.resolve(directory), paths);
   const separator = paths.sep;
   return normalizedPath === normalizedDirectory || normalizedPath.startsWith(`${normalizedDirectory}${separator}`);
 }
 
-function normalizePath(path, paths) {
+function normalizePath(path: string, paths: typeof posix) {
   return paths === win32 ? path.toLowerCase() : path;
 }
 
-function isWindowsMsvcHost(rustcVersion) {
+function isWindowsMsvcHost(rustcVersion: string) {
   return /^host:\s*.+-pc-windows-msvc$/m.test(rustcVersion);
+}
+
+interface ToolchainAttempt {
+  cargo?: Partial<ResolvedToolchain["cargo"]>;
+  rustc?: Partial<ResolvedToolchain["rustc"]>;
+  wasmBindgen?: Partial<ResolvedToolchain["wasmBindgen"]>;
+  target?: Partial<ResolvedToolchain["target"]>;
+  problems?: string[];
+}
+
+// Toolchain errors are produced across the package boundary; retain only the
+// diagnostic fields doctor consumes instead of trusting arbitrary thrown data.
+function readResolutionDetails(error: unknown) {
+  if (!error || typeof error !== "object") return undefined;
+  const cargoCandidates = "cargoCandidates" in error && Array.isArray(error.cargoCandidates)
+    ? error.cargoCandidates.filter((value): value is string => typeof value === "string") : [];
+  const raw: unknown = "attempts" in error && Array.isArray(error.attempts) ? error.attempts[0] : undefined;
+  if (!raw || typeof raw !== "object") return { cargoCandidates };
+  const tool = (value: unknown) => {
+    if (!value || typeof value !== "object") return undefined;
+    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+  };
+  const attempt: ToolchainAttempt = {
+    cargo: tool("cargo" in raw ? raw.cargo : undefined),
+    rustc: tool("rustc" in raw ? raw.rustc : undefined),
+    wasmBindgen: tool("wasmBindgen" in raw ? raw.wasmBindgen : undefined),
+    target: tool("target" in raw ? raw.target : undefined),
+    problems: "problems" in raw && Array.isArray(raw.problems)
+      ? raw.problems.filter((value: unknown): value is string => typeof value === "string") : [],
+  };
+  return { cargoCandidates, attempts: [attempt] };
 }

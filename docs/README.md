@@ -57,6 +57,8 @@ semantics instead of browser WebAssembly.
   candidates, the proposed 0.2 batch, and the required version/channel rehearsal.
 - [Maintainer releases](maintainers/releases.md): release state, prerelease
   publication, and the stable-release lifecycle.
+- [Code and test conventions](contribute/code-conventions.md): strict types,
+  executable helpers, generated declarations, and language statistics.
 - [Project status](project/status.md): what works, what remains experimental,
   and the next milestones.
 - [Compatibility matrix](project/compatibility.md): automated framework and

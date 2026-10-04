@@ -46,6 +46,9 @@ implementation tasks should remain issues.
 See the repository [contribution guide](https://github.com/vooyajs/vooya/blob/main/CONTRIBUTING.md)
 for commands, licensing, and pull-request checks.
 
+Follow the [code and test conventions](./code-conventions.md) for strict types,
+executable test helpers, generated declarations, and repository language statistics.
+
 ## Scope for the current beta
 
 The most useful contributions right now are source-authoring ergonomics,

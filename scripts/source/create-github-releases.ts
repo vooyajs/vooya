@@ -12,7 +12,12 @@ const channel = readReleaseChannel(root);
 const line = readReleaseLine(root);
 if (line && !((line.branch === "main" && line.channel === "alpha" && line.baseVersion === "0.2.0") || (line.branch === "release/0.1" && line.channel === "beta" && line.baseVersion === "0.1.0"))) throw new Error("Publication is restricted to main/0.2 alpha and release/0.1 beta.");
 const sha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-const readJson = (path: string) => JSON.parse(readFileSync(resolve(root, path), "utf8"));
+const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
+const readJson = (path: string): Record<string, unknown> => {
+  const value: unknown = JSON.parse(readFileSync(resolve(root, path), "utf8"));
+  if (!isRecord(value)) throw new Error(`Expected JSON object in ${path}.`);
+  return value;
+};
 const receipt = readJson(`.vooya-tools/release/${sha}/receipt.json`);
 if (receipt.commit !== sha) throw new Error("Release receipt does not match git HEAD.");
 if (receipt.channel !== channel) throw new Error("Release receipt channel does not match the configured publication channel.");
@@ -34,11 +39,19 @@ if (api.hostname === "api.github.com" && !token) throw new Error("GH_TOKEN or GI
 
 const names = new Set<string>();
 // Validate all local evidence before making any GitHub writes.
-const releases = candidate.packages.map(({ name, version }) => {
+const receiptPackages = receipt.packages.map((entry: unknown) => {
+  if (!isRecord(entry) || typeof entry.name !== "string" || typeof entry.version !== "string") {
+    throw new Error("Invalid release receipt package: name and version must be strings.");
+  }
+  return { name: entry.name, version: entry.version };
+});
+const releases = candidate.packages.map((entry: unknown) => {
+  if (!isRecord(entry)) throw new Error(`Invalid ${channel} release candidate.`);
+  const { name, version } = entry;
   if (typeof name !== "string" || !/^@vooya\/[a-z0-9-]+$/.test(name) || names.has(name) ||
-    !validateReleaseVersion(version, channel, line)) throw new Error(`Invalid or duplicate ${channel} release candidate.`);
+    typeof version !== "string" || !validateReleaseVersion(version, channel, line)) throw new Error(`Invalid or duplicate ${channel} release candidate.`);
   names.add(name);
-  const matches = receipt.packages.filter((entry) => entry.name === name);
+  const matches = receiptPackages.filter((entry) => entry.name === name);
   if (matches.length !== 1 || matches[0].version !== version) throw new Error(`Receipt is missing exact candidate ${name}@${version}.`);
   const directory = `packages/${name.slice("@vooya/".length)}`;
   const manifest = readJson(`${directory}/package.json`);
@@ -64,19 +77,22 @@ async function request(path: string, method = "GET", body?: unknown) {
   });
   if (method === "GET" && response.status === 404) return undefined;
   if (!response.ok) throw new Error(`GitHub ${method} ${path} failed with HTTP ${response.status}.`);
-  return response.json() as Promise<any>;
+  const value: unknown = await response.json();
+  if (!isRecord(value)) throw new Error(`GitHub ${method} ${path} returned a non-object response.`);
+  return value;
 }
 
 async function checkTag(tag: string) {
   const ref = await request(`git/ref/tags/${encodeURIComponent(tag)}`);
   if (!ref) return false;
-  let object = ref.object;
+  let object = isRecord(ref.object) ? ref.object : undefined;
   const seen = new Set<string>();
   while (object?.type === "tag") {
+    if (typeof object.sha !== "string") throw new Error(`Invalid annotated tag reference for ${tag}.`);
     if (seen.has(object.sha) || seen.size >= 8) throw new Error(`Invalid annotated tag chain for ${tag}.`);
     seen.add(object.sha);
     const annotation = await request(`git/tags/${encodeURIComponent(object.sha)}`);
-    object = annotation?.object;
+    object = isRecord(annotation?.object) ? annotation.object : undefined;
   }
   if (object?.type !== "commit" || object.sha !== sha) throw new Error(`Git tag ${tag} conflicts with release HEAD ${sha}.`);
   return true;

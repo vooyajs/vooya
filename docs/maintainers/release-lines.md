@@ -2,9 +2,16 @@
 
 This is the release-scope review for published commit
 [`689182fd`](https://github.com/vooyajs/vooya/commit/689182fd2c32bac2809d0f5e795cc39cc8bcfd44),
-current source through [PR #147](https://github.com/vooyajs/vooya/pull/147), and
-the separate Rust package extraction in
-[PR #148](https://github.com/vooyajs/vooya/pull/148).
+the main-branch integration in
+[PR #149](https://github.com/vooyajs/vooya/pull/149) (including the Rust provider
+extraction from [PR #148](https://github.com/vooyajs/vooya/pull/148)), and the
+isolated maintenance backports in
+[PR #150](https://github.com/vooyajs/vooya/pull/150).
+
+Both PRs are merged and their candidate CI checks passed. Neither merge
+published npm packages or deployed the public documentation site. Subsequent
+type-safety and test-tooling cleanup stays on main; the maintenance branch
+retains the small behavior-fix scope below.
 
 ## Working release approach
 
@@ -22,9 +29,11 @@ reason to bump every unchanged package to the same version.
 
 ## Maintenance backport candidates
 
-Two changes are suitable **backport candidates**, not ready-to-publish binaries.
-Start from the published commit and take only the fix and its regression test.
-Do not release the current main branch as a patch or copy a whole feature PR.
+The two reviewed changes have been backported to `release/0.1` in PR #150,
+with regression tests and packed-consumer acceptance. They are **unpublished**;
+the version preparation and publication gate remain separate. The branch
+starts from the published commit and takes only the fixes and their tests,
+plus shared guarded release tooling. Do not release main as a maintenance patch.
 
 | Candidate | Package and minimal change | Required evidence |
 | --- | --- | --- |
