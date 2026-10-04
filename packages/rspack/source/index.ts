@@ -2,13 +2,15 @@
 // public plugin and loader protocols and is currently verified against 2.1.10.
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   buildApplication,
+  prepareRustModules,
   resolveVooyaWorkspace,
+  resolveToolchain,
   writeVooDeclarations,
 } from "@vooya/build-core";
 import type { BuildApplicationResult, RustBuildOptions } from "@vooya/build-core";
@@ -22,22 +24,25 @@ const ignoredDirectories = new Set([".git", ".vooya", "dist", "node_modules", "t
 let nextInstance = 0;
 
 export interface VooyaRspackOptions {
-  framework?: "vue" | "react";
+  framework?: "vue" | "react" | "solid" | "svelte";
   rust?: RustBuildOptions;
   workspaceRoot?: string;
+  toolchain?: { cargoPath?: string; mode?: "auto" | "system" | "managed" };
 }
 
 export interface VooyaRspackRule {
   test: RegExp;
   loader: string;
   options: {
-    framework: "vue" | "react";
+    framework: "vue" | "react" | "solid" | "svelte";
     instanceId: string;
   };
 }
 
 interface RspackCompilationLike {
   errors: Error[];
+  fileDependencies: Set<string>;
+  contextDependencies: Set<string>;
   emitAsset(name: string, source: unknown): void;
 }
 
@@ -96,10 +101,11 @@ export function vooyaRspack(options: VooyaRspackOptions = {}): VooyaRspackPlugin
 }
 
 export class VooyaRspackPlugin implements RspackPluginLike {
-  framework: "vue" | "react";
+  framework: "vue" | "react" | "solid" | "svelte";
   rust: RustBuildOptions;
   workspaceRoot?: string;
   instanceId: string;
+  toolchain?: VooyaRspackOptions["toolchain"];
   buildError?: Error;
   buildId?: string;
 
@@ -107,11 +113,13 @@ export class VooyaRspackPlugin implements RspackPluginLike {
     framework = "vue",
     rust = {},
     workspaceRoot,
+    toolchain,
   }: VooyaRspackOptions = {}) {
-    if (framework !== "vue" && framework !== "react") throw new Error(`Unknown Vooya framework ${framework}.`);
+    if (!["vue", "react", "solid", "svelte"].includes(framework)) throw new Error(`Unknown Vooya framework ${framework}.`);
     this.framework = framework;
     this.rust = rust;
     this.workspaceRoot = workspaceRoot;
+    this.toolchain = toolchain;
     this.instanceId = `vooya-rspack-${nextInstance++}`;
     this.buildError = undefined;
     this.buildId = undefined;
@@ -119,7 +127,7 @@ export class VooyaRspackPlugin implements RspackPluginLike {
 
   rule(): VooyaRspackRule {
     return {
-      test: /\.voo$/,
+      test: /\.(voo|rs)$/,
       loader: loaderPath,
       options: { framework: this.framework, instanceId: this.instanceId },
     };
@@ -136,6 +144,7 @@ export class VooyaRspackPlugin implements RspackPluginLike {
         const result = buildApplication({
           applicationRoot,
           components,
+          toolchain: resolveToolchain({ cwd: applicationRoot, ...this.toolchain }),
           rust: this.rust,
           workspaceRoot: workspace.root,
           workspacePath,
@@ -156,6 +165,11 @@ export class VooyaRspackPlugin implements RspackPluginLike {
         });
         const buildId = createHash("sha256").update(result.wasm.bytes).digest("hex").slice(0, 16);
         const versionedRuntime = writeVersionedRuntime(result, buildId);
+        const rustModules = components.length === 0 ? prepareRustModules({
+          applicationRoot, workspaceRoot: workspace.root, schema: result.schema,
+          framework: this.framework, runtimeModule: versionedRuntime.runtimeModule,
+          runtimeHelpers: "@vooya/rspack/runtime", stylesRoot: resolve(workspace.cache, "rspack/rust-styles"),
+        }) : { modules: new Map<string, string>(), dependencies: [] };
         this.buildId = buildId;
         setBuildState(this.instanceId, {
           // wasm-bindgen's JavaScript is often byte-for-byte stable across
@@ -165,6 +179,9 @@ export class VooyaRspackPlugin implements RspackPluginLike {
           wasm: result.wasm.bytes,
           wasmAssetName: versionedRuntime.wasmAssetName,
           styleModules,
+          rustModules: rustModules.modules,
+          watchedRoots: result.watchedFiles,
+          styleDependencies: rustModules.dependencies,
         });
         this.buildError = undefined;
       } catch (error) {
@@ -179,6 +196,10 @@ export class VooyaRspackPlugin implements RspackPluginLike {
       if (this.buildError) compilation.errors.push(this.buildError);
       const state = getBuildState(this.instanceId);
       if (!state) return;
+      for (const path of state.watchedRoots) {
+        (statSync(path, { throwIfNoEntry: false })?.isDirectory() ? compilation.contextDependencies : compilation.fileDependencies).add(path);
+      }
+      for (const path of state.styleDependencies) compilation.fileDependencies.add(path);
       // wasm-bindgen's web target references `vooya_app_bg.wasm` relative to
       // its JavaScript module. Rsbuild discovers that asset itself, while
       // Rslib's bundled-library path does not; registering it here gives both

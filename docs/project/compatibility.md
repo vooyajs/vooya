@@ -19,7 +19,8 @@ feature is implemented.
 | Generated component/Store declarations, owned struct and unit-enum types | Implemented | Implemented | Implemented | Implemented |
 | Lifecycle coverage | Mount/unmount and late Store resolution | StrictMode cleanup and late Store resolution | Owner cleanup and late Store resolution in adapter tests | Component and Store disposed once on child unmount |
 | Rust-file production browser fixture | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium |
-| Separate clean packed and npm-registry consumer acceptance | Verified | Verified | Not yet covered | Not yet covered |
+| Separate clean packed consumer acceptance | Verified | Verified | Verified, Vite 8 | Verified, Vite 8 |
+| npm-registry consumer acceptance | Verified | Verified | Not yet covered | Not yet covered |
 | SSR / hydration / slots | Not supported | Not supported | Not supported | Not supported |
 
 The [beta.0 release run](https://github.com/vooyajs/vooya/actions/runs/36614375254)
@@ -34,9 +35,10 @@ optional Boolean prop (`Option::None`, rather than `Some(false)`). Solid and
 Svelte already preserve those values; the React/Vue fixes do not imply those
 adapters were absent from earlier builds.
 
-For Solid/Svelte, the next compatibility work is clean packed/registry consumer
-acceptance and explicit Vite 8 coverage. Until that evidence exists, use their
-named Vite 7 path and retain the experimental label. SvelteKit is not covered.
+`test:vite8-frameworks` adds separate clean tarball installs of Solid/Svelte,
+Vite 8.2.1 production Chromium checks, and strict generated declaration checks.
+Svelte uses `@sveltejs/vite-plugin-svelte` 7.1.2 on Vite 8. npm-registry consumer
+acceptance is still pending; both adapters remain experimental. SvelteKit is not covered.
 See [Getting started](../guide/getting-started.md) for all four configurations.
 
 ## Framework and host-tool minimums
@@ -66,6 +68,15 @@ See [Getting started](../guide/getting-started.md) for all four configurations.
 | Vue Canvas scatter | 150,000-point initial island, point-count update, zoom/reset, no page or console error | `npm run test:e2e:scatter` |
 | Vue precompiled build fixture | Generated WASM in a clean Vite consumer without Rust tooling; mount and prop update | `npm run test:precompiled-vue` |
 
+## Rust-file bundler additions
+
+The next release adds Webpack/Rspack Rust-file integration. These checks run
+against tarballs built from this checkout, not the existing npm Beta artifacts.
+`npm run test:rust-bundlers` covers Vue and React on Webpack 5.109.2 and Rspack
+2.1.10, including `rust.sourceRoot: "."` with Rust files at the application root.
+Applications retain responsibility for framework transforms, HTML and CSS rules.
+SSR/Next.js and state-preserving HMR are not implied.
+
 ## Verified bundler/toolchain matrix
 
 These entries run against packed Vooya packages in a fresh temporary consumer.
@@ -77,19 +88,19 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Vite | `>=7 <9` | `npm run test:vite8` | Vite 8.2.1 is the primary packed compatibility target; Vite 7 remains a required regression path in the repository fixtures and release gate |
 | Vite 8 + Vue Vapor | Vite `8.2.1`; Vue `3.6.0-beta.17` | `npm run test:vite8-vapor` | Rust-file component mounts in a Vapor app with `vaporInteropPlugin`; experimental evidence only |
 | Vite+ | `>=0.2.9` | `npm run test:vite-plus` | Production output and browser WASM loading at 0.2.9 using Vite+'s Vite core alias; the alias currently requires npm legacy peer resolution, and development rebuild and HMR behavior are not claimed |
-| Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. The current fixture is transitional and does not yet establish parity with the Rust-file Vite path. |
-| Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. The current fixture is transitional and does not yet establish parity with the Rust-file Vite path. |
+| Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Rust-file watch and other frameworks remain unverified. |
+| Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Rust-file watch and other frameworks remain unverified. |
 
 ## Not verified / not supported yet
 
 - WebKit/Safari, mobile browsers, SSR, and hydration have no current
   compatibility claim. Firefox evidence is limited to the named Vue source
   component path above.
-- Solid on Vite 8, Rspack/Webpack, or browsers other than the named Chromium
+- Solid on Rspack/Webpack, or browsers other than the named Chromium
   fixture has no current compatibility claim.
-- Svelte 3/4, SvelteKit, Svelte SSR/hydration, Vite 8 with Svelte, and Svelte
+- Svelte 3/4, SvelteKit, Svelte SSR/hydration, and Svelte
   through Rspack/Webpack have no current compatibility claim. The Svelte row
-  above is limited to its named Vite 7 + Chromium fixture.
+  above is limited to its named Vite 7/8 + Chromium fixtures.
 - No precompiled component product is currently published; the Vue fixture is
   build-contract evidence only.
 - Webpack 4, Rspack versions below 2.1.10, Rollup, Turbopack, and other unlisted

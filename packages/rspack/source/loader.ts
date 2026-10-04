@@ -17,6 +17,12 @@ export default function vooyaRspackLoader(source) {
   if (!state) {
     throw new Error("Vooya Rspack loader ran before its build plugin prepared the Rust/WASM artifact.");
   }
+  this.addDependency(this.resourcePath);
+  if (this.resourcePath.endsWith(".rs")) {
+    const module = state.rustModules.get(this.resourcePath);
+    if (!module) throw new Error(`No Vooya component or store found for ${this.resourcePath}. Check rust.sourceRoot and avoid mixing legacy .voo and Rust-file authoring in one application.`);
+    return module;
+  }
   const component = parseVooComponent(source.toString(), this.resourcePath);
   if (component.format !== "source") {
     throw new Error(`Rspack source integration requires a source .voo component, received ${component.format}.`);

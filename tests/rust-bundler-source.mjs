@@ -1,0 +1,143 @@
+// Install packed public packages into independent applications: no workspace aliases.
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { createServer } from "node:http";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const temporary = mkdtempSync(resolve(tmpdir(), "vooya-rust-bundlers-"));
+const packages = ["compiler", "core", "build-core", "vue", "react", "webpack", "rspack"];
+const vueApp = `import { createApp, h, ref } from "vue";
+import Counter from "../Counter.rs";
+import { useCart } from "../Store.rs";
+const Island = { setup() {
+  const { state, add } = useCart();
+  const selected = ref(-1);
+  return () => h("section", [
+    h(Counter, { count: state.value?.count ?? 0, onSelected: (value) => { selected.value = value; } }),
+    h("span", "Selected " + selected.value), h("button", { id: "add", onClick: () => add(1) }, "Add"),
+  ]);
+}};
+createApp({ setup() {
+  const visible = ref(true);
+  return () => h("main", [h("button", { id: "toggle", onClick: () => { visible.value = !visible.value; } }, "Toggle"), visible.value ? h(Island) : null]);
+}}).mount("#app");`;
+const reactApp = `import { createElement as h, useState } from "react";
+import { createRoot } from "react-dom/client";
+import Counter from "../Counter.rs";
+import { useCart } from "../Store.rs";
+function Island() {
+  const { state, add } = useCart();
+  const [selected, setSelected] = useState(-1);
+  return h("section", null,
+    h(Counter, { count: state?.count ?? 0, onSelected: setSelected }),
+    h("span", null, "Selected " + selected), h("button", { id: "add", onClick: () => add(1) }, "Add"));
+}
+function App() {
+  const [visible, setVisible] = useState(true);
+  return h("main", null, h("button", { id: "toggle", onClick: () => setVisible(!visible) }, "Toggle"), visible ? h(Island) : null);
+}
+createRoot(document.getElementById("app")).render(h(App));`;
+try {
+  mkdirSync(resolve(temporary, "packages"));
+  const packed = packages.map((name) => pack(name));
+  for (const bundler of ["webpack", "rspack"]) {
+    for (const framework of ["vue", "react"]) {
+      const project = resolve(temporary, `${bundler}-${framework}`);
+      prepare(project, bundler, framework);
+      run("npm", ["install", "--prefer-offline", "--ignore-scripts", "--no-audit", "--no-fund", ...packed.filter((file) => !file.includes(`vooya-${bundler === "webpack" ? "rspack" : "webpack"}-`))], project);
+      run("npm", ["run", "build"], project);
+      const declaration = readFileSync(resolve(project, ".vooya/types/Counter.d.rs.ts"), "utf8");
+      assert.match(declaration, /count: number/);
+      assert.match(readFileSync(resolve(project, ".vooya/types/Store.d.rs.ts"), "utf8"), /useCart/);
+      assert.ok(readdirSync(resolve(project, "dist")).some((name) => name.endsWith(".wasm")));
+      await verify(project);
+      console.log(`Verified packed ${bundler} ${framework}: .rs component, scoped CSS, Store, props/events, unmount/remount, sourceRoot dot.`);
+    }
+  }
+} finally {
+  if (!process.env.VOOYA_KEEP_RUST_BUNDLER_FIXTURES) rmSync(temporary, { recursive: true, force: true });
+  else console.log(`Kept fixtures: ${temporary}`);
+}
+
+function prepare(project, bundler, framework) {
+  mkdirSync(resolve(project, "src"), { recursive: true });
+  // Both frameworks use the same real Rust contract; Store declarations include named snapshot types.
+  cpSync(resolve(root, "tests/fixtures/rust-solid/src/Counter.rs"), resolve(project, "Counter.rs"));
+  cpSync(resolve(root, "tests/fixtures/rust-solid/src/Store.rs"), resolve(project, "Store.rs"));
+  const counterPath = resolve(project, "Counter.rs");
+  writeFileSync(counterPath, readFileSync(counterPath, "utf8")
+    .replace("#[voo::component]", '#[voo::component]\n#[voo::style("./Counter.css", scoped)]')
+    .replace('<button>{label}</button>', '<button class="rust-counter">{label}</button>'));
+  writeFileSync(resolve(project, "Counter.css"), ".rust-counter { color: rgb(5, 103, 89); }\n");
+  writeFileSync(resolve(project, "index.html"), '<!doctype html><div id="app"></div>');
+  writeFileSync(resolve(project, "src/main.js"), framework === "vue" ? vueApp : reactApp);
+  const deps = bundler === "webpack"
+    ? { webpack: "5.109.2", "webpack-cli": "7.2.2", "html-webpack-plugin": "5.6.3", "style-loader": "4.0.0", "css-loader": "7.1.2" }
+    : { "@rspack/core": "2.1.10", "@rspack/cli": "2.1.10" };
+  writeFileSync(resolve(project, "package.json"), JSON.stringify({
+    private: true, type: "module", scripts: { build: `${bundler} --mode production --config bundler.config.mjs` },
+    dependencies: { vue: "3.5.30", react: "19.0.0", "react-dom": "19.0.0" }, devDependencies: deps,
+  }, null, 2));
+  const imports = bundler === "webpack"
+    ? 'import HtmlPlugin from "html-webpack-plugin";\nimport { vooyaWebpack as integration } from "@vooya/webpack";'
+    : 'import { rspack } from "@rspack/core";\nimport { vooyaRspack as integration } from "@vooya/rspack";\nconst HtmlPlugin = rspack.HtmlRspackPlugin;';
+  writeFileSync(resolve(project, "bundler.config.mjs"), `${imports}
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const root = dirname(fileURLToPath(import.meta.url));
+const vooya = integration({ framework: ${JSON.stringify(framework)}, rust: { sourceRoot: "." } });
+export default {
+  context: root, entry: "./src/main.js", output: { path: resolve(root, "dist"), clean: true },
+  experiments: { asyncWebAssembly: true${bundler === "rspack" ? ", css: true" : ""} },
+  module: { rules: [vooya.rule(), { test: /\\.css$/, ${bundler === "webpack" ? 'use: ["style-loader", "css-loader"]' : 'type: "css/auto"'} }] },
+  plugins: [vooya, new HtmlPlugin({ template: "index.html" })],
+};\n`);
+}
+
+function pack(name) {
+  const result = run("npm", ["pack", "--workspace", `@vooya/${name}`, "--pack-destination", resolve(temporary, "packages"), "--json"], root, true);
+  return resolve(temporary, "packages", JSON.parse(result)[0].filename);
+}
+function run(command, args, cwd, capture = false) {
+  const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: capture ? "pipe" : "inherit" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} failed: ${result.stderr ?? result.status}`);
+  return result.stdout;
+}
+async function verify(project) {
+  const server = createServer((request, response) => {
+    const url = request.url === "/" ? "/index.html" : request.url.split("?")[0];
+    try {
+      const body = readFileSync(resolve(project, "dist", `.${url}`));
+      response.setHeader("Content-Type", url.endsWith(".wasm") ? "application/wasm" : url.endsWith(".js") ? "text/javascript" : url.endsWith(".css") ? "text/css" : "text/html");
+      response.end(body);
+    } catch { response.writeHead(404).end(); }
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.getByRole("button", { name: "Count: 0", exact: true }).waitFor();
+    assert.equal(await page.locator(".rust-counter").evaluate((node) => getComputedStyle(node).color), "rgb(5, 103, 89)");
+    await page.locator("#add").click();
+    await page.getByRole("button", { name: "Count: 1", exact: true }).waitFor();
+    await page.getByText("Selected 1", { exact: true }).waitFor();
+    await page.locator("#toggle").click();
+    await page.locator(".rust-counter").waitFor({ state: "detached" });
+    await page.locator("#toggle").click();
+    await page.getByRole("button", { name: "Count: 0", exact: true }).waitFor();
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+    await new Promise((done) => server.close(done));
+  }
+}

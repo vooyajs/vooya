@@ -1,13 +1,15 @@
 // This package accesses Webpack structurally so it has no runtime dependency
 // on a specific Webpack 5 minor. The supported boundary is verified separately.
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, mkdirSync, writeFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   buildApplication,
+  prepareRustModules,
   resolveVooyaWorkspace,
+  resolveToolchain,
   writeVooDeclarations,
 } from "@vooya/build-core";
 import type { BuildApplicationResult, RustBuildOptions } from "@vooya/build-core";
@@ -27,9 +29,10 @@ const ignoredDirectories = new Set([
 let nextInstance = 0;
 
 export interface VooyaWebpackOptions {
-  framework?: "vue" | "react";
+  framework?: "vue" | "react" | "solid" | "svelte";
   rust?: RustBuildOptions;
   workspaceRoot?: string;
+  toolchain?: { cargoPath?: string; mode?: "auto" | "system" | "managed" };
 }
 
 export interface VooyaWebpackRule {
@@ -37,7 +40,7 @@ export interface VooyaWebpackRule {
   use: Array<{
     loader: string;
     options: {
-      framework: "vue" | "react";
+      framework: "vue" | "react" | "solid" | "svelte";
       instanceId: string;
     };
   }>;
@@ -46,6 +49,7 @@ export interface VooyaWebpackRule {
 interface WebpackCompilationLike {
   errors: Error[];
   contextDependencies: Set<string>;
+  fileDependencies: Set<string>;
 }
 
 interface WebpackCompilerLike {
@@ -81,9 +85,10 @@ export function vooyaWebpack(options: VooyaWebpackOptions = {}): VooyaWebpackPlu
 }
 
 export class VooyaWebpackPlugin implements WebpackPluginLike {
-  readonly framework: "vue" | "react";
+  readonly framework: "vue" | "react" | "solid" | "svelte";
   readonly rust: RustBuildOptions;
   readonly workspaceRoot?: string;
+  readonly toolchain?: VooyaWebpackOptions["toolchain"];
   readonly instanceId: string;
   private buildError?: Error;
   private needsBuild = true;
@@ -93,19 +98,21 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     framework = "vue",
     rust = {},
     workspaceRoot,
+    toolchain,
   }: VooyaWebpackOptions = {}) {
-    if (framework !== "vue" && framework !== "react") {
+    if (!["vue", "react", "solid", "svelte"].includes(framework)) {
       throw new Error(`Unknown Vooya framework ${framework}.`);
     }
     this.framework = framework;
     this.rust = rust;
     this.workspaceRoot = workspaceRoot;
+    this.toolchain = toolchain;
     this.instanceId = `vooya-webpack-${nextInstance++}`;
   }
 
   rule(): VooyaWebpackRule {
     return {
-      test: /\.voo$/,
+      test: /\.(voo|rs)$/,
       use: [
         {
           loader: loaderPath,
@@ -122,7 +129,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
       const watchedRoots = getBuildState(this.instanceId)?.watchedRoots ?? [];
       if (
         [...modifiedFiles].some(
-          (path) => path.endsWith(".voo") || watchedRoots.some((root) => isPathInside(path, root)),
+          (path) => path.endsWith(".voo") || path.endsWith(".rs") || watchedRoots.some((root) => isPathInside(path, root)),
         )
       ) {
         this.needsBuild = true;
@@ -144,7 +151,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     compiler.hooks.thisCompilation.tap("vooya", (compilation) => {
       if (this.buildError) compilation.errors.push(this.buildError);
       for (const root of getBuildState(this.instanceId)?.watchedRoots ?? []) {
-        compilation.contextDependencies.add(root);
+        (statSync(root, { throwIfNoEntry: false })?.isDirectory() ? compilation.contextDependencies : compilation.fileDependencies).add(root);
       }
     });
     compiler.hooks.watchClose.tap("vooya", () => {
@@ -163,6 +170,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     const result = buildApplication({
       applicationRoot,
       components,
+      toolchain: resolveToolchain({ cwd: applicationRoot, ...this.toolchain }),
       rust: this.rust,
       workspaceRoot: workspace.root,
       workspacePath: resolve(workspace.build, "webpack"),
@@ -178,8 +186,14 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
       framework: this.framework,
       workspaceRoot: workspace.root,
     });
+    const rustModules = components.length === 0 ? prepareRustModules({
+      applicationRoot, workspaceRoot: workspace.root, schema: result.schema,
+      framework: this.framework, runtimeModule: result.runtimeModule,
+      runtimeHelpers: "@vooya/webpack/runtime", stylesRoot: resolve(workspace.cache, "webpack/rust-styles"),
+    }) : { modules: new Map<string, string>(), dependencies: [] };
     setBuildState(this.instanceId, {
       runtimeModule: result.runtimeModule,
+      rustModules: rustModules.modules,
       generationFile,
       styleModules: writeGeneratedStyles({
         applicationRoot,
@@ -187,7 +201,7 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
         result,
         stylesRoot: resolve(workspace.cache, "webpack/styles"),
       }),
-      watchedRoots: result.watchedFiles,
+      watchedRoots: [...result.watchedFiles, ...rustModules.dependencies],
     });
   }
 }
