@@ -33,6 +33,8 @@ try {
   assert.equal(toolchain.cargoSelection, "managed");
   assert.equal(toolchain.cargo.path, first.cargoPath);
   assert.match(toolchain.rustc.version, /1\.94\.0/);
+  const explicit = resolveToolchain({ cwd: applicationRoot, env: toolchain.environment, mode: "system", cargoPath: toolchain.cargo.path });
+  assert.equal(explicit.cargoSelection, "explicit");
   const report = inspectToolchain({ cwd: applicationRoot, env });
   assert.equal(report.ok, true, JSON.stringify(report.results));
   assert.equal(report.toolchain.cargo.path, toolchain.cargo.path);
