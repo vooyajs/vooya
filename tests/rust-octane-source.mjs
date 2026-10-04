@@ -9,27 +9,29 @@ import { chromium } from "playwright";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const temporaryRoot = mkdtempSync(resolve(tmpdir(), "vooya-octane-"));
-const fixture = resolve(temporaryRoot, "app");
+const fixture = process.env.VOOYA_RUST_FIXTURE_ROOT ?? resolve(temporaryRoot, "app");
 const packs = resolve(temporaryRoot, "packages");
 
 try {
-  run("npm", ["run", "build:core"], repositoryRoot);
-  run("npm", ["run", "build", "--workspace", "@vooya/vite"], repositoryRoot);
-  run("npm", ["run", "build", "--workspace", "@vooya/octane"], repositoryRoot);
-  mkdirSync(packs);
-  cpSync(resolve(repositoryRoot, "tests/fixtures/rust-octane"), fixture, { recursive: true });
-  const tarballs = ["core", "compiler", "provider-rust", "build-core", "vite", "octane"].map((name) => {
-    const packed = spawnSync("npm", ["pack", "--workspace", `@vooya/${name}`, "--json", "--pack-destination", packs], {
-      cwd: repositoryRoot, encoding: "utf8", shell: process.platform === "win32",
+  if (!process.env.VOOYA_RUST_FIXTURE_ROOT) {
+    run("npm", ["run", "build:core"], repositoryRoot);
+    run("npm", ["run", "build", "--workspace", "@vooya/vite"], repositoryRoot);
+    run("npm", ["run", "build", "--workspace", "@vooya/octane"], repositoryRoot);
+    mkdirSync(packs);
+    cpSync(resolve(repositoryRoot, "tests/fixtures/rust-octane"), fixture, { recursive: true });
+    const tarballs = ["core", "compiler", "provider-rust", "build-core", "vite", "octane"].map((name) => {
+      const packed = spawnSync("npm", ["pack", "--workspace", `@vooya/${name}`, "--json", "--pack-destination", packs], {
+        cwd: repositoryRoot, encoding: "utf8", shell: process.platform === "win32",
+      });
+      if (packed.status !== 0) throw new Error(packed.stderr || packed.stdout);
+      return resolve(packs, JSON.parse(packed.stdout)[0].filename);
     });
-    if (packed.status !== 0) throw new Error(packed.stderr || packed.stdout);
-    return resolve(packs, JSON.parse(packed.stdout)[0].filename);
-  });
-  run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...tarballs], fixture);
+    run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...tarballs], fixture);
+  }
   run("npm", ["run", "build"], fixture);
   run("npm", ["run", "typecheck"], fixture);
   await verifyBrowser();
-  console.log("Verified packed native Octane 0.9 / Vite 8 Rust components, stores, types and remount.");
+  console.log("Verified packed native Octane 0.9 Rust components, stores, types and remount.");
 } finally {
   if (!process.env.VOOYA_KEEP_OCTANE_FIXTURE) rmSync(temporaryRoot, { recursive: true, force: true });
   else console.log(`Octane fixture retained at ${fixture}`);
