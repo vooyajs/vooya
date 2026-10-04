@@ -50,6 +50,7 @@ See [Getting started](../guide/getting-started.md) for all four configurations.
 | React | `>=19` | Supported | Browser fixtures cover 19.0.0 and 19.2.0; React 18 is below the supported minimum |
 | Solid | `>=1.9 <2` | Experimental | Vite 7 production browser fixture covers a Rust-file component, callback event, and Accessor-backed Store update; adapter unit tests cover owner cleanup and late resolution |
 | Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 production Chromium fixture covers Component mount/callback, Store action, Component prop update, generated `Readable` declarations, and Component/Store owner cleanup |
+| Octane | `0.9.0` | Experimental, client only | Packed native Octane fixture with `@octanejs/vite-plugin` 0.2.1 on Vite 8 and Vite+ 0.2.9 covers Component/Store isolation, props/events, disposal/remount and strict declarations; Node >=22.22.2; SSR is not covered |
 | React 19 Rust-file authoring | Vite 7 | Supported beta path | Production build and browser interaction cover an instance-scoped store, `useSyncExternalStore`, atomic component prop updates, and StrictMode cleanup |
 | Vue Vapor | Vue 3.6 experimental | Verified, experimental | Vite 8 + Vue 3.6.0-beta.17 mounts a Rust-file component when the app uses Vue's `vaporInteropPlugin`; Vapor remains an upstream Vue opt-in |
 
@@ -61,6 +62,7 @@ See [Getting started](../guide/getting-started.md) for all four configurations.
 | React 19 Rust-file component/store | Vite 7 production build, StrictMode mount, store action and snapshot-driven component update | `npm run test:rust-react` |
 | Solid 1.9 Rust-file component/store | Vite 7 production build, callback event, Store action, and signal/Accessor-driven DOM update; adapter tests cover owner-scoped disposal | `npm run test:rust-solid`; `npm run test:solid` |
 | Svelte 5 Rust-file component/store | Vite 7 production build, callback event, Store action, prop update, `Readable` declaration, no Chromium runtime error, and exactly one Component handle plus generated Store disposal after child unmount | `npm run test:rust-svelte` |
+| Octane 0.9 Rust-file component/store | Native client components and Stores, independent instances, prop/event updates, generated types and unmount/remount | `npm run test:rust-octane`; `npm run test:vite-plus-frameworks` adds Vite+ dev recovery and host edits |
 | Rust-file Vite development path | Rust source edit, failed rebuild recovery, subsequent successful rebuild, and full reload | `npm run test:rust-hmr` |
 | Rust `rsx!` DOM runtime | Signal text/attribute updates, owned events, conditional `if`/`else`, keyed `for` reorder and DOM identity, disposal | `npm run test:rsx` |
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
@@ -85,11 +87,11 @@ These entries run against packed Vooya packages in a fresh temporary consumer.
 The evidence and boundary columns state the exact checks exercised by each
 toolchain; a production smoke does not imply development-server or HMR support.
 
-| Toolchain | Minimum version | Evidence | Boundary |
+| Toolchain | Version range / tested version | Evidence | Boundary |
 | --- | --- | --- | --- |
 | Vite | `>=7 <9` | `npm run test:vite8` | Vite 8.2.1 is the primary packed compatibility target; Vite 7 remains a required regression path in the repository fixtures and release gate |
 | Vite 8 + Vue Vapor | Vite `8.2.1`; Vue `3.6.0-beta.17` | `npm run test:vite8-vapor` | Rust-file component mounts in a Vapor app with `vaporInteropPlugin`; experimental evidence only |
-| Vite+ | `>=0.2.9` | `npm run test:vite-plus` | Production output and browser WASM loading at 0.2.9 using Vite+'s Vite core alias; the alias currently requires npm legacy peer resolution, and development rebuild and HMR behavior are not claimed |
+| Vite+ | `0.2.9`, matching core alias `0.2.9` (Vite `8.2.1`) | `npm run test:vite-plus-frameworks`; `npm run test:vite-plus` | Packed Vue/React/Solid/Svelte/Octane `.rs` production builds and Chromium interactions, strict declarations, dev rebuilds, Rust error recovery, rapid saves and host component edits. Rust edits use full reload; legacy `.voo` regression is separate. Normal npm installation uses the documented alias/overrides. |
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 | Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 
@@ -110,8 +112,9 @@ toolchain; a production smoke does not imply development-server or HMR support.
   recorded in [Turbopack research](turbopack-research.md); exact Rspack evidence
   is limited to the versions named in the row above.
 - Vite+ adds a CLI, runtime/package-manager management, and a Vite core alias;
-  it does not remove the need for the normal `vooya()` Vite plugin. Its smoke
-  path is intentionally tracked separately from the Vite support promise.
+  it uses the normal `vooya()` Vite plugin. The pinned dev/build fixtures do not
+  cover every bundled Vite+ tool or other Vite+ versions. See the
+  [Vite+ setup](../guide/other-integrations.md#vite) for alias and override configuration.
 - The old `.voo` path was an exploratory intermediate. Remaining legacy fixtures
   are repository regression evidence only and are not a supported authoring or
   compatibility claim.

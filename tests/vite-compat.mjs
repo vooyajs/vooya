@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   cpSync,
   mkdirSync,
@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { startDevServer, stopDevServer } from "./helpers/dev-server.mjs";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const targetName = process.argv[2] ?? "vite8";
@@ -94,7 +95,7 @@ try {
   }
   configureProject(packages);
   const installArguments = ["install", "--ignore-scripts", "--no-audit", "--no-fund"];
-  if (targetName === "vite-plus" || target.vapor) installArguments.push("--legacy-peer-deps");
+  if (target.vapor) installArguments.push("--legacy-peer-deps");
   installArguments.push(...target.install);
   run("npm", installArguments, project);
 
@@ -104,7 +105,7 @@ try {
     throw new Error(`${target.label} production build did not emit application WASM.`);
   }
   await exerciseProductionBuild();
-  if (targetName === "vite8") {
+  if (targetName === "vite8" || targetName === "vite-plus") {
     await exerciseDevelopmentServer();
     console.log(`${target.label} production browser, rebuild, HMR, and error-recovery checks passed.`);
   } else {
@@ -117,14 +118,7 @@ try {
       productionServer.close((error) => (error ? rejectClose(error) : resolveClose()));
     });
   }
-  if (server && server.exitCode === null) {
-    server.kill("SIGTERM");
-    await Promise.race([
-      new Promise((resolveClose) => server.once("close", resolveClose)),
-      new Promise((resolveTimeout) => setTimeout(resolveTimeout, 2_000)),
-    ]);
-    if (server.exitCode === null) server.kill("SIGKILL");
-  }
+  await stopDevServer(server);
   if (process.env.VOOYA_KEEP_COMPAT_FIXTURE) {
     console.log(`Kept compatibility fixture: ${temporaryRoot}`);
   } else {
@@ -201,7 +195,7 @@ async function exerciseProductionBuild() {
 async function exerciseDevelopmentServer() {
   const port = await availablePort();
   const [entry, ...args] = target.dev;
-  server = spawn(process.execPath, [resolve(project, entry), ...args, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
+  server = startDevServer(process.execPath, [resolve(project, entry), ...args, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     cwd: project,
     env: { ...process.env, FORCE_COLOR: "0" },
   });

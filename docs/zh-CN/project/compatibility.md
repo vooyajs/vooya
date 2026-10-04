@@ -44,7 +44,9 @@ Vue 将未传入的可选 Boolean prop 转成 `false` 的问题。Solid/Svelte �
 | React | `>=19` | Supported | fixture 覆盖 19.0.0 与 19.2.0 |
 | Solid | `>=1.9 <2` | Experimental | Vite 7 browser fixture 覆盖 Rust Component、callback event 和 Accessor 驱动的 Store 更新；adapter unit test 覆盖 owner cleanup 与 late resolve |
 | Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 Chromium fixture 覆盖 Component mount/callback、Store action、prop update、`Readable` 声明，以及 Component/Store owner cleanup |
+| Octane | `0.9.0` | Experimental，仅客户端 | 原生 plugin 0.2.1；Vite 8 与 Vite+ 0.2.9 packed fixture 覆盖 Component/Store 实例隔离、props/event、销毁重建及严格声明；Node >=22.22.2，未覆盖 SSR |
 | Vite | `>=7 <9` | 主路径 | Vite 8.2.1 是主要 packed target，Vite 7 保持回归测试 |
+| Vite+ | `0.2.9`，core alias `0.2.9`（Vite `8.2.1`） | 固定版本验收 | Vue/React/Solid/Svelte/Octane 的干净 tarball 安装、`.rs` 生产构建、Chromium、严格声明检查、dev 重建与错误恢复 |
 | Rspack / Rsbuild | Rspack `>=2.1.10`；Rsbuild `>=2.1.13` | Experimental | 保留旧 Vue/React/Rslib fixture；新增 Vue/React `.rs` 生产验收 |
 | Webpack | `>=5` | Experimental | 5.101.0、5.109.2 fixture；Webpack 4 不支持 |
 | Vue Vapor | Vue 3.6.0-beta.17 + Vite 8.2.1 | Experimental | 需要 Vue 的 `vaporInteropPlugin`，不是 Vooya 自己的 renderer |
@@ -54,6 +56,11 @@ Solid 这一行只说明当前 Vite 7 + Chromium fixture 与 adapter unit test �
 Svelte 这一行同样只说明具名 Vite 7 + Chromium fixture；不推导 Svelte 3/4、
 SvelteKit、SSR/hydration、Rspack/Webpack 或其他浏览器已经兼容。fixture
 在卸载子组件后断言 Component handle 与 generated Store 各调用一次 `dispose()`。
+
+`test:vite-plus-frameworks` 还覆盖快速连续保存及宿主组件更新；Rust 编辑使用整页刷新，
+不承诺保留状态。`test:vite-plus` 单独保留旧 `.voo` 回归。依赖按官方 alias/overrides
+配置即可正常 npm 安装，不需要 legacy peer resolver。范围限定为上述版本的 dev/build，
+不推导其他 Vite+ 版本、其全部工具或 SSR 支持。配置见 [Vite+ 接入](../guide/other-integrations.md#vite)。
 
 ## 下一版 Rust-file bundler 接入
 

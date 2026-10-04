@@ -90,29 +90,57 @@ before starting Vite.
 
 ## Vite+
 
-Vite+ is a unified CLI and toolchain around Vite, not a separate Vooya adapter.
-The tested Vite+ path uses Vite+ 0.2.9's Vite core alias and the same
-`vooya()` plugin configuration:
+Use the same `@vooya/vite` plugin with Vite+. The verified combination is
+Vite+ **0.2.9** and `@voidzero-dev/vite-plus-core` **0.2.9**, which exposes
+Vite **8.2.1**. Keep the normal framework plugin and Vooya adapter from your
+existing setup, then add these fields to `package.json`:
 
-```sh
-npm install --save-dev vite-plus@0.2.9
-npx vp build
+```json
+{
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build"
+  },
+  "devDependencies": {
+    "vite-plus": "0.2.9",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9",
+    "vitest": "4.1.10"
+  }
+}
 ```
 
-For a project managed by Vite+, follow its installation and migration guide,
-including the documented `vite` alias to
-`@voidzero-dev/vite-plus-core`. Keep `vooya()` in the normal Vite plugin list;
-the current fixture needs npm's legacy peer resolver because the aliased core
-uses Vite+'s `0.x` version instead of Vite's peer version. This is a recorded
-Vite+ integration cost, not a requirement of the normal Vite path. The
-Vooya compatibility check is:
+These npm aliases and overrides follow the [Vite+ migration rules](https://viteplus.dev/guide/migrate-rules).
+If your project directly depends on Vitest, also pin that dependency to `4.1.10`,
+the version bundled with Vite+ 0.2.9. This setup installs with normal `npm install`;
+`--legacy-peer-deps` is not needed.
 
-```sh
-npm run test:vite-plus
+Import `defineConfig` from `vite-plus`. For example, a Vue configuration is:
+
+```ts
+import { defineConfig } from "vite-plus";
+import vue from "@vitejs/plugin-vue";
+import { vooya } from "@vooya/vite";
+
+export default defineConfig({
+  plugins: [vue(), vooya({ framework: "vue" })],
+});
 ```
 
-This is a compatibility smoke path, not a claim that Vooya owns Vite+'s
-runtime, package manager, task runner, or every bundled tool.
+Run `npm install`, then `npm run dev` or `npm run build`. React, Solid, Svelte
+and Octane retain their respective framework plugins and `vooya({ framework })`
+settings. The Svelte Vite 8 fixture uses `@sveltejs/vite-plugin-svelte` 7.1.2;
+Octane 0.9 requires Node 22.22.2 or newer.
+
+`npm run test:vite-plus-frameworks` checks all five frameworks using clean
+packed consumers: `.rs` components and Stores, production browser interactions,
+strict generated declarations, development rebuilds, Rust error recovery and
+host component edits. Rust edits trigger a full page reload, not state-preserving
+HMR. `npm run test:vite-plus` separately retains the legacy `.voo` regression.
+These checks cover Vite+ dev/build integration at the pinned version; they do
+not cover every bundled Vite+ tool or imply SSR support.
 
 ## Experimental Rspack path
 
