@@ -1,3 +1,5 @@
+"use client";
+
 import {
   createElement,
   useCallback,
@@ -257,7 +259,7 @@ export function useVooyaStore<
   useEffect(() => {
     let active = true;
     let createdStore: TStore | undefined;
-    Promise.resolve(factory(initialPropsRef.current, {
+    Promise.resolve().then(() => factory(initialPropsRef.current, {
       onError(cause) {
         optionsRef.current.onError?.(cause);
       },

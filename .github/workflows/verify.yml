@@ -203,3 +203,29 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:rust-vue
       - run: npm run test:rust-react
+
+  nuxt-ssr:
+    name: Nuxt SSR packed consumer
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.115-${{ runner.os }}
+      - name: Install wasm-bindgen CLI
+        run: |
+          if ! wasm-bindgen --version 2>/dev/null | grep -Fx 'wasm-bindgen 0.2.115'; then
+            cargo install wasm-bindgen-cli --version 0.2.115 --locked --force
+          fi
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:nuxt-ssr
