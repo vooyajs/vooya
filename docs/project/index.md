@@ -41,3 +41,5 @@ currently make a compatibility claim for that path.
 
 These projects share principles, not support matrices. Browser compatibility in
 this repository does not imply Node filesystem compatibility, or vice versa.
+
+- [SSR and 0.2 provider roadmap](./ssr-roadmap.md)
