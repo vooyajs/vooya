@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        script: [test:rust-octane, test:rust-bundlers, test:vite8-frameworks]
+        script: [test:rust-octane, test:rust-bundlers, test:vite8-frameworks, test:vite-plus, test:vite-plus-frameworks]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
