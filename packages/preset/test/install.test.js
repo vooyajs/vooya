@@ -4,11 +4,11 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import test from "node:test";
 import { downloadVerified } from "../lib/download.js";
 import { acquireInstallLock } from "../lib/lock.js";
-import { platformManifest } from "../lib/manifest.js";
+import { platformManifest, RUST_VERSION } from "../lib/manifest.js";
 
 const temporary = () => mkdtempSync(join(tmpdir(), "vooya-preset-test-"));
 test("verifies streamed downloads before publishing and removes failed partials", async () => {
@@ -82,4 +82,18 @@ test("interrupted downloads are discarded and can be retried", async () => {
     await downloadVerified(asset, join(root, "tool"));
     assert.equal(readFileSync(join(root, "tool"), "utf8"), "complete");
   } finally { server.close(); rmSync(root, { recursive: true, force: true }); }
+});
+
+
+test("managed Windows library paths leave room for the MSVC linker", () => {
+  const manifest = platformManifest("win32", "x64");
+  // The original expanded cache name made this real CI path 267 characters.
+  const library = win32.join(
+    "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\vooya-preset-consumer-gJpmbB\\cache",
+    manifest.cacheKey, "rustup", "toolchains", `${RUST_VERSION}-${manifest.host}`,
+    "lib", "rustlib", manifest.host, "lib", "libpanic_unwind-44c2097187f5e9f3.rlib",
+  );
+  assert.ok(library.length < 240, `MSVC library path is too long: ${library.length}`);
+  assert.match(manifest.cacheKey, /^v1-[0-9a-f]{16}$/);
+  assert.notEqual(manifest.cacheKey, platformManifest("darwin", "x64").cacheKey);
 });

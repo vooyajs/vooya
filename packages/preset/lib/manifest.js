@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 // Bootstrap hashes: static.rust-lang.org/rustup/archive/1.28.2/<host>/rustup-init[.exe].sha256
 // Bindgen hashes: GitHub release asset SHA-256 digests for wasm-bindgen 0.2.115.
 export const RUST_VERSION = "1.94.0";
@@ -20,9 +22,12 @@ export function platformManifest(platform = process.platform, arch = process.arc
   const [host, rustupHash, bindgenHost, bindgenHash] = entry;
   const executableSuffix = platform === "win32" ? ".exe" : "";
   const bindgenName = `wasm-bindgen-${WASM_BINDGEN_VERSION}-${bindgenHost}`;
+  // MSVC link.exe still fails on long library paths. Keep the cache segment
+  // short; its identity includes every pin and the host, not a moving channel.
+  const identity = [RUST_VERSION, WASM_BINDGEN_VERSION, RUSTUP_VERSION, host].join("\0");
+  const cacheKey = `v1-${createHash("sha256").update(identity).digest("hex").slice(0, 16)}`;
   return {
-    host, executableSuffix, bindgenName,
-    cacheKey: `v1-rust-${RUST_VERSION}-bindgen-${WASM_BINDGEN_VERSION}-rustup-${RUSTUP_VERSION}-${host}`,
+    host, executableSuffix, bindgenName, cacheKey,
     rustup: { url: `https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${host}/rustup-init${executableSuffix}`, sha256: rustupHash },
     bindgen: { url: `https://github.com/wasm-bindgen/wasm-bindgen/releases/download/${WASM_BINDGEN_VERSION}/${bindgenName}.tar.gz`, sha256: bindgenHash },
   };

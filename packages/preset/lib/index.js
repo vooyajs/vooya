@@ -6,7 +6,7 @@ import { delimiter, join, resolve } from "node:path";
 import { x as extract } from "tar";
 import { downloadVerified } from "./download.js";
 import { acquireInstallLock } from "./lock.js";
-import { platformManifest, RUST_VERSION, WASM_BINDGEN_VERSION, WASM_TARGET } from "./manifest.js";
+import { platformManifest, RUST_VERSION, RUSTUP_VERSION, WASM_BINDGEN_VERSION, WASM_TARGET } from "./manifest.js";
 export { RUST_VERSION, WASM_BINDGEN_VERSION } from "./manifest.js";
 
 function defaultCache(env) {
@@ -31,7 +31,7 @@ export async function prepareToolchain({ cacheDirectory, env = process.env } = {
       mkdirSync(staging);
       try {
         await install(staging, manifest, env);
-        writeFileSync(join(staging, "ready.json"), JSON.stringify({ key: manifest.cacheKey }));
+        writeFileSync(join(staging, "ready.json"), JSON.stringify({ key: manifest.cacheKey, rustVersion: RUST_VERSION, rustupVersion: RUSTUP_VERSION, wasmBindgenVersion: WASM_BINDGEN_VERSION, host: manifest.host }));
         rmSync(root, { recursive: true, force: true });
         renameSync(staging, root);
       } finally { rmSync(staging, { recursive: true, force: true }); }
