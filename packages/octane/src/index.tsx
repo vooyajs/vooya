@@ -50,10 +50,9 @@ type RuntimeProps = Record<string, unknown> & {
 };
 
 export function defineVooyaComponent(
-  bridge: VooyaComponentBridge | VooyaComponentDefinition,
-  legacyLoader?: VooyaComponentBindingsLoader,
+  bridge: VooyaComponentBridge,
 ) {
-  const { contract: definition, loadBindings } = normalizeComponentBridge(bridge, legacyLoader);
+  const { contract: definition, loadBindings } = bridge;
   return function VooyaComponent(componentProps: RuntimeProps) {
     const host = useRef<HTMLDivElement | null>(null);
     const handle = useRef<VooyaComponentHandle | undefined>(undefined);
@@ -108,8 +107,6 @@ export function defineVooyaComponent(
         for (const listener of listeners) {
           element.removeEventListener(listener.name, listener.receive);
         }
-        // See the Vue adapter: freeing synchronously can race wasm-bindgen's
-        // temporary borrow during framework teardown.
         if (handle.current) {
           const startedAt = performance.now();
           try {
@@ -214,12 +211,6 @@ export function useVooyaStore<TProps, TStore extends VooyaStore<unknown>>(
   props: TProps,
   options?: VooyaStoreOptions,
 ): { state: ReturnType<TStore["getSnapshot"]> | undefined; store: TStore | undefined };
-/** Preserve explicit snapshot/props/store type arguments for existing callers. */
-export function useVooyaStore<TSnapshot, TProps, TStore extends VooyaStore<TSnapshot>>(
-  factory: (props: TProps, options?: VooyaStoreOptions) => TStore | Promise<TStore>,
-  props: TProps,
-  options?: VooyaStoreOptions,
-): { state: TSnapshot | undefined; store: TStore | undefined };
 export function useVooyaStore<
   TSnapshot,
   TProps,
@@ -349,13 +340,4 @@ function octaneEventName(name: string) {
     .map((part) => `${part[0].toUpperCase()}${part.slice(1)}`)
     .join("");
   return `on${pascal}`;
-}
-
-function normalizeComponentBridge(
-  bridge: VooyaComponentBridge | VooyaComponentDefinition,
-  legacyLoader?: VooyaComponentBindingsLoader,
-): VooyaComponentBridge {
-  if ("contract" in bridge) return bridge;
-  if (!legacyLoader) throw new Error("Vooya component bridge is missing loadBindings.");
-  return { contract: bridge, loadBindings: legacyLoader };
 }

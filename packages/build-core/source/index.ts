@@ -497,11 +497,14 @@ function buildApplicationUnlocked({
           code: compileVooStyle(component),
         })),
       declarations: components.length > 0
-        ? components.map((component) => ({
-            componentId: component.id ?? component.name,
-            framework,
-            code: generateVooDeclaration(component, framework === "octane" ? (() => { throw new Error("Octane supports Rust .rs sources only."); })() : framework),
-          }))
+        ? components.map((component) => {
+            if (framework === "octane") throw new Error("Octane supports Rust .rs sources only.");
+            return {
+              componentId: component.id ?? component.name,
+              framework,
+              code: generateVooDeclaration(component, framework),
+            };
+          })
         : [
           ...schemaContracts.map((contract) => ({
             componentId: contract.component.id,
