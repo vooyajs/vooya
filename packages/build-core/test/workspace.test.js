@@ -16,6 +16,7 @@ import {
   cleanVooyaWorkspace,
   ensureVooyaWorkspace,
   resolveVooyaWorkspace,
+  resolveRustSchemaGroup,
   writeRustSchemaDeclarations,
   writeVooDeclarations,
 } from "../dist/workspace.js";
@@ -149,5 +150,19 @@ test("writes React store exports into the central declaration", () => {
     assert.doesNotMatch(code, /CartSnapshot = CartSnapshot/);
   } finally {
     rmSync(root, { force: true, recursive: true });
+  }
+});
+
+
+test("resolves sourceRoot dot schema groups with normalized paths", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-schema-dot-"));
+  try {
+    const source = resolve(root, "Counter.rs");
+    writeFileSync(source, "// authored Rust");
+    for (const group of ["rust/./Counter.rs", "src/rust/./Counter.rs", "rust/unused/../Counter.rs", "rust\\.\\Counter.rs"]) {
+      assert.equal(resolveRustSchemaGroup(root, group), source);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });

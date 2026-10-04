@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, parse, relative, resolve } from "node:path";
+import { dirname, isAbsolute, parse, posix, relative, resolve } from "node:path";
 
 import { generateVooDeclaration } from "@vooya/compiler";
 import type { ParsedComponent } from "@vooya/compiler";
@@ -231,8 +231,8 @@ export function writeRustSchemaDeclarations({
   return { typesRoot: paths.types, files: [...expected].sort() };
 }
 
-function resolveRustSchemaGroup(application: string, group: string): string {
-  const normalized = group.replaceAll("\\", "/");
+export function resolveRustSchemaGroup(application: string, group: string): string {
+  const normalized = posix.normalize(group.replaceAll("\\", "/"));
   // Macro spans are recorded after Vooya copies a source into the generated
   // crate, so generated roots may prefix the authored path with `rust/`.
   // Keep the original form first, then try the equivalent application path.

@@ -45,6 +45,8 @@ const rustModuleKeywords = new Set([
 export * from "./errors.js";
 export * from "./cargo-manifest.js";
 export * from "./schema.js";
+export * from "./rust-modules.js";
+export * from "./rust-bundler.js";
 export * from "./schema-declarations.js";
 export * from "./toolchain.js";
 export * from "./workspace.js";
