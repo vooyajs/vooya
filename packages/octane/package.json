@@ -1,0 +1,35 @@
+{
+  "name": "@vooya/octane",
+  "version": "0.0.0",
+  "description": "Experimental native Octane host adapter for Vooya Rust components and stores.",
+  "type": "module",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vooyajs/vooya.git",
+    "directory": "packages/octane"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/index.tsx",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.tsx",
+      "import": "./src/index.tsx"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "octane": "0.9.0"
+  },
+  "engines": {
+    "node": ">=22.22.2"
+  }
+}

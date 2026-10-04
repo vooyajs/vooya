@@ -57,7 +57,7 @@ export interface WriteRustSchemaDeclarationsOptions {
   contracts: RustComponentContract[];
   stores?: RustStoreSchema[];
   types?: RustTypeSchema[];
-  framework: "vue" | "react" | "solid" | "svelte";
+  framework: "vue" | "react" | "solid" | "svelte" | "octane";
   workspaceRoot?: string;
 }
 

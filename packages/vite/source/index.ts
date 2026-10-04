@@ -46,7 +46,7 @@ const runtimeId = "virtual:vooya-runtime";
 const stylePrefix = "virtual:vooya-style:";
 const rustStylePrefix = "virtual:vooya-rust-style:";
 
-export type VooyaFramework = "vue" | "react" | "solid" | "svelte";
+export type VooyaFramework = "vue" | "react" | "solid" | "svelte" | "octane";
 
 export interface VooyaPluginOptions {
   framework?: VooyaFramework;
@@ -90,7 +90,8 @@ export function vooya({
   const compile = () => {
     const components = applicationRoot ? readVooComponents(applicationRoot) : [];
     sourceComponents = components.filter((component) => component.format === "source");
-    writeVooDeclarations({ applicationRoot, components, framework, workspaceRoot: workspaceOptions.root });
+    if (framework === "octane" && components.length > 0) throw new Error("Octane supports Rust .rs sources; legacy .voo sources are not supported.");
+    if (framework !== "octane") writeVooDeclarations({ applicationRoot, components, framework, workspaceRoot: workspaceOptions.root });
     const progress = createRustBuildProgress(logger);
     try {
       if (!toolchain) {
@@ -381,7 +382,7 @@ export const generateRustSolidStoreModule = (store) => generateRustStoreModule(s
 export const generateRustSvelteStoreModule = (store) => generateRustStoreModule(store, "svelte");
 
 function isSupportedFramework(framework) {
-  return framework === "vue" || framework === "react" || framework === "solid" || framework === "svelte";
+  return framework === "vue" || framework === "react" || framework === "solid" || framework === "svelte" || framework === "octane";
 }
 
 function adapterPackage(framework) {

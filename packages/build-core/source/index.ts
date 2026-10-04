@@ -57,7 +57,7 @@ export interface WasmAsset { path: string; bytes: Uint8Array }
 export interface GeneratedCss { componentId: string; code: string }
 export interface GeneratedDeclaration {
   componentId: string;
-  framework: "vue" | "react" | "solid" | "svelte";
+  framework: "vue" | "react" | "solid" | "svelte" | "octane";
   code: string;
 }
 export interface BuildMetadata {
@@ -102,7 +102,7 @@ export interface BuildApplicationOptions {
   workspacePath?: string;
   outputDir?: string;
   buildMode?: "production" | "development";
-  framework?: "vue" | "react" | "solid" | "svelte";
+  framework?: "vue" | "react" | "solid" | "svelte" | "octane";
   onRustBuildStart?: () => void;
   toolchain?: ResolvedToolchain;
   spawn?: BuildSpawn;
@@ -499,7 +499,7 @@ function buildApplicationUnlocked({
         ? components.map((component) => ({
             componentId: component.id ?? component.name,
             framework,
-            code: generateVooDeclaration(component, framework),
+            code: generateVooDeclaration(component, framework === "octane" ? (() => { throw new Error("Octane supports Rust .rs sources only."); })() : framework),
           }))
         : [
           ...schemaContracts.map((contract) => ({
