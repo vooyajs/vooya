@@ -5,7 +5,7 @@
 
 ## Solid 1.9
 
-实验性支持 Solid `>=1.9 <2`，当前验证范围是 Vite 7。
+实验性支持 Solid `>=1.9 <2`，源码用例覆盖 Vite 7/8 和 Vite+ 0.2.9。
 
 
 安装依赖：
@@ -33,7 +33,7 @@ Store 通过 accessor 读取，例如 `state()?.count`；完整用法见
 
 ## Svelte 5
 
-实验性支持 Svelte `>=5 <6`，当前验证范围是 Vite 7。
+实验性支持 Svelte `>=5 <6`，源码用例覆盖 Vite 7/8 和 Vite+ 0.2.9。
 
 
 安装 adapter 与 Vite plugin：
@@ -70,9 +70,49 @@ Store state 是 Svelte `Readable`，模板通过 `$state` 读取；callback even
 
 配置后继续快速开始中的[类型配置和运行检查](./getting-started.md#run)。
 
-## Vite+、Rspack 和 Webpack
+## Vite+
 
-- [Vite+ 配置](../../guide/other-integrations.md#vite)：使用同一个 Vite plugin，说明包含已测版本与依赖解析限制。
+已验证 Vite+ **0.2.9** 和同版本 core alias（实际 Vite **8.2.1**）。保留当前
+框架插件及 Vooya adapter，在 `package.json` 中加入：
+
+```json
+{
+  "scripts": { "dev": "vp dev", "build": "vp build" },
+  "devDependencies": {
+    "vite-plus": "0.2.9",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9",
+    "vitest": "4.1.10"
+  }
+}
+```
+
+若直接依赖 Vitest，也将该依赖固定到 `4.1.10`。正常执行 `npm install` 即可，
+不需要 `--legacy-peer-deps`。配置中的 `defineConfig` 改从 `vite-plus` 导入：
+
+```ts
+import { defineConfig } from "vite-plus";
+import vue from "@vitejs/plugin-vue";
+import { vooya } from "@vooya/vite";
+
+export default defineConfig({
+  plugins: [vue(), vooya({ framework: "vue" })],
+});
+```
+
+执行 `npm run dev` 或 `npm run build`。React、Solid、Svelte、Octane 保留各自的
+框架插件和 `framework` 参数。Vite 8 的 Svelte fixture 使用 Svelte plugin 7.1.2；
+Octane 0.9 要求 Node 22.22.2 或更新版本。
+
+`test:vite-plus-frameworks` 覆盖五框架的 `.rs` 生产构建、浏览器交互、严格声明检查、
+开发重建、Rust 错误恢复和宿主组件更新。Rust 编辑仍使用整页刷新，不保留运行状态。
+验证范围为固定版本的 dev/build，不代表所有 Vite+ 工具或 SSR 都已支持。
+依赖配置依据 [Vite+ 官方迁移规则](https://viteplus.dev/guide/migrate-rules)。
+
+## Rspack 和 Webpack
+
 - [实验性 Rspack 配置](../../guide/other-integrations.md#experimental-rspack-path)：包含 Rsbuild 和直接 Rspack 入口。
 - [实验性 Webpack 5 配置](../../guide/other-integrations.md#experimental-webpack-5-path)：包含 loader、CSS 配置和重建行为。
 

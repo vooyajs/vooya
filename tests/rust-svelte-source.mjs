@@ -11,11 +11,11 @@ const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const fixture = process.env.VOOYA_RUST_FIXTURE_ROOT ?? resolve(repositoryRoot, "tests/fixtures/rust-svelte");
 
 if (!process.env.VOOYA_RUST_FIXTURE_ROOT) {
-run("npm", ["run", "build", "--workspace", "@vooya/build-core"], repositoryRoot);
-run("npm", ["run", "build", "--workspace", "@vooya/vite"], repositoryRoot);
-run("npm", ["run", "build", "--workspace", "@vooya/svelte"], repositoryRoot);
+  run("npm", ["run", "build", "--workspace", "@vooya/build-core"], repositoryRoot);
+  run("npm", ["run", "build", "--workspace", "@vooya/vite"], repositoryRoot);
+  run("npm", ["run", "build", "--workspace", "@vooya/svelte"], repositoryRoot);
 }
-run(process.execPath, [resolve(process.env.VOOYA_RUST_FIXTURE_ROOT ?? repositoryRoot, "node_modules/vite/bin/vite.js"), "build", "--config", "vite.config.js"], fixture);
+run(process.execPath, [resolve(process.env.VOOYA_RUST_FIXTURE_ROOT ?? repositoryRoot, process.env.VOOYA_VITE_PLUS ? "node_modules/vite-plus/bin/vp" : "node_modules/vite/bin/vite.js"), "build", "--config", "vite.config.js"], fixture);
 
 verifyGeneratedDeclarations();
 await verifyBrowser();

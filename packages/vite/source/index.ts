@@ -9,7 +9,6 @@ import {
   formatResolvedToolchain,
   isVooyaUserError,
   resolveVooyaWorkspace,
-  resolveRustSchemaGroup,
   resolveRuntimeCrateRoot,
   resolveRustBuildOptions,
   resolveRustDependencyRoots,
@@ -32,6 +31,7 @@ import {
 import { readVooComponents } from "./voo-project.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
 import {
+  indexRustRecordsByFile,
   isPathInside,
   isVooyaSourceChange,
   modulePath,
@@ -118,9 +118,11 @@ export function vooya({
       const schemaIndex = indexVooyaSchema(buildResult.schema);
       rustContracts = buildRustComponentContracts(schemaIndex);
       rustStores = schemaIndex.stores;
-      rustContractsByFile = new Map(rustContracts.map((contract) => [resolveRustSchemaGroup(applicationRoot, contract.component.group), contract]));
-      rustStoresByFile = new Map(rustStores.map((store) => [resolveRustSchemaGroup(applicationRoot, store.group), store]));
+      rustContractsByFile = new Map();
+      rustStoresByFile = new Map();
       if (sourceComponents.length === 0) {
+        rustContractsByFile = indexRustRecordsByFile(applicationRoot, rustContracts, (contract) => contract.component.group);
+        rustStoresByFile = indexRustRecordsByFile(applicationRoot, rustStores, (store) => store.group);
         writeRustSchemaDeclarations({
           applicationRoot,
           contracts: rustContracts,

@@ -148,6 +148,27 @@ async function verifyWatch(project, bundler) {
   const api = bundler === "webpack" ? 'import build from "webpack";' : 'import { rspack as build } from "@rspack/core";';
   writeFileSync(resolve(project, "watch.mjs"), `${api}
 import config from "./bundler.config.mjs";
+import { resolveToolchain } from "@vooya/build-core";
+import { writeFileSync, chmodSync } from "node:fs";
+import { resolve } from "node:path";
+const cargo = resolveToolchain({ cwd: process.cwd(), mode: "system" }).cargo.path;
+const wrapper = resolve("watch-cargo.cjs");
+writeFileSync(wrapper, \`#!\${process.execPath}
+const { spawnSync } = require("node:child_process");
+const { existsSync, readFileSync, writeFileSync, unlinkSync } = require("node:fs");
+const args = process.argv.slice(2);
+const result = spawnSync(\${JSON.stringify(cargo)}, args, { stdio: "inherit", env: process.env });
+const marker = \${JSON.stringify(resolve("race-edit.json"))};
+if (result.status === 0 && args.includes("--message-format=json") && existsSync(marker)) {
+  const edit = JSON.parse(readFileSync(marker, "utf8"));
+  writeFileSync(edit.path, edit.source);
+  unlinkSync(marker);
+  console.log("WATCH_RACE_EDIT");
+}
+process.exit(result.status ?? 1);
+\`);
+chmodSync(wrapper, 0o755);
+config.plugins[0].toolchain = { mode: "system", cargoPath: wrapper };
 const compiler = build({ ...config, mode: "development" });
 const watcher = compiler.watch({ aggregateTimeout: 100 }, (error, stats) => {
   if (error || stats.hasErrors()) console.log("WATCH_ERROR", error?.message ?? stats.toString({ all: false, errors: true }));
@@ -168,6 +189,14 @@ process.on("SIGTERM", () => watcher.close(() => compiler.close(() => process.exi
     const initial = successes();
     await new Promise((done) => setTimeout(done, 1200));
     assert.equal(successes(), initial, `${bundler} rebuilt its own generated assets without an authored edit.\n${output}`);
+    // Simulate a second save after Cargo has already consumed the first edit.
+    // The first artifact must not acknowledge that newer source fingerprint.
+    writeFileSync(resolve(project, "race-edit.json"), JSON.stringify({ path: sourcePath, source: original.replace("Count: {}", "During build: {}") }));
+    const beforeRace = successes();
+    writeFileSync(sourcePath, original.replace("Count: {}", "First edit: {}"));
+    await waitFor(() => output.includes("WATCH_RACE_EDIT") && successes() > beforeRace + 1, () => output);
+    await settle(successes, () => output);
+    await verify(project, "During build");
     writeFileSync(sourcePath, `${original}\ninvalid Rust\n`);
     await waitFor(() => output.includes("WATCH_ERROR"), () => output);
     assert.equal(processHandle.exitCode, null, `${bundler} watch exited after Rust error.`);
@@ -182,8 +211,9 @@ process.on("SIGTERM", () => watcher.close(() => compiler.close(() => process.exi
     const stylePath = resolve(project, "Counter.css");
     writeFileSync(stylePath, ".rust-counter { color: rgb(90, 30, 70); }\n");
     await waitFor(() => successes() > recovered, () => output);
-    await verify(project, "Recovered", "rgb(90, 30, 70)");
+    // Generated CSS can invalidate its Webpack module in the following watch pass.
     await settle(successes, () => output);
+    await verify(project, "Recovered", "rgb(90, 30, 70)");
     const styled = successes();
     await new Promise((done) => setTimeout(done, 1200));
     assert.equal(successes(), styled, `${bundler} did not settle after stylesheet edit.\n${output}`);
@@ -203,7 +233,10 @@ process.on("SIGTERM", () => watcher.close(() => compiler.close(() => process.exi
     rmSync(undoSource);
     await waitFor(() => successes() > beforeUndo, () => output);
     await settle(successes, () => output);
-    console.log(`Verified ${bundler} Rust-file watch: invalid Rust, recovery, stylesheet update, new .rs detection/recovery, undo by deletion, and no generated-file rebuild loop.`);
+    console.log(`Verified ${bundler} Rust-file watch: invalid Rust, recovery, stylesheet update, new .rs detection/recovery, edits during compilation, undo by deletion, and no generated-file rebuild loop.`);
+  } catch (error) {
+    console.error(output);
+    throw error;
   } finally {
     processHandle.kill("SIGTERM");
     await Promise.race([new Promise((done) => processHandle.once("exit", done)), new Promise((done) => setTimeout(done, 3000))]);

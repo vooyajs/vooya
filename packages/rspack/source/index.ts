@@ -146,6 +146,13 @@ export class VooyaRspackPlugin implements RspackPluginLike {
     });
     compiler.hooks.beforeCompile.tapPromise("vooya", async () => {
       if (!this.needsBuild) return;
+      const state = getBuildState(this.instanceId);
+      // Cargo compiles a source snapshot. Never acknowledge edits made while it
+      // runs by sampling inputs after the build. New dependencies get a baseline
+      // on the next watch pass, once their pre-build state is known.
+      const inputFingerprint = state
+        ? rustInputFingerprint([...state.watchedRoots, ...state.styleDependencies], state.workspaceRoot, compiler.options.output?.path)
+        : undefined;
       try {
         const applicationRoot = compiler.context;
         const components = readVooComponents(applicationRoot);
@@ -194,8 +201,7 @@ export class VooyaRspackPlugin implements RspackPluginLike {
           watchedRoots: [...result.watchedFiles, ...components.map((component) => component.id)],
           styleDependencies: rustModules.dependencies,
         });
-        const state = getBuildState(this.instanceId)!;
-        this.inputFingerprint = rustInputFingerprint([...state.watchedRoots, ...state.styleDependencies], workspace.root, compiler.options.output?.path);
+        this.inputFingerprint = inputFingerprint;
         this.needsBuild = false;
         this.buildError = undefined;
       } catch (error) {

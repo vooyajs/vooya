@@ -1,6 +1,6 @@
 # 兼容性
 
-这张表记录仓库里的自动化证据，不是跨浏览器认证或生产支持承诺。
+这张表记录仓库的接入范围和验证用例。Beta 表格描述已发布的包，后面的新增部分描述当前源码中尚待发布的能力。
 
 ## Beta 四框架适配情况
 
@@ -18,7 +18,7 @@ Vue、React、Solid、Svelte 的 adapter 都已随 `0.1.0-beta.0` 发布，可�
 | Rust 源码生产构建与浏览器用例 | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium | Vite 7 + Chromium |
 | 干净项目安装打包产物的独立验收 | 已覆盖 | 已覆盖 | Vite 8 已覆盖 | Vite 8 已覆盖 |
 | npm registry 独立验收 | 已覆盖 | 已覆盖 | 尚未覆盖 | 尚未覆盖 |
-| SSR / hydration / slots | 未支持 | 未支持 | 未支持 | 未支持 |
+| 已发布 Beta 的 SSR / hydration / slots | 未支持 | 未支持 | 未支持 | 未支持 |
 
 [Beta.0 发布流程](https://github.com/vooyajs/vooya/actions/runs/36614375254)
 已通过完整 `verify:release`，其中包含四个 `test:rust-*` 浏览器用例。adapter
@@ -44,7 +44,9 @@ Vue 将未传入的可选 Boolean prop 转成 `false` 的问题。Solid/Svelte �
 | React | `>=19` | Supported | fixture 覆盖 19.0.0 与 19.2.0 |
 | Solid | `>=1.9 <2` | Experimental | Vite 7 browser fixture 覆盖 Rust Component、callback event 和 Accessor 驱动的 Store 更新；adapter unit test 覆盖 owner cleanup 与 late resolve |
 | Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 Chromium fixture 覆盖 Component mount/callback、Store action、prop update、`Readable` 声明，以及 Component/Store owner cleanup |
+| Octane | `0.9.0` | Experimental，仅客户端 | 原生 plugin 0.2.1；Vite 8 与 Vite+ 0.2.9 packed fixture 覆盖 Component/Store 实例隔离、props/event、销毁重建及严格声明；Node >=22.22.2，未覆盖 SSR |
 | Vite | `>=7 <9` | 主路径 | Vite 8.2.1 是主要 packed target，Vite 7 保持回归测试 |
+| Vite+ | `0.2.9`，core alias `0.2.9`（Vite `8.2.1`） | 固定版本验收 | Vue/React/Solid/Svelte/Octane 的干净 tarball 安装、`.rs` 生产构建、Chromium、严格声明检查、dev 重建与错误恢复 |
 | Rspack / Rsbuild | Rspack `>=2.1.10`；Rsbuild `>=2.1.13` | Experimental | 保留旧 Vue/React/Rslib fixture；新增 Vue/React `.rs` 生产验收 |
 | Webpack | `>=5` | Experimental | 5.101.0、5.109.2 fixture；Webpack 4 不支持 |
 | Vue Vapor | Vue 3.6.0-beta.17 + Vite 8.2.1 | Experimental | 需要 Vue 的 `vaporInteropPlugin`，不是 Vooya 自己的 renderer |
@@ -55,6 +57,11 @@ Svelte 这一行同样只说明具名 Vite 7 + Chromium fixture；不推导 Svel
 SvelteKit、SSR/hydration、Rspack/Webpack 或其他浏览器已经兼容。fixture
 在卸载子组件后断言 Component handle 与 generated Store 各调用一次 `dispose()`。
 
+`test:vite-plus-frameworks` 还覆盖快速连续保存及宿主组件更新；Rust 编辑使用整页刷新，
+不承诺保留状态。`test:vite-plus` 单独保留旧 `.voo` 回归。依赖按官方 alias/overrides
+配置即可正常 npm 安装，不需要 legacy peer resolver。范围限定为上述版本的 dev/build，
+不推导其他 Vite+ 版本、其全部工具或 SSR 支持。配置见 [Vite+ 接入](../guide/other-integrations.md#vite)。
+
 ## 下一版 Rust-file bundler 接入
 
 `test:rust-bundlers` 从当前源码打包，在干净项目中验证 Webpack 5.109.2、
@@ -64,9 +71,16 @@ Rspack 2.1.10 与 Vue/React 的 `.rs` Component、Store、props/event、scoped C
 CSS 更新、新增 `.rs` 和产物不会造成循环重建。Next.js/SSR、Webpack/Rspack
 下的 Solid/Svelte 尚未完成验收。
 
+## 下一版 SSR 接入
+
+当前源码将 Vue Store 的创建推迟到浏览器挂载，并保留 React 的客户端边界。
+adapter 测试覆盖服务端渲染和 hydration，Nuxt 独立打包用例覆盖 WASM 加载、
+props/event、独立 Store 和路由清理。服务端渲染的是宿主容器，Rust 组件内容仍由
+浏览器生成。Next.js 尚未验证，具体 API 边界见 [SSR 范围](./ssr-roadmap.md)。
+
 ## 尚未支持或未验证
 
-Safari/WebKit、移动浏览器、SSR、hydration、Rollup、Turbopack 和未列出的
+Safari/WebKit、移动浏览器、Rollup、Turbopack 和未列出的
 bundler 没有当前兼容性声明。没有正式预编译组件产品；保留的 Vue fixture
 只是 build-contract 证据。`.voo` 是已退休的探索格式，不能作为新组件输入。
 
