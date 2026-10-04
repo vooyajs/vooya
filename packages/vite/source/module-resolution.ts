@@ -1,4 +1,5 @@
 import { isAbsolute, relative, resolve } from "node:path";
+import { resolveRustSchemaGroup } from "@vooya/build-core";
 import type { RustBuildOptions } from "@vooya/build-core";
 
 export function modulePath(id: string): string {
@@ -38,4 +39,18 @@ export function unresolvedRustImportMessage(
   }
   return `Vooya imported ${file}, but the compiled schema contains no public Component or Store for that file. ` +
     `Add a #[voo::component] or #[voo::store] role, or import the public Rust module that owns it.`;
+}
+
+/** Schema records without file groups have no importable Rust-file module. */
+export function indexRustRecordsByFile<T>(
+  applicationRoot: string,
+  records: T[],
+  groupOf: (record: T) => string | null | undefined,
+): Map<string, T> {
+  const byFile = new Map<string, T>();
+  for (const record of records) {
+    const group = groupOf(record);
+    if (group) byFile.set(resolveRustSchemaGroup(applicationRoot, group), record);
+  }
+  return byFile;
 }

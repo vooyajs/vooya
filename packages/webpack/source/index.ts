@@ -134,8 +134,16 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
     });
     compiler.hooks.beforeCompile.tapPromise("vooya", async () => {
       if (!this.needsBuild) return;
+      const state = getBuildState(this.instanceId);
+      // Cargo compiles a source snapshot. Never acknowledge edits made while it
+      // runs by sampling inputs after the build. New dependencies get a baseline
+      // on the next watch pass, once their pre-build state is known.
+      const inputFingerprint = state
+        ? rustInputFingerprint(state.watchedRoots, state.workspaceRoot, compiler.options.output?.path)
+        : undefined;
       try {
         this.build(compiler);
+        this.inputFingerprint = inputFingerprint;
         this.needsBuild = false;
         this.buildError = undefined;
       } catch (error) {
@@ -201,7 +209,6 @@ export class VooyaWebpackPlugin implements WebpackPluginLike {
       }),
       watchedRoots: [...result.watchedFiles, ...components.map((component) => component.id), ...rustModules.dependencies],
     });
-    this.inputFingerprint = rustInputFingerprint(getBuildState(this.instanceId)!.watchedRoots, workspace.root, compiler.options.output?.path);
   }
 }
 

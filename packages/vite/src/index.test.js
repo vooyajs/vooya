@@ -16,7 +16,7 @@ import {
   generateRustVueStoreModule,
   vooya,
 } from "../dist/index.js";
-import { isVooyaSourceChange, unresolvedRustImportMessage } from "../dist/module-resolution.js";
+import { indexRustRecordsByFile, isVooyaSourceChange, unresolvedRustImportMessage } from "../dist/module-resolution.js";
 
 test("reports stable Rust/WASM build stages with their elapsed duration", () => {
   const messages = [];
@@ -231,4 +231,16 @@ test("generates Svelte virtual modules with readable stores", () => {
 
 test("rejects unknown framework adapters instead of silently using Vue", () => {
   assert.throws(() => vooya({ framework: "angular" }), /Unknown Vooya framework angular/);
+});
+
+
+test("Rust-file lookup omits schema records without a source group", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-schema-groups-"));
+  const id = resolve(root, "Counter.rs");
+  const records = [{ name: "NoGroup" }, { name: "NullGroup", group: null }, { name: "Counter", group: "Counter.rs" }];
+  writeFileSync(id, "// authored Rust source\n");
+  try {
+    const map = indexRustRecordsByFile(root, records, (record) => record.group);
+    assert.deepEqual([...map], [[id, records[2]]]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
