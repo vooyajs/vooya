@@ -5,7 +5,7 @@ import { setTimeout } from "node:timers/promises";
 
 // Publish an initialized nonempty directory. Reapers only unlink the exact
 // dead owner's file; they never recursively remove a possibly replaced lock.
-export async function acquireInstallLock(path, timeoutMs = 15 * 60_000) {
+export async function acquireInstallLock(path, timeoutMs = 30 * 60_000) {
   const owner = `${process.pid}-${randomUUID()}.owner`;
   const candidate = `${path}.candidate-${owner}`;
   mkdirSync(candidate);
