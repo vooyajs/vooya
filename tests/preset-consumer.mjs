@@ -9,7 +9,8 @@ import { delimiter, dirname, isAbsolute, join, relative, resolve } from "node:pa
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { startDevServer, stopDevServer } from "./helpers/dev-server.mjs";
-const root = mkdtempSync(join(tmpdir(), "vooya-preset-consumer-"));
+// Windows temp paths may use an 8.3 alias; Vite compares requests with real paths.
+const root = realpathSync.native(mkdtempSync(join(tmpdir(), "vooya-preset-consumer-")));
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const cacheDirectory = resolve(process.env.VOOYA_CACHE_DIR || join(root, "cache"));
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
@@ -68,7 +69,19 @@ try {
   server.stdout.on("data", data => { output += data; });
   server.stderr.on("data", data => { output += data; });
   const url = `http://127.0.0.1:${port}`;
-  await waitUntil(async () => { if (spawnError) throw spawnError; assert.equal(server.exitCode, null, output); assert.equal(server.signalCode, null, output); try { return (await fetch(url, { signal: AbortSignal.timeout(1000) })).ok; } catch { return false; } }, "dev server startup");
+  await waitUntil(async () => {
+    if (spawnError) throw spawnError;
+    assert.equal(server.exitCode, null, output);
+    assert.equal(server.signalCode, null, output);
+    let response;
+    try { response = await fetch(url, { signal: AbortSignal.timeout(1000) }); }
+    catch { return false; } // The listening socket may not exist yet.
+    if (response.status >= 400 && response.status < 500) {
+      const body = await response.text().catch(error => `<response body unavailable: ${error.message}>`);
+      throw new Error(`Dev server startup returned HTTP ${response.status}: ${body}`);
+    }
+    return response.ok;
+  }, "dev server startup");
   browser = await chromium.launch({ headless: true });
   page = await browser.newPage();
   page.on("pageerror", error => { output += `\nBrowser error: ${error.message}`; });
