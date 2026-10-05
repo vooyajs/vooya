@@ -2,7 +2,7 @@
 
 This guide targets the [published beta](../project/status.md). If a main-branch
 example mentions a managed preset, Octane or SSR, check its
-[unreleased availability](../project/next-release.md) before changing your setup.
+[alpha availability](../project/next-release.md) before changing your setup.
 
 Start with the diagnostic command from the application root:
 
@@ -76,7 +76,7 @@ run the normal build again.
 
 Keep the dev server running, fix the reported Rust source line, and save again.
 The published Rust-file Vite path recovers after failed compilation.
-Webpack/Rspack Rust-file recovery is part of the unreleased 0.2 source tests. A successful Rust rebuild currently causes a full page reload, so
+Webpack/Rspack Rust-file recovery is covered by the named 0.2 alpha source tests. A successful Rust rebuild currently causes a full page reload, so
 component state is not preserved.
 
 Builds using the same `.vooya` workspace are serialized. Vooya prepares WASM,
@@ -98,16 +98,16 @@ On published beta, use a source directory without trailing dot segments, such
 as `rust` rather than `rust/.`. Keep application sources in a dedicated directory
 instead of scanning the project root. Root normalization and excluding dependency
 directories are [maintenance candidates](../maintainers/release-lines.md#maintenance-backport-candidates),
-not released fixes. Check the exact package version before assuming a main-branch
+unreleased on the beta maintenance line; the fixes are available in alpha.0. Check the exact package version before assuming a main-branch
 regression test covers your installation.
 
 ## A React Store factory throws before `onError` runs
 
-The published React adapter can let a synchronous factory throw escape its
+The published beta React adapter can let a synchronous factory throw escape its
 creation-error callback. When using the advanced factory API, an `async` wrapper
 turns such a throw into a rejected Promise handled by that API. Preserve the
 factory arguments and return type; do not suppress the error. The focused fix
-is a 0.1 maintenance candidate, not an available package update.
+is available in React alpha.0; its separate 0.1 maintenance backport is not yet a published beta update.
 
 ## Still blocked
 

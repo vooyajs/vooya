@@ -1,31 +1,65 @@
-# Next release: 0.2 work in progress
+# 0.2 alpha: opt-in installation and scope
 
-The current npm packages are the [0.1 beta releases](./status.md). The features
-below are source work proposed for the next 0.2 batch. No 0.2 alpha installation
-is available from this documentation yet. A successful checkout build or packed
-test does not mean that `npm install @vooya/vite@beta` includes these changes.
+The [0.2 alpha release run](https://github.com/vooyajs/vooya/actions/runs/37315595525) publishes eight packages at
+`0.2.0-alpha.0`: `@vooya/vite`, `@vooya/vue`, `@vooya/react`, `@vooya/build-core`,
+`@vooya/provider-rust`, `@vooya/preset`, `@vooya/rspack`, and `@vooya/webpack`.
+`@vooya/core` and `@vooya/compiler` remain at `0.1.0-beta.0`; Solid and Svelte
+adapters remain at `0.1.0-beta.2`. Use this exact mixed version graph; there is no
+Solid/Svelte alpha package in this release. Octane remains private and deferred.
 
-For a first application, use the [published quickstart](../guide/getting-started.md).
-For the scope freeze, maintenance candidates and publication prerequisites,
-read [Release lines](../maintainers/release-lines.md). That page governs the
-release plan; this page explains the user-facing differences.
+The original publication workflow failed after publishing; independent registry
+recovery and GitHub prerelease reconciliation are complete. See the
+[release record](../maintainers/releases/0.2.0-alpha.0.md) for evidence and limits.
+
+The default quickstart continues to use beta. Alpha is an explicit opt-in for the
+managed toolchain, bounded Vite 8/Vite+ and Rust bundler paths, and SSR-safe
+client-mounted islands. See [package status](./status.md).
+Publication does not establish every framework or SSR combination, and a source
+fixture is not by itself a registry-consumer test.
+
+## Install into an existing Vite application
+
+Keep the host framework plugin and the Rust example from the [beta quickstart](../guide/getting-started.md).
+Select one adapter; do not install both unless the application actually uses both.
+
+```sh
+npm install -D @vooya/vite@0.2.0-alpha.0
+# Vue
+npm install @vooya/vue@0.2.0-alpha.0
+# Or React
+npm install @vooya/react@0.2.0-alpha.0
+# Optional: pinned managed Rust/WASM tools
+npm install -D @vooya/preset@0.2.0-alpha.0
+npx vooya doctor --json
+npm run dev
+# After checking the app and generated declarations, stop dev with Ctrl+C.
+npm run build
+```
+
+Solid/Svelte applications keep their adapter at `0.1.0-beta.2` and use
+`@vooya/vite@0.2.0-alpha.0`; do not request a nonexistent adapter alpha. Node and host-plugin
+requirements still follow the [compatibility matrix](./compatibility.md).
+`0.2.0-alpha.0` is the Vooya plugin version; the host bundler is Vite 7 or 8.
+The preset is optional. Without it, install the system Rust target and matching
+wasm-bindgen CLI as in the quickstart. With it, the host SDK/linker is still required.
+Application authors do not need a direct provider-rust dependency.
 
 ## Managed Rust toolchain
 
-Current source can discover an optional `@vooya/preset` dependency declared in
+The alpha Vite/Rust integrations can discover an optional `@vooya/preset` dependency declared in
 the application or an ancestor project. It prepares pinned Rust/WASM tools in
 an isolated cache. It still compiles Rust locally and requires the host linker
 and SDK where applicable. The preset is not a Rust-free component runtime.
 
-These settings are **unreleased**:
+These settings are available **since 0.2.0-alpha.0**:
 
-| Setting | Source behavior |
+| Setting | Alpha behavior |
 | --- | --- |
 | `toolchain.mode: "auto"` (default) | Uses a declared preset when present; otherwise uses system discovery. An explicit `cargoPath` selects system tools. |
 | `toolchain.mode: "system"` | Uses installed system tools without preparing a preset. |
 | `toolchain.mode: "managed"` | Requires the project's preset; an explicit `cargoPath` is an error. |
 | `VOOYA_TOOLCHAIN` | Selects the mode when the configured mode is `auto`. |
-| `vooya doctor --toolchain auto\|system\|managed` | Diagnoses the same source-only selection policy. |
+| `vooya doctor --toolchain auto\|system\|managed` | Diagnoses the same alpha selection policy. |
 
 If managed preparation fails, inspect the installer error and retry after
 correcting the download or host prerequisite. Vooya does not silently fall
@@ -43,7 +77,7 @@ CI with a fresh managed cache; a local reused cache does not verify downloads.
 
 ## Host integrations
 
-| Candidate | Source evidence and remaining boundary |
+| Integration | Named fixture evidence and remaining boundary |
 | --- | --- |
 | Vite 8.2.1 | Vue/React/Solid/Svelte packed production and dev consumers, strict declarations, Rust error recovery, rapid saves and host edits. |
 | Vite+ 0.2.9 | Four-framework packed dev/build fixtures with the documented aliases and overrides. Normal npm peer resolution; no claim for all Vite+ tools or versions. |
@@ -52,13 +86,13 @@ CI with a fresh managed cache; a local reused cache does not verify downloads.
 
 See [source compatibility evidence](./compatibility.md#current-source-browser-fixtures),
 [experimental setup](../guide/other-integrations.md#vite), and the
-[SSR boundary](./ssr-roadmap.md). These are candidate evaluation paths, not
-instructions to combine unpublished features with npm beta packages.
+[SSR boundary](./ssr-roadmap.md). Use the exact installation graph above. The named source tests describe coverage;
+they do not imply that arbitrary newer main commits have been published.
 
 ## Octane is deferred
 
 The native Octane adapter remains a private workspace experiment, with its own
-packed browser test. It is excluded from this 0.2 publication candidate and
+packed browser test. It is excluded from this 0.2 alpha release and
 public release gate. Do not install an unpublished `@vooya/octane` version.
 Making it public later requires explicit scope review, a first-release
 Changeset and registry acceptance; keeping the implementation does not commit
@@ -74,11 +108,10 @@ identity and build artifacts; it does not add a public multi-language provider
 registry or a new artifact protocol. Neither the new package nor this
 extraction is part of the published 0.1 beta.
 
-## Evaluating a candidate
+## Reproducing source evidence
 
-Use a single reviewed checkout and its matching tarballs, including exact
-internal dependencies. The named repository tests install these artifacts into
-fresh consumers. Record the commit and test command when reporting a result.
-Do not substitute an npm beta dependency for an unpublished package to get an
-installation to pass. A public alpha command and versioned migration notes will
-be added only after release acceptance and publication.
+The named repository tests build matching tarballs from a reviewed checkout.
+Record the commit and command; a later main build may include changes absent from
+alpha.0. For installed applications, use the exact registry versions above.
+Publication and official-site deployment are separate operations; a merged docs
+change alone is not evidence that the public site serves it.

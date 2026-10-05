@@ -1,5 +1,8 @@
 # 快速开始
 
+本页继续默认使用 Beta。需要可选托管工具链或具名的新接入路径时，
+请单独选择 [0.2 Alpha 安装](../project/next-release.md)。
+
 在已有的 Vite 应用中接入一个 Rust 组件。先选择你正在使用的框架：
 
 - [Vue 3](#vue)：安装 adapter，配置 Vue 插件。

@@ -1,5 +1,8 @@
 # Getting Started
 
+Beta remains the default in this guide. For the optional managed toolchain and
+the bounded newer integrations, use the separate [0.2 alpha installation guide](../project/next-release.md).
+
 Add one Rust component to an existing Vite application. Choose your framework:
 
 - [Vue 3](#vue): install the adapter and configure the Vue plugin.

@@ -1,14 +1,12 @@
 # SSR and the 0.2 provider boundary
 
-SSR integration and Rust provider extraction are the next **0.2.0 feature
-workstream**. They are not part of the published 0.1 Beta support promise.
-The [release-line review](../maintainers/release-lines.md) defines the batch
-and maintenance candidates. A patch Changeset alone does not make a change
-suitable for 0.1. Do not edit package versions or publish 0.2 before acceptance.
+SSR-safe islands and Rust provider extraction are available in the opt-in
+[0.2.0-alpha.0 package graph](./next-release.md). Beta scope is unchanged.
+The named fixture below defines the Nuxt boundary; it is not universal SSR support.
 
 ## First target: SSR pages with client-mounted WASM islands
 
-Nuxt is the verified source consumer for the proposed batch. Next.js is a
+Nuxt is the verified named consumer for the alpha batch. Next.js is a
 research target, not a requirement or support claim for the first 0.2 alpha.
 The island contract lets a host render a page on the server and hydrate it in
 the browser without starting the browser WASM runtime on the server.
@@ -25,7 +23,7 @@ on the server and hydrating that Rust-owned subtree requires a separate render
 contract, state transfer, and ownership design. It is not accomplished by adding
 `use client`, disabling SSR, or wrapping everything in a client-only component.
 
-## Unreleased source foundation
+## Foundation available since alpha.0
 
 - Vue's generated Store passes a lazy factory to `useVooyaStore`; the factory
   starts only after mount. The advanced composable also accepts factories.
@@ -42,6 +40,10 @@ contract, state transfer, and ownership design. It is not accomplished by adding
   exports remain compatible. Bundlers need no new `provider` option.
 
 ## API behavior during SSR
+
+The adapter behavior in this table applies only to Vue and React. Solid and
+Svelte SSR are outside this release scope; do not assume their generated Store
+hooks defer factory execution until client mount.
 
 | API | Server rendering | Browser lifecycle |
 | --- | --- | --- |
@@ -91,7 +93,7 @@ and [Turbopack configuration](https://nextjs.org/docs/app/api-reference/turbopac
 ## Nuxt acceptance contract
 
 The named current-source Nuxt fixture above exercises the following contract.
-Retain it for the release candidate; it is not yet published compatibility.
+Its named version and runtime constraints remain the alpha compatibility boundary.
 Use an actual SSR-enabled Nuxt fixture with the normal Vite integration and
 ordinary `.rs` imports. Exercise both server and client builds; ensure generated
 WASM URLs and imports survive Nitro output. Rendering a server page must neither
@@ -107,7 +109,7 @@ Reference: [Nuxt lifecycle](https://nuxt.com/docs/3.x/guide/concepts/nuxt-lifecy
 
 ## Provider extraction stages
 
-1. **Rust package boundary (unreleased):** `@vooya/provider-rust` owns compilation,
+1. **Rust package boundary (since alpha.0):** `@vooya/provider-rust` owns compilation,
    schema, workspace, and toolchain behavior. `@vooya/build-core` re-exports the
    existing API for compatibility. The internal `BuildProvider` seam remains
    Rust-shaped and is not a public extension protocol.

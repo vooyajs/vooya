@@ -8,7 +8,7 @@ These setup notes cover additional frameworks and bundlers. They require the sam
 ## Solid
 
 Experimental: Solid `>=1.9 <2`. Published beta evidence covers Vite 7;
-Vite 8 and Vite+ 0.2.9 packed fixtures exercise unreleased source. The Store examples below
+Vite 8 and Vite+ 0.2.9 packed fixtures cover the alpha source graph. The Store examples below
 assume you have authored the imported Rust roots; see [Store authoring](../concepts/store.md).
 
 Install the Solid adapter and Vite plugin in an existing Solid application:
@@ -48,7 +48,7 @@ before starting Vite.
 ## Svelte
 
 Experimental: Svelte `>=5 <6`. Published beta evidence covers Vite 7;
-Vite 8 and Vite+ 0.2.9 packed fixtures exercise unreleased source. The imported Rust roots
+Vite 8 and Vite+ 0.2.9 packed fixtures cover the alpha source graph. The imported Rust roots
 come from your application; see the [Svelte fixture](https://github.com/vooyajs/vooya/tree/main/tests/fixtures/rust-svelte).
 
 Install the Svelte 5 adapter and Vite plugin in an existing Svelte application:
@@ -92,11 +92,10 @@ before starting Vite.
 
 ## Vite+
 
-::: info Unreleased 0.2 evidence
-This setup is verified with packages built from the current checkout. It does
-not establish the same four-framework compatibility for npm `@beta` packages.
-Keep the ordinary Vite quickstart for the published path. See
-[the next-release overview](../project/next-release.md) before testing source.
+::: info Opt-in 0.2 alpha
+Use `@vooya/vite@0.2.0-alpha.0` with Vue/React alpha.0 or Solid/Svelte beta.2.
+The named packed fixtures cover this release graph, not every future checkout.
+See [alpha installation](../project/next-release.md); the default quickstart remains beta.
 :::
 
 Use the same `@vooya/vite` plugin with Vite+. The verified combination is
@@ -153,18 +152,16 @@ not cover every bundled Vite+ tool or imply SSR support.
 
 ## Experimental Rspack path
 
-::: warning Rust-file support is unreleased
-The npm 0.1 beta adapter covers transitional `.voo` regression fixtures, not
-the supported `.rs` authoring path. The configuration below documents the
-current source for the proposed 0.2 batch. Use Vite with published packages for
-a new Rust-file application; see the [release boundary](../project/next-release.md).
+::: warning Rust-file support requires 0.2 alpha
+The npm 0.1 beta adapter covers transitional `.voo` regression fixtures.
+Use the matching alpha.0 bundler and Vue/React adapter packages for the `.rs`
+configuration below. The [alpha installation guide](../project/next-release.md)
+records exact versions; SSR and unlisted framework combinations remain unverified.
 :::
 
-For a source evaluation, use matching candidate tarballs for the Vue adapter
-and Rspack integration, including their exact internal dependencies. The
-repository
-[`test:rust-bundlers` consumer](https://github.com/vooyajs/vooya/blob/main/tests/rust-bundler-source.mjs)
-performs that installation; there is no published 0.2 install command yet.
+Install `@vooya/rspack@0.2.0-alpha.0` as a development dependency and
+`@vooya/vue@0.2.0-alpha.0` (or React alpha.0) as an application dependency.
+The repository `test:rust-bundlers` fixture records the tested source path.
 
 Add the integration beside the normal Vue plugin:
 
@@ -188,17 +185,17 @@ versions are not support claims. Exact fixture evidence currently uses 2.1.10.
 
 ## Experimental Webpack 5 path
 
-::: warning Rust-file support is unreleased
-The npm 0.1 beta adapter covers transitional `.voo` regression fixtures, not
-the supported `.rs` authoring path. The configuration below documents the
-current source for the proposed 0.2 batch. Use Vite with published packages for
-a new Rust-file application; see the [release boundary](../project/next-release.md).
+::: warning Rust-file support requires 0.2 alpha
+The npm 0.1 beta adapter covers transitional `.voo` regression fixtures.
+Use the matching alpha.0 bundler and Vue/React adapter packages for the `.rs`
+configuration below. The [alpha installation guide](../project/next-release.md)
+records exact versions; SSR and unlisted framework combinations remain unverified.
 :::
 
-Use the framework adapter and Webpack integration from the same source
-candidate, as in `test:rust-bundlers`. Installing `@vooya/webpack@beta` does not
-provide this Rust-file integration. The candidate experimental range is
-Webpack `>=5`.
+Install `@vooya/webpack@0.2.0-alpha.0` as a development dependency and the
+Vue/React alpha.0 adapter as an application dependency. Installing the bundler
+adapter at `@beta` does not provide this `.rs` integration. The experimental
+range is Webpack `>=5`; the named Rust fixture uses 5.109.2.
 
 Add the plugin's loader rule alongside the application's normal framework and
 CSS rules:

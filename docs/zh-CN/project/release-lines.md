@@ -1,6 +1,6 @@
 # 发布线与功能批次
 
-Vooya 的 npm 包目前仍为独立版本的 `0.1.0-beta.N`，准确版本见[项目状态](./status.md)。
+默认上手仍使用独立版本的 `0.1.0-beta.N`；另有可选的 0.2 Alpha 版本图，准确版本见[项目状态](./status.md)。
 “0.1 维护线”不表示已经发布稳定版 `0.1.0` 或 `0.1.1`；当前 main 也不等于下一个可直接发布的补丁。
 
 以下是当前 1.0 之前开发周期的实践方案，先在这两条发布线上验证，再评估是否固化为长期规则。
@@ -16,11 +16,11 @@ factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化�
 显式 `?raw` 源码导入和生成 Store 接口类型修复已经发布，不属于本轮新增工作。
 已发布用户继续按照[快速开始](../guide/getting-started.md)安装 `@beta` 并保留 lockfile。
 
-## 0.2：先冻结，再验收和发布 Alpha
+## 0.2：已发布 Alpha 的冻结范围
 
 本批功能范围冻结为 Rust 工具链安装与宿主集成，后续继续修复、测试与文档：
 
-| 候选范围 | 限定边界 |
+| Alpha 范围 | 限定边界 |
 | --- | --- |
 | Rust provider 包 | 现有 Rust 实现抽离、兼容 facade 与消费测试，不建立公共多语言协议 |
 | 可选托管 Rust preset | 固定工具、下载校验、缓存和恢复；仍需宿主 SDK/linker |
@@ -28,7 +28,7 @@ factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化�
 | Webpack/Rspack 普通 `.rs` | Vue/React Component、Store、CSS、声明与已验证 watch 恢复；仍为实验性 |
 | Vite 8 与 Vite+ | Vue/React/Solid/Svelte 四框架打包、类型、dev/build 与错误恢复；固定版本证据，不外推 SSR |
 
-这些能力目前只在源码中，不能由当前 `@beta` 安装获得。Go/TinyGo、新框架、
+这些能力由可选 Alpha 版本图提供，不能由当前 `@beta` 安装获得。Go/TinyGo、新框架、
 多语言 preset、Rust 服务端 HTML 和保留状态的 Rust HMR 不在本批范围。
 历史实验与 RFC 可以保留，但不是本批发布要求。
 Octane 保留为私有 workspace 和独立实验用例，不纳入公共构建、发布候选和发布门禁；
@@ -50,9 +50,12 @@ Alpha 仍是预发布；Beta 与稳定版需要各自的消费反馈和发布门
 release/0.1 为 `0.1.0-beta.N`。维护线只接受 patch Changeset，版本和精确依赖
 由审查后的规划交给 Changesets 正式 applier 写入，不手改包版本。
 
-当前版本规划排除 Octane 后得到 8 个 0.2 Alpha 候选；维护线得到 React/Vite beta.3
-和 build-core/Rspack/Webpack beta.1 共 5 个候选。未改动的包和历史 changelog 保持不变，
-重复执行版本操作不会再次升级。这些都是规划结果，尚未发布。
+[运行 37315595525](https://github.com/vooyajs/vooya/actions/runs/37315595525)通过完整门禁并发布了排除 Octane 的 8 个 alpha.0 包，
+随后因 registry 传播检查超时而失败。完整结果以[发布与恢复记录](../../maintainers/releases/0.2.0-alpha.0.md)
+中的原始基线、独立验收和恢复 receipt 为准，不能把原工作流写成成功。
+维护线的 React/Vite beta.3 与 build-core/Rspack/Webpack beta.1 共 5 个候选仍是独立规划，
+未因 Alpha 发布而发布。未改动的包和历史 changelog 保持不变，重复执行版本操作不会再次升级。
+这条发布记录不代表官网文档已经部署。
 
 准备版本 PR 与发布需要分别手动触发 workflow，并指定所选发布分支的完整提交 SHA。
 普通源码推送不自动准备或发布。标签只更新候选包，未改依赖按精确版本验收：

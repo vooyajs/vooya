@@ -66,5 +66,5 @@ workload 仍应与真实宿主基线测量。
 路径，Rspack 与 Webpack 仍是 experimental；预编译组件产品尚未正式发布。
 请从[快速开始](guide/getting-started.md)开始，再看[项目状态](project/status.md)。
 
-main 的托管工具链、SSR/Nuxt 与 Rust-file bundler 扩展尚未发布；Octane 是延期的私有实验。
+托管工具链、具名 SSR/Nuxt 与 Rust-file bundler 路径现可通过[可选的 0.2 Alpha](project/next-release.md)使用；默认快速开始仍用 Beta，Octane 仍是延期的私有实验。
 请先核对[发布线与功能批次](project/release-lines.md)，不要把源码用例视为 npm Beta 能力。

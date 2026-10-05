@@ -82,7 +82,8 @@ now has `@vooya/vite`, `@vooya/react`, `@vooya/solid`, and `@vooya/svelte` at
 not a forced shared version. The Vite Rust-file path is the primary source
 authoring route; published Rspack and Webpack evidence uses transitional
 fixtures. Their Rust-file integration and other [0.2 additions](project/next-release.md)
-are unreleased. Source authors
-install the Rust/WASM toolchain. A supported precompiled component product is
+are available through the opt-in `0.2.0-alpha.0` package set. Beta remains the default
+quickstart. Source authors use system Rust/WASM tools or the optional alpha preset;
+host SDK/linker prerequisites still apply. A supported precompiled component product is
 not published yet. Read [Project status](project/status.md) for the evidence
 behind these statements.

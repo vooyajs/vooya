@@ -198,6 +198,58 @@ try {
   metadata.get("@vooya/vite")["dist-tags"].alpha = "0.2.0-alpha.0";
   metadata.get("@vooya/core")["dist-tags"].alpha = "0.2.0-alpha.0";
   await fails("noncandidate alpha tag must also remain unchanged", ["--check-baseline", "--latest-before", alphaSnapshot], /Unchanged dependency/);
+  // First-publication latest is a captured exception, never inferred from null.
+  resetRegistry();
+  metadata.delete("@vooya/build-core");
+  const existingWithoutLatest = metadata.get("@vooya/vite");
+  delete existingWithoutLatest.versions[manifests[2].version];
+  delete existingWithoutLatest["dist-tags"].latest;
+  existingWithoutLatest["dist-tags"].alpha = "0.1.0-alpha.1";
+  const firstSnapshot = resolve(fixture, "first-publication.json");
+  await succeeds("capture distinguishes a missing package from missing latest", ["--capture-latest", firstSnapshot]);
+  const firstBefore = JSON.parse(readFileSync(firstSnapshot, "utf8"));
+  assert.deepEqual(firstBefore.firstPublicationLatest, { "@vooya/build-core": "0.2.0-alpha.0" });
+  assert.equal(firstBefore.latest["@vooya/vite"], null);
+  await succeeds("first-publication baseline accepts still-absent package", ["--check-baseline", "--latest-before", firstSnapshot]);
+  metadata.set("@vooya/build-core", {
+    name: manifests[1].name,
+    versions: { [manifests[1].version]: structuredClone(manifests[1]) },
+    "dist-tags": { latest: manifests[1].version, alpha: manifests[1].version },
+  });
+  existingWithoutLatest.versions[manifests[2].version] = structuredClone(manifests[2]);
+  existingWithoutLatest["dist-tags"].alpha = manifests[2].version;
+  await succeeds("npm automatic latest is allowed for the captured first version", ["--check", "--latest-before", firstSnapshot]);
+  existingWithoutLatest["dist-tags"].latest = manifests[2].version;
+  await fails("an existing package without latest receives no exception", ["--check", "--latest-before", firstSnapshot], /latest changed during alpha.*vite/);
+  delete existingWithoutLatest["dist-tags"].latest;
+  const firstTags = metadata.get("@vooya/build-core")["dist-tags"];
+  firstTags.beta = manifests[1].version;
+  await fails("first publication never exempts the other channel", ["--check", "--latest-before", firstSnapshot], /beta changed during alpha/);
+  delete firstTags.beta;
+  firstTags.latest = "0.2.0-alpha.1";
+  await fails("first latest cannot point to another version", ["--check", "--latest-before", firstSnapshot], /Invalid first-publication latest/);
+  delete firstTags.latest;
+  await fails("published first package must have its exact latest", ["--check", "--latest-before", firstSnapshot], /Invalid first-publication latest/);
+  firstTags.latest = manifests[1].version;
+  const legacyFirst = structuredClone(firstBefore);
+  delete legacyFirst.firstPublicationLatest;
+  writeFileSync(firstSnapshot, JSON.stringify(legacyFirst));
+  await fails("old baselines remain strict and are not upgraded implicitly", ["--check", "--latest-before", firstSnapshot], /latest changed during alpha/);
+  for (const exceptions of [null, [], "all", { "@vooya/build-core": "0.2.0-alpha.1" }, { "@vooya/core": "0.1.0-beta.0" }, { "@vooya/unknown": "0.2.0-alpha.0" }]) {
+    writeFileSync(firstSnapshot, JSON.stringify({ ...firstBefore, firstPublicationLatest: exceptions }));
+    await fails("malformed, wrong-version or noncandidate exception fails closed", ["--check", "--latest-before", firstSnapshot], /Invalid firstPublicationLatest snapshot/);
+  }
+  for (const tag of ["latest", "beta"]) {
+    const invalid = structuredClone(firstBefore);
+    invalid[tag]["@vooya/build-core"] = "0.1.0-beta.0";
+    writeFileSync(firstSnapshot, JSON.stringify(invalid));
+    await fails("first-publication exception requires an originally absent protected tag", ["--check", "--latest-before", firstSnapshot], /Invalid firstPublicationLatest snapshot/);
+    delete invalid[tag]["@vooya/build-core"];
+    writeFileSync(firstSnapshot, JSON.stringify(invalid));
+    await fails("first-publication exception requires complete baseline entries", ["--check", "--latest-before", firstSnapshot], /Invalid firstPublicationLatest snapshot/);
+  }
+  writeFileSync(firstSnapshot, JSON.stringify(firstBefore));
+  await succeeds("captured baseline remains valid after rejected alterations", ["--check", "--latest-before", firstSnapshot]);
   console.log("Published release contract passed: independent versions, exact dependencies, alpha tags, missing versions, 404 preflight, latest/alpha protected snapshots, alpha/beta retries, and CLI guards.");
 } finally {
   server.closeAllConnections();
