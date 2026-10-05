@@ -1,60 +1,148 @@
-// Real opt-in smoke: build packages first. SDK/linker stays on PATH, while
-// compiler selection is forced to the isolated managed installation.
+// Install only tarballs into an independent app. Host SDK/linker remains available;
+// PATH shims reject ambient Rust tools while the preset uses its absolute paths.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { createServer } from "node:net";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, copyFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { prepareToolchain } from "../packages/preset/lib/index.js";
-import { buildApplication, resolveToolchain } from "../packages/build-core/dist/index.js";
-import { inspectToolchain } from "../packages/vite/dist/doctor.js";
-const root = mkdtempSync(join(tmpdir(), "vooya-preset-consumer-"));
+import { chromium } from "playwright";
+import { startDevServer, stopDevServer } from "./helpers/dev-server.mjs";
+// Windows temp paths may use an 8.3 alias; Vite compares requests with real paths.
+const root = realpathSync.native(mkdtempSync(join(tmpdir(), "vooya-preset-consumer-")));
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
-const cacheDirectory = process.env.VOOYA_CACHE_DIR || join(root, "cache");
+const cacheDirectory = resolve(process.env.VOOYA_CACHE_DIR || join(root, "cache"));
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-function run(args, cwd) {
-  const result = spawnSync(npm, args, { cwd, encoding: "utf8", shell: process.platform === "win32" });
-  assert.equal(result.status, 0, result.stderr || result.error?.message);
+let server;
+let browser;
+let page;
+let output = "";
+let spawnError;
+function run(args, cwd, env = process.env) {
+  const result = spawnSync(npm, args, { cwd, env, encoding: "utf8", shell: process.platform === "win32" });
+  assert.equal(result.status, 0, result.stderr || result.stdout || result.error?.message);
   return result.stdout;
 }
 try {
-  const applicationRoot = join(root, "app");
-  mkdirSync(join(applicationRoot, "src"), { recursive: true });
-  writeFileSync(join(applicationRoot, "package.json"), JSON.stringify({ name: "preset-consumer", private: true }));
-  const packed = JSON.parse(run(["pack", "--workspace", "@vooya/preset", "--pack-destination", root, "--json"], repositoryRoot));
-  run(["install", "--save-dev", "--ignore-scripts", "--no-audit", "--no-fund", join(root, packed[0].filename)], applicationRoot);
-
-  const [first, second] = await Promise.all([prepareToolchain({ cacheDirectory }), prepareToolchain({ cacheDirectory })]);
-  assert.equal(first.cargoPath, second.cargoPath);
-  assert.ok(first.cargoPath.startsWith(resolve(cacheDirectory)));
-  const env = { ...process.env, VOOYA_CACHE_DIR: cacheDirectory, VOOYA_TOOLCHAIN: "auto", RUSTC: "/deliberately-missing-system-rustc" };
-  const toolchain = resolveToolchain({ cwd: applicationRoot, env });
-  assert.equal(toolchain.cargoSelection, "managed");
-  assert.equal(toolchain.cargo.path, first.cargoPath);
-  assert.match(toolchain.rustc.version, /1\.94\.0/);
-  const explicit = resolveToolchain({ cwd: applicationRoot, env: toolchain.environment, mode: "system", cargoPath: toolchain.cargo.path });
-  assert.equal(explicit.cargoSelection, "explicit");
-  const report = inspectToolchain({ cwd: applicationRoot, env });
-  assert.equal(report.ok, true, JSON.stringify(report.results));
-  assert.equal(report.toolchain.cargo.path, toolchain.cargo.path);
-  const source = readFileSync(new URL("./fixtures/rust-vue/src/Store.rs", import.meta.url));
-  const sourcePath = join(applicationRoot, "src/Store.rs");
-  writeFileSync(sourcePath, source);
-  // Leave toolchain unspecified: ordinary build-core calls discover the packed preset.
-  const previousCache = process.env.VOOYA_CACHE_DIR;
-  process.env.VOOYA_CACHE_DIR = cacheDirectory;
-  try {
-    const result = buildApplication({ applicationRoot, rust: { sourceRoot: "src" }, buildMode: "development" });
-    assert.ok(result.wasm.bytes.length > 0);
-    writeFileSync(sourcePath, "this is not Rust;\n");
-    assert.throws(() => buildApplication({ applicationRoot, rust: { sourceRoot: "src" }, buildMode: "development" }), /Cargo build failed/);
-    writeFileSync(sourcePath, source);
-    const recovered = buildApplication({ applicationRoot, rust: { sourceRoot: "src" }, buildMode: "production" });
-    assert.ok(recovered.wasm.bytes.length > 0);
-  } finally {
-    if (previousCache === undefined) delete process.env.VOOYA_CACHE_DIR;
-    else process.env.VOOYA_CACHE_DIR = previousCache;
+  const app = join(root, "app");
+  mkdirSync(join(app, "src"), { recursive: true });
+  const packs = join(root, "packs");
+  mkdirSync(packs);
+  const tarballs = ["preset", "core", "compiler", "provider-rust", "build-core", "vite", "vue"].map(name => {
+    const [packed] = JSON.parse(run(["pack", "--workspace", `@vooya/${name}`, "--pack-destination", packs, "--json"], repositoryRoot));
+    return join(packs, packed.filename);
+  });
+  writeFileSync(join(app, "package.json"), JSON.stringify({ name: "preset-consumer", private: true, type: "module", scripts: { dev: "vite", build: "vite build", doctor: "vooya doctor --json" }, dependencies: { vue: "^3.5.0" }, devDependencies: { vite: "^7.0.0", "@vitejs/plugin-vue": "^6.0.0" } }));
+  run(["install", "--save-dev", "--no-audit", "--no-fund", ...tarballs], app);
+  for (const name of ["Counter.rs", "Counter.css", "Store.rs", "main.js"]) copyFileSync(join(repositoryRoot, "tests/fixtures/rust-vue/src", name), join(app, "src", name));
+  copyFileSync(join(repositoryRoot, "tests/fixtures/rust-vue/index.html"), join(app, "index.html"));
+  writeFileSync(join(app, "vite.config.js"), 'import {defineConfig} from "vite"; import vue from "@vitejs/plugin-vue"; import {vooya} from "@vooya/vite"; export default defineConfig({plugins:[vue(),vooya({framework:"vue"})]});');
+  writeFileSync(join(app, "src/App.vue"), `<script setup>\nimport {computed} from 'vue'; import Counter from './Counter.rs'; import {useCart} from './Store.rs'; const {state,add}=useCart(); const count=computed(()=>state.value?.count??0); const selection=computed(()=>({id:count.value,tags:['managed']}));\n</script><template><Counter :count="count" :selection="selection"/><button :disabled="state === undefined" @click="add(1)">Store: {{count}}</button></template>`);
+  const blocked = join(root, "blocked-tools");
+  mkdirSync(blocked);
+  for (const tool of ["cargo", "rustc", "rustup", "wasm-bindgen"]) {
+    writeFileSync(join(blocked, tool + (process.platform === "win32" ? ".cmd" : "")), process.platform === "win32" ? '@echo off\necho AMBIENT_RUST_BLOCKED 1>&2\nexit /b 97\n' : '#!/bin/sh\necho AMBIENT_RUST_BLOCKED >&2\nexit 97\n', { mode: 0o755 });
   }
-  console.log(`Managed Rust/WASM passed (${process.platform}/${process.arch}): packed preset, auto discovery, doctor, concurrent cache reuse, dev/prod and recovery after a Rust error.`);
-} finally { rmSync(root, { recursive: true, force: true }); }
+  const env = { ...process.env, PATH: [blocked, dirname(process.execPath), process.env.PATH ?? process.env.Path ?? ""].join(delimiter), VOOYA_CACHE_DIR: cacheDirectory, VOOYA_TOOLCHAIN: "auto", RUSTC: join(blocked, "rustc") };
+  if (process.platform === "win32") delete env.Path;
+  for (const tool of ["cargo", "rustc", "rustup", "wasm-bindgen"]) {
+    const ambient = spawnSync(tool, ["--version"], { env, encoding: "utf8", shell: process.platform === "win32" });
+    assert.equal(ambient.status, 97, `ambient ${tool} must be blocked`);
+  }
+  writeFileSync(join(app, "probe.mjs"), `import assert from 'node:assert/strict'; import {realpathSync} from 'node:fs'; import {relative,isAbsolute,sep} from 'node:path'; import {prepareToolchain} from '@vooya/preset'; import {resolveToolchain} from '@vooya/build-core'; const [a,b]=await Promise.all([prepareToolchain(),prepareToolchain()]); assert.equal(realpathSync.native(a.cargoPath),realpathSync.native(b.cargoPath)); const t=resolveToolchain({cwd:process.cwd(),env:process.env}); assert.equal(t.cargoSelection,'managed'); assert.equal(realpathSync.native(t.cargo.path),realpathSync.native(a.cargoPath)); for(const path of [t.cargo.path,t.rustc.path,t.wasmBindgen.path]) {const inside=relative(realpathSync.native(process.env.VOOYA_CACHE_DIR),realpathSync.native(path)); assert.ok(inside!=='..'&&!inside.startsWith('..'+sep)&&!isAbsolute(inside));} assert.match(t.rustc.version,/1\\.94\\.0/); const explicit=resolveToolchain({cwd:process.cwd(),env:t.environment,mode:'system',cargoPath:t.cargo.path}); assert.equal(explicit.cargoSelection,'explicit'); console.log(JSON.stringify(t));`);
+  const probe = spawnSync(process.execPath, ["probe.mjs"], { cwd: app, env, encoding: "utf8" });
+  assert.equal(probe.status, 0, probe.stderr);
+  const toolchain = JSON.parse(probe.stdout);
+  const doctor = JSON.parse(run(["run", "--silent", "doctor"], app, env));
+  assert.equal(doctor.ok, true, JSON.stringify(doctor));
+  assert.equal(doctor.schemaVersion, 1);
+  assert.equal(doctor.cargo.selection, "managed");
+  assert.equal(realpathSync.native(doctor.cargo.path), realpathSync.native(toolchain.cargo.path));
+  for (const path of [doctor.cargo.path, doctor.rustc.path, doctor.wasmBindgen.path]) {
+    const inside = relative(realpathSync.native(cacheDirectory), realpathSync.native(path));
+    assert.ok(inside !== ".." && !inside.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && !isAbsolute(inside), "doctor tool must resolve inside the consumer cache");
+  }
+  const port = await availablePort();
+  server = startDevServer(npm, ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], { cwd: app, env, shell: process.platform === "win32", stdio: ["ignore", "pipe", "pipe"] });
+  server.on("error", error => { spawnError = error; });
+  server.stdout.on("data", data => { output += data; });
+  server.stderr.on("data", data => { output += data; });
+  const url = `http://127.0.0.1:${port}`;
+  await waitUntil(async () => {
+    if (spawnError) throw spawnError;
+    assert.equal(server.exitCode, null, output);
+    assert.equal(server.signalCode, null, output);
+    let response;
+    try { response = await fetch(url, { signal: AbortSignal.timeout(1000) }); }
+    catch { return false; } // The listening socket may not exist yet.
+    if (response.status >= 400 && response.status < 500) {
+      const body = await response.text().catch(error => `<response body unavailable: ${error.message}>`);
+      throw new Error(`Dev server startup returned HTTP ${response.status}: ${body}`);
+    }
+    return response.ok;
+  }, "dev server startup");
+  browser = await chromium.launch({ headless: true });
+  page = await browser.newPage();
+  page.on("pageerror", error => { output += `\nBrowser error: ${error.message}`; });
+  page.on("console", message => { if (message.type() === "error") output += `\nBrowser console: ${message.text()}`; });
+  page.setDefaultTimeout(120_000);
+  await page.goto(url);
+  await page.getByRole("button", { name: "Count: 0", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Store: 0", exact: true }).click();
+  await page.getByRole("button", { name: "Store: 1", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Count: 1", exact: true }).waitFor();
+  const path = join(app, "src/Counter.rs");
+  const source = readFileSync(path, "utf8");
+  writeFileSync(path, source.replace('Count: {}', 'Managed edit: {}'));
+  await page.getByRole("button", { name: /^Managed edit:/ }).waitFor();
+  const errorStart = output.length;
+  writeFileSync(path, source + '\nfn deliberately_invalid( {\n');
+  await waitUntil(() => /error|failed/i.test(output.slice(errorStart)), "Rust error diagnostic");
+  await page.locator("vite-error-overlay").waitFor({ state: "attached" });
+  writeFileSync(path, source.replace('Count: {}', 'Recovered: {}'));
+  await page.getByRole("button", { name: /^Recovered:/ }).waitFor();
+  await page.locator("vite-error-overlay").waitFor({ state: "detached" });
+  // Exercise the same ordinary build command while ambient Rust stays blocked.
+  await browser.close(); browser = undefined;
+  await stopServer();
+  run(["run", "build"], app, env);
+  console.log(`Managed packed consumer passed (${process.platform}/${process.arch}): ordinary dev/browser Component+Store, Rust edit, compiler error/recovery, production build, concurrent cache and doctor; ambient Rust commands blocked, host SDK retained.`);
+} catch (error) {
+  if (page && !page.isClosed()) {
+    try {
+      console.error("Failed page:", await page.locator("body").innerText({ timeout: 1000 }));
+      const screenshot = join(tmpdir(), `vooya-preset-failure-${Date.now()}.png`);
+      await page.screenshot({ path: screenshot, timeout: 5000 });
+      console.error(`Failure screenshot: ${screenshot}`);
+    } catch (captureError) { console.error("Could not capture failed page:", captureError); }
+  }
+  if (output) console.error(output);
+  throw error;
+} finally {
+  try { await browser?.close(); } finally {
+    try { await stopServer(); } finally {
+      rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    }
+  }
+}
+async function waitUntil(check, label) {
+  const deadline = Date.now() + 180_000;
+  while (Date.now() < deadline) {
+    if (await check()) return;
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  throw new Error(`Timed out: ${label}\n${output}`);
+}
+async function stopServer() {
+  if (!server) return;
+  const child = server; server = undefined;
+  await stopDevServer(child);
+}
+async function availablePort() {
+  const socket = createServer();
+  await new Promise((resolve, reject) => { socket.once("error", reject); socket.listen(0, "127.0.0.1", resolve); });
+  const { port } = socket.address();
+  await new Promise(resolve => socket.close(resolve));
+  return port;
+}

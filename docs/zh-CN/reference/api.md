@@ -1,7 +1,8 @@
 # API 参考
 
-本页参数表描述[已发布 Beta](../project/status.md) 的公开 API。main 中的 Octane、
-托管工具链和 SSR 惰性工厂等变化尚未发布，见[发布线说明](../project/release-lines.md)。
+本页参数表描述[已发布 Beta](../project/status.md) 的公开 API。main 中的
+托管工具链和 SSR 惰性工厂等变化尚未发布；Octane 保留为私有实验，不纳入本轮 0.2。
+具体见[发布线说明](../project/release-lines.md)。
 
 这里列的是从包的公开导出和已验证消费路径中整理出的 API。prerelease ABI 可能在
 预发布版本间 breaking。没有公开导出的内部 `@vooya/build-core` helper 不在这里

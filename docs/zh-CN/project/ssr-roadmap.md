@@ -52,7 +52,7 @@ Nuxt 的真实 fixture 和 CI 已加入 main；Next.js 接入仍待完成，不�
 state 为 `undefined` 时不要派发 action。模块顶层共享 Store 不具备请求隔离；
 传给 Vue 的现成 Store 或已启动的 Promise，也无法撤销已经开始的工作。
 
-新增 `npm run test:nuxt-ssr`：在独立临时项目中安装五个打包后的 Vooya 包，
+新增 `npm run test:nuxt-ssr`：在独立临时项目中安装六个打包后的 Vooya 包，
 使用 Nuxt 4.5.2、Vite 8.3.1、Vue 3.5.43，验证生产 Node SSR、真实 WASM、
 两个独立 Store、props/事件、scoped CSS、客户端路由切换、Rust 组件与 Store
 销毁以及返回页面后的全新状态。由独立 PR CI job 执行，也纳入 `verify:e2e`。

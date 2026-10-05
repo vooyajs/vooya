@@ -7,7 +7,7 @@ experimental，不能把一次 fixture 通过理解成完整兼容承诺。
 
 使用 `@vooya/vite` 的 `vooya()`，Vite 范围为 `>=7 <9`，Vite 8 是当前主要
 兼容目标。Vue、React 和 experimental Solid/Svelte 的安装方式见[快速开始](./getting-started.md)；
-Solid、Svelte 的已发布 Beta 证据仅覆盖 Vite 7；main 新增的 Vite 8 五框架打包验收尚未发布。
+Solid、Svelte 的已发布 Beta 证据仅覆盖 Vite 7；main 新增的 Vite 8 四框架打包验收尚未发布。
 
 ## Rspack / Rsbuild（experimental）
 

@@ -28,17 +28,29 @@
 [preset 源码 README](https://github.com/vooyajs/vooya/blob/main/packages/preset/README.md)。
 已发布 Beta 用户继续使用[系统工具链诊断](../reference/tooling.md)。
 
+源码验收命令为 `npm run test:preset-consumer`：在独立 Vue 应用中安装七个匹配的
+tarball，验证普通 `npm run dev`、浏览器 Component/Store 交互、Rust 修改、编译错误
+恢复及 `npm run build`。用例屏蔽环境中的 Rust 命令，同时保留宿主 SDK/linker。
+CI 在 Linux、macOS、Windows 上使用新的托管缓存执行同一用例；本地复用缓存通过
+不代表重新验证了下载流程。
+
 ## 宿主集成
 
 | 候选能力 | 源码证据与限制 |
 | --- | --- |
-| Octane 0.9 | 原生客户端 Component/Store adapter；Node >=22.22.2；固定版本的 Vite 8 与 Vite+ 用例；不承诺 SSR |
-| Vite+ 0.2.9 | 按文档的 alias/overrides 使用正常 npm peer 解析；五框架的打包 dev/build 用例不代表全部工具或版本都兼容 |
+| Vite 8.2.1 | Vue/React/Solid/Svelte 打包生产与开发用例、严格声明、Rust 错误恢复、连续保存与宿主文件修改 |
+| Vite+ 0.2.9 | 按文档的 alias/overrides 使用正常 npm peer 解析；四框架的打包 dev/build 用例不代表全部工具或版本都兼容 |
 | Webpack/Rspack `.rs` | Vue/React Component、Store、CSS 与声明；Vue watch 恢复和新增模块检查；其他 watch/框架组合仍未验证 |
 | SSR 安全岛 | Vue 惰性 Store 创建与 React 客户端边界；具名 Nuxt 生产及浏览器用例；Rust 内容仍在浏览器挂载，Next.js 尚未验证 |
 
 具体用例见[兼容性矩阵](./compatibility.md)、[实验性配置](../guide/other-integrations.md#vite)
 和[SSR 范围](./ssr-roadmap.md)。这些是候选评估路径，不能与当前 npm Beta 包混用。
+
+## Octane 延后
+
+Octane adapter 保留为私有 workspace 实验和独立打包浏览器用例，不纳入本轮 0.2
+发布候选或公共发布门禁。目前没有可安装的 `@vooya/octane` 发布版本；后续转为
+公开包需重新审查范围、提供首发 Changeset 并完成 registry 验收，不预先承诺日期。
 
 ## Rust provider 抽离
 

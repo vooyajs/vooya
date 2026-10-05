@@ -56,7 +56,7 @@ Do not dispatch Store actions while the snapshot is `undefined`. Shared module-l
 Store instances are not request-scoped. Passing Vue an already-created Store or
 Promise cannot defer work that has already started.
 
-`npm run test:nuxt-ssr` builds and installs five packed Vooya packages in a fresh
+`npm run test:nuxt-ssr` builds and installs six packed Vooya packages in a fresh
 Nuxt 4.5.2 / Vite 8.3.1 / Vue 3.5.43 consumer. It checks production Node SSR,
 real WASM delivery, two independent Stores, props/events, scoped CSS, client route
 navigation, Rust component/Store disposal, and fresh state after returning.

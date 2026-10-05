@@ -123,7 +123,7 @@ See [the release guide](../maintainers/releases.md).
   adapter. Both published non-Vite adapters retain transitional `.voo` fixture
   evidence; their `.rs` integration is unreleased 0.2 work. Webpack 4, Rollup,
   Turbopack, and other bundlers remain unsupported.
-- The newer Vite+ five-framework dev/build matrix runs against current-source
+- The newer Vite+ four-framework dev/build matrix runs against current-source
   tarballs. It does not expand the published beta claim or cover every Vite+ tool.
 - Turbopack has no compatibility claim. Its loader API evidence and unverified integration requirements are
   recorded in [Turbopack research](turbopack-research.md); Webpack and Rspack
@@ -165,19 +165,22 @@ See [the release guide](../maintainers/releases.md).
 
 ## Unreleased 0.2 work
 
-The optional managed preset, Octane, SSR-safe islands and Nuxt fixture,
-Webpack/Rspack Rust-file integration, expanded Vite+ evidence, and proposed
+The optional managed preset, SSR-safe islands and Nuxt fixture,
+Webpack/Rspack Rust-file integration, expanded Vite+ evidence, and merged
 Rust provider extraction belong to the [next feature batch](./next-release.md).
 The [release-line review](../maintainers/release-lines.md) identifies two
-possible 0.1 maintenance backports; neither has been published. Do not treat
+merged 0.1 maintenance backports; neither has been published. Do not treat
 the current main branch as a maintenance release candidate.
+
+Octane remains a private workspace experiment, excluded from this 0.2 batch
+and public release gate. Its independent browser fixture is retained.
 
 ## Next milestones
 
 Beta.0 passed strict TypeScript checks and Chromium interaction for clean
 Rust-file Vue and React consumers, first with packed artifacts and then with
 exact registry versions. Future releases retain these separate acceptance steps.
-Current source adds clean Vite 8 packed consumers for Solid and Svelte. Registry
+Current source adds separate clean Vite 8 dev/build consumers for all four adapters. Registry
 browser acceptance remains follow-up work before a broader support claim.
 Managed toolchain installation through `@vooya/preset` remains a separate
 `0.2` workstream in [#129](https://github.com/vooyajs/vooya/issues/129), not a

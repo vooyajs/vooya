@@ -59,6 +59,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      # The fixture downloads its own pinned tools into an empty cache and asserts
-      # both compiler and doctor paths. Runner-provided native SDK/linker remains.
+      - run: npx playwright install --with-deps chromium
+      # The packed consumer shields system Rust, keeps the native SDK/linker,
+      # and verifies managed selection plus real browser dev/error recovery.
       - run: npm run test:preset-consumer

@@ -18,7 +18,7 @@ factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化�
 
 ## 0.2：先冻结，再验收和发布 Alpha
 
-本批候选围绕 Rust 工具链安装与宿主集成：
+本批功能范围冻结为 Rust 工具链安装与宿主集成，后续继续修复、测试与文档：
 
 | 候选范围 | 限定边界 |
 | --- | --- |
@@ -26,11 +26,15 @@ factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化�
 | 可选托管 Rust preset | 固定工具、下载校验、缓存和恢复；仍需宿主 SDK/linker |
 | SSR 安全岛与 Nuxt | 浏览器挂载 WASM，服务器仅渲染宿主容器；Next.js 尚未验证 |
 | Webpack/Rspack 普通 `.rs` | Vue/React Component、Store、CSS、声明与已验证 watch 恢复；仍为实验性 |
-| Octane 与 Vite+ | 原生 Octane adapter 和五框架具名 Vite+ 用例；固定版本的实验性证据 |
+| Vite 8 与 Vite+ | Vue/React/Solid/Svelte 四框架打包、类型、dev/build 与错误恢复；固定版本证据，不外推 SSR |
 
 这些能力目前只在源码中，不能由当前 `@beta` 安装获得。Go/TinyGo、新框架、
 多语言 preset、Rust 服务端 HTML 和保留状态的 Rust HMR 不在本批范围。
 历史实验与 RFC 可以保留，但不是本批发布要求。
+Octane 保留为私有 workspace 和独立实验用例，不纳入公共构建、发布候选和发布门禁；
+后续公开需显式首发 Changeset 与验收。公开包的 `dependencies`、`optionalDependencies`
+和 `peerDependencies` 不得引用私有 workspace 包；`devDependencies` 中的开发工具
+不构成安装消费者的依赖。
 
 [PR #149](https://github.com/vooyajs/vooya/pull/149) 已将发布线工具和 Rust provider
 抽离合入 main，并通过候选 CI。后续类型检查和测试工具整理留在 main，不扩大维护线。
@@ -46,7 +50,7 @@ Alpha 仍是预发布；Beta 与稳定版需要各自的消费反馈和发布门
 release/0.1 为 `0.1.0-beta.N`。维护线只接受 patch Changeset，版本和精确依赖
 由审查后的规划交给 Changesets 正式 applier 写入，不手改包版本。
 
-实际源码副本的本地演练得到 9 个 0.2 Alpha 候选；维护线得到 React/Vite beta.3
+当前版本规划排除 Octane 后得到 8 个 0.2 Alpha 候选；维护线得到 React/Vite beta.3
 和 build-core/Rspack/Webpack beta.1 共 5 个候选。未改动的包和历史 changelog 保持不变，
 重复执行版本操作不会再次升级。这些都是规划结果，尚未发布。
 

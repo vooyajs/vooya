@@ -10,7 +10,7 @@ const target = process.argv[2] ?? "vite8";
 if (!["vite8", "vite-plus"].includes(target)) throw new Error(`Unknown target: ${target}`);
 const plus = target === "vite-plus";
 const label = plus ? "Vite+ 0.2.9" : "Vite 8.2.1";
-const frameworks = plus ? ["vue", "react", "solid", "svelte", "octane"] : ["solid", "svelte"];
+const frameworks = ["vue", "react", "solid", "svelte"];
 const temporary = mkdtempSync(resolve(tmpdir(), `vooya-${target}-frameworks-`));
 try {
   mkdirSync(resolve(temporary, "packages"));
@@ -41,8 +41,8 @@ try {
     const environment = { VOOYA_RUST_FIXTURE_ROOT: project, ...(plus ? { VOOYA_VITE_PLUS: "1" } : {}) };
     run(process.execPath, [resolve(root, `tests/rust-${framework}-source.mjs`)], root, environment);
     verifyDeclarations(project, framework);
-    if (plus) run(process.execPath, [resolve(root, "tests/rust-hmr.mjs"), framework], root, environment);
-    console.log(`Verified packed ${label} ${framework}: production browser, strict declarations${plus ? ", dev reload and Rust error recovery" : ""}.`);
+    run(process.execPath, [resolve(root, "tests/rust-hmr.mjs"), framework], root, environment);
+    console.log(`Verified packed ${label} ${framework}: production browser, strict declarations, dev reload, Rust error recovery, rapid saves and host edits.`);
   }
 } finally {
   if (!process.env.VOOYA_KEEP_VITE8_FRAMEWORKS) rmSync(temporary, { recursive: true, force: true });
@@ -55,13 +55,11 @@ function verifyDeclarations(project, framework) {
     react: 'const count: number | undefined = state?.count;',
     solid: 'const count: number | undefined = state()?.count;',
     svelte: 'state.subscribe((snapshot) => { const count: number | undefined = snapshot?.count; });',
-    octane: 'const count: number | undefined = state?.count;',
   };
   writeFileSync(resolve(project, "tsconfig.contract.json"), JSON.stringify({ compilerOptions: {
     target: "ES2022", module: "ESNext", moduleResolution: "Bundler", strict: true,
     noEmit: true, skipLibCheck: false, allowArbitraryExtensions: true,
     rootDirs: [".", ".vooya/types"], types: [],
-    ...(framework === "octane" ? { jsx: "preserve", jsxImportSource: "octane" } : {}),
   }, include: ["src/type-probe.ts"] }, null, 2));
   writeFileSync(resolve(project, "src/type-probe.ts"), `import { useCart } from "./Store.rs";
 import Counter from "./Counter.rs";

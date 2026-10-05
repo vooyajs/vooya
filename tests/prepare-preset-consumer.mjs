@@ -1,0 +1,29 @@
+// Build the tarball prerequisite without assuming runner-provided Rust. This
+// setup cache is distinct from the consumer's independently prepared cache.
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { prepareToolchain } from "../packages/preset/lib/index.js";
+import { resolveToolchain } from "../packages/build-core/dist/index.js";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const cacheDirectory = resolve(process.env.VOOYA_PRESET_SETUP_CACHE_DIR || join(tmpdir(), "vooya-preset-test-setup"));
+const prepared = await prepareToolchain({ cacheDirectory });
+// The root is a publisher workspace, not the user app. Select the explicitly
+// prepared environment here; auto-discovery is tested separately in the app.
+const env = { ...prepared.environment, VOOYA_TOOLCHAIN: "system" };
+const toolchain = resolveToolchain({ cwd: root, env });
+assert.equal(realpathSync.native(toolchain.cargo.path), realpathSync.native(prepared.cargoPath));
+for (const path of [toolchain.cargo.path, toolchain.rustc.path, toolchain.wasmBindgen.path]) {
+  const inside = relative(realpathSync.native(cacheDirectory), realpathSync.native(path));
+  assert.ok(inside !== ".." && !inside.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && !isAbsolute(inside), "tool must resolve inside the setup cache");
+}
+const result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build", "--workspace", "@vooya/core"], {
+  cwd: root, env, stdio: "inherit", shell: process.platform === "win32",
+});
+if (result.error) throw result.error;
+assert.equal(result.status, 0, "core tarball prerequisite must build with the prepared preset toolchain");
+console.log("Built core prerequisite with the separate preset setup toolchain.");

@@ -47,7 +47,7 @@ Vue 返回 `Ref`，React 返回 snapshot，Solid 返回 `Accessor`，Svelte 返�
 ## 能否接入其他 Web 框架？
 
 架构目标是框架无关的 Web↔WASM layer。当前 adapter 证据覆盖 Vue、React，以及
-experimental Solid/Svelte 路径。main 已有未发布的 Octane adapter，以及具名 Nuxt SSR 安全岛用例；
+experimental Solid/Svelte 路径。main 已有延期的 Octane 私有实验，以及具名 Nuxt SSR 安全岛用例；
 它们不属于当前 npm Beta，见[发布线说明](project/release-lines.md)。其他框架仍需独立证据。
 
 更多英文 FAQ 见[FAQ](../faq.md)。

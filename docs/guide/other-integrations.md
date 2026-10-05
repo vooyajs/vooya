@@ -94,7 +94,7 @@ before starting Vite.
 
 ::: info Unreleased 0.2 evidence
 This setup is verified with packages built from the current checkout. It does
-not establish the same five-framework compatibility for npm `@beta` packages.
+not establish the same four-framework compatibility for npm `@beta` packages.
 Keep the ordinary Vite quickstart for the published path. See
 [the next-release overview](../project/next-release.md) before testing source.
 :::
@@ -138,12 +138,12 @@ export default defineConfig({
 });
 ```
 
-Run `npm install`, then `npm run dev` or `npm run build`. React, Solid, Svelte
-and Octane retain their respective framework plugins and `vooya({ framework })`
-settings. The Svelte Vite 8 fixture uses `@sveltejs/vite-plugin-svelte` 7.1.2;
-Octane 0.9 requires Node 22.22.2 or newer.
+Run `npm install`, then `npm run dev` or `npm run build`. React, Solid and Svelte
+retain their respective framework plugins and `vooya({ framework })` settings.
+The Svelte Vite 8 fixture uses `@sveltejs/vite-plugin-svelte` 7.1.2.
+Octane remains a private workspace experiment outside this release matrix.
 
-`npm run test:vite-plus-frameworks` checks all five frameworks using clean
+`npm run test:vite-plus-frameworks` checks all four frameworks using clean
 packed consumers: `.rs` components and Stores, production browser interactions,
 strict generated declarations, development rebuilds, Rust error recovery and
 host component edits. Rust edits trigger a full page reload, not state-preserving
