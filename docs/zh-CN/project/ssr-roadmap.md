@@ -1,9 +1,7 @@
 # SSR 与 0.2.0 计划
 
-SSR 安全岛、具名 Nuxt 消费用例与 Rust provider 抽离属于 **0.2 候选功能批次**，
-尚未发布。当前 npm `0.1.0-beta.N` 的支持范围不变；本文的 API 与测试描述对应 main，
-不能直接套用到 `@beta` 安装。发布前先审查并冻结范围，再完成内部验收。
-Next.js 仍未验证，不是首批 Alpha 的已承诺能力；具体范围见[发布线说明](./release-lines.md)。
+SSR 安全岛与 Rust provider 抽离可通过 [0.2.0-alpha.0 版本图](./next-release.md)安装。
+Beta 支持范围不变。下方具名 Nuxt 版本与运行时约束定义 Alpha 边界，不代表通用 SSR 支持。
 
 ## 第一层：SSR 页面中的客户端 WASM 岛
 
@@ -15,7 +13,7 @@ Next.js 仍未验证，不是首批 Alpha 的已承诺能力；具体范围见[�
 组件依赖浏览器 DOM；后一种能力还需要服务端渲染契约、状态传递与 DOM 所有权
 设计。加 `use client` 或关闭 SSR 并不能实现它。
 
-## main 中已有的基础改动（未发布）
+## alpha.0 起可用的基础改动
 
 - Vue 生成的 Store 在挂载后才调用工厂；高级 `useVooyaStore` 也接受惰性工厂。
   SSR 场景应传工厂，已经创建的 Promise/Store 无法被 adapter 撤销初始化。
@@ -32,13 +30,16 @@ Next.js 仍未验证，不是首批 Alpha 的已承诺能力；具体范围见[�
 | 路径 | 实际缺口 | 支持声明前的验收 |
 | --- | --- | --- |
 | Next.js | main 的 Webpack adapter 已加入 Vue/React 的 `.rs`，但还未验证 Next.js；Turbopack 不读取 Webpack 配置，仍需确定 Next 专用的源码或预构建产物接入 | App Router 生产构建、服务端 HTML、WASM URL、hydration、交互、路由切换与卸载 |
-| Nuxt | main 已有具名打包消费用例，尚未发布；不能外推到其他版本或 Edge runtime | 下文列出已覆盖的生产 SSR、真实 WASM、独立 Store 与路由清理；发布候选仍需通过完整门禁 |
+| Nuxt | Alpha 对应具名打包消费用例；不能外推到其他版本或 Edge runtime | 下文列出已覆盖的生产 SSR、真实 WASM、独立 Store 与路由清理；后续变更仍需通过完整门禁 |
 | Rust provider | 本批限于现有 Rust 实现抽离、兼容 facade、包与类型身份 | 保留现有 Rust 回归和消费测试；多语言协议与正式预编译产品不属于本批 |
 
 Nuxt 的真实 fixture 和 CI 已加入 main；Next.js 接入仍待完成，不能宣传已全面支持 SSR。
 详细实施边界、官方参考与发布验收见[英文计划](../../project/ssr-roadmap.md)。
 
-## main API 的 SSR 行为（未发布）
+## Alpha API 的 SSR 行为
+
+下表的 adapter 行为仅适用于 Vue 和 React。Solid/Svelte SSR 不在本轮范围内；
+不要据此假设它们生成的 Store hook 会把 factory 执行推迟到浏览器挂载。
 
 | API | 服务端渲染 | 浏览器生命周期 |
 | --- | --- | --- |

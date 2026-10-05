@@ -2,7 +2,7 @@
 
 This page records the supported paths and integration tests in this repository.
 The beta table describes published packages; the additions below describe
-current source awaiting the proposed 0.2 release. Each entry covers its named
+the opt-in 0.2 alpha scope. Each entry covers its named
 consumer path. Check [package versions](status.md) before applying a row;
 [release lines](../maintainers/release-lines.md) explains the maintenance boundary.
 
@@ -37,12 +37,12 @@ optional Boolean prop (`Option::None`, rather than `Some(false)`). Solid and
 Svelte already preserve those values; the React/Vue fixes do not imply those
 adapters were absent from earlier builds.
 
-**Unreleased source evidence:** `test:vite8-frameworks` installs Vue, React, Solid and
+**Alpha source-fixture evidence:** `test:vite8-frameworks` installs Vue, React, Solid and
 Svelte in separate clean tarball consumers on Vite 8.2.1. It covers production
 Chromium interactions, strict generated declarations, development Rust edits,
 compiler-error recovery, rapid saves and host component edits.
-Svelte uses `@sveltejs/vite-plugin-svelte` 7.1.2 on Vite 8. npm-registry consumer
-acceptance is still pending; both adapters remain experimental. SvelteKit is not covered.
+Svelte uses `@sveltejs/vite-plugin-svelte` 7.1.2 on Vite 8. These are packed source fixtures, not independent npm-registry browser evidence
+for Solid/Svelte; both adapters remain experimental. SvelteKit is not covered.
 See [Getting started](../guide/getting-started.md) for all four configurations.
 
 ## Framework and host-tool minimums
@@ -64,7 +64,7 @@ published beta support table above.
 
 ## Current-source browser fixtures
 
-Commands in this section run the checkout, including unpublished changes.
+Commands in this section run the checkout; later main commits may include unpublished changes.
 Only the release evidence above establishes the npm beta boundary.
 
 | Consumer path | Verified behavior | Evidence |
@@ -83,7 +83,7 @@ Only the release evidence above establishes the npm beta boundary.
 
 ## Rust-file bundler additions
 
-The proposed 0.2 batch adds Webpack/Rspack Rust-file integration. These checks run
+The 0.2 alpha batch adds Webpack/Rspack Rust-file integration. These checks run
 against tarballs built from this checkout, not the existing npm Beta artifacts.
 `npm run test:rust-bundlers` covers Vue and React on Webpack 5.109.2 and Rspack
 2.1.10, including `rust.sourceRoot: "."` with Rust files at the application root.
@@ -108,7 +108,7 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Experimental packed Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 | Webpack | `>=5` | `npm run test:webpack` | Experimental packed Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue Rust-file watch also covers failure recovery, style edits and new modules; other framework/watch combinations remain unverified. |
 
-## Unreleased 0.2 SSR additions
+## 0.2 alpha SSR additions
 
 Current source keeps Vue Store creation in the browser and preserves React
 client boundaries. Adapter tests cover server rendering and hydration; the

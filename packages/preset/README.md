@@ -1,6 +1,6 @@
 # @vooya/preset
 
-Optional managed Rust/WASM tools for Vooya. This package is under development and has not been published.
+Optional managed Rust/WASM tools for Vooya, available starting at `0.2.0-alpha.0`. The host SDK/linker is still required.
 
 Declare `@vooya/preset` in your application's `devDependencies`. Vooya's shared toolchain resolver prepares the pinned tools on the first development build, production build, or `vooya doctor` invocation. Installing the npm package itself does not download or execute Rust installers.
 

@@ -5,7 +5,7 @@ manifests, toolchain selection, `wasm-bindgen`, schema extraction, generated
 bindings and declarations, diagnostics, and the generated `.vooya` workspace.
 It is independent of Vite, Rspack, and Webpack.
 
-This package is new and unpublished until its first release. It is intended for
+This package is available starting at `0.2.0-alpha.0`. It is intended for
 build integrations; application authors should continue using `@vooya/vite`,
 `@vooya/rspack`, or `@vooya/webpack` with their existing configuration.
 

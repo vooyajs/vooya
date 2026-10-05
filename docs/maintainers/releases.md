@@ -243,8 +243,32 @@ remain available. If that cache is unavailable, recover the original baseline
 from the failed run's uploaded evidence before retrying. Restore any incorrectly
 changed tags to that baseline; a freshly captured baseline cannot prove what
 the tags were before the failed attempt.
-New packages need an explicit initial `latest` decision because npm can create
-that tag on first publication.
+### First publication and the `latest` baseline
+
+For future releases, capture an explicit first-publication `latest` expectation
+before any npm mutation. If the package's complete registry metadata is absent
+(an actual registry 404, not a timeout, authorization failure or invalid response),
+record its exact reviewed candidate version as the permitted initial `latest`
+value, alongside the observed missing tag. This decision belongs to the saved
+baseline and must survive retries; it is not inferred after publication.
+
+Do not apply this exception to an existing package whose metadata is present,
+even if its `latest` tag is missing. Existing `latest`, the other prerelease
+channel, and unchanged-package channel tags remain protected exactly as recorded.
+Do not treat a first-publication exception as permission to promote later
+prereleases to `latest`, and do not relax candidate or dependency verification.
+
+In the alpha.0 publication, the new preset and provider-rust packages acquired
+`latest` alongside `alpha`, and npm CLI attempts to remove `latest` returned
+HTTP 400. A similar behavior was reported in
+[npm/cli issue #8490](https://github.com/npm/cli/issues/8490). These are observed
+registry behaviors, not a promise of permanent npm platform semantics.
+
+The [alpha.0 recovery record](./releases/0.2.0-alpha.0.md) keeps the original
+pre-publication baseline intact and records this first-publication deviation
+separately. Never rewrite that old baseline to make an already-published run
+appear clean; use an independently reviewed recovery receipt and exact registry
+acceptance. The workflow's failure status remains part of the release history.
 
 Check GitHub Releases separately after a failed run. A package may already be
 published on npm while its GitHub Release is missing. Rerunning the same plan

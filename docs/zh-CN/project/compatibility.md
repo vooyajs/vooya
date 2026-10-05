@@ -1,6 +1,6 @@
 # 兼容性
 
-这张表记录仓库的接入范围和验证用例。Beta 表格描述已发布的包，后面的新增部分描述当前源码中尚待发布的能力。版本与发布节奏见[发布线说明](./release-lines.md)。
+这张表记录仓库的接入范围和验证用例。Beta 表格描述已发布的包，后面的新增部分描述可选的 0.2 Alpha 范围。版本与发布节奏见[发布线说明](./release-lines.md)。
 
 ## Beta 四框架适配情况
 
@@ -33,12 +33,12 @@ Vue 将未传入的可选 Boolean prop 转成 `false` 的问题。Solid/Svelte �
 当前 main 的 `test:vite8-frameworks` 对 Vue/React/Solid/Svelte 分别进行干净 tarball
 安装，验证 Vite 8.2.1 的生产构建、Chromium 交互、严格声明类型，以及开发时 Rust
 修改、编译错误恢复、连续保存与宿主组件修改。Svelte 的 Vite 8 路径使用
-`@sveltejs/vite-plugin-svelte` 7.1.2。npm registry 验收仍待补齐，支持级别仍为
-实验性。这些是尚未发布的源码验收，不属于上表的已发布 Beta 证据。已发布安装路径见[快速开始](../guide/getting-started.md)。
+`@sveltejs/vite-plugin-svelte` 7.1.2。这些打包源码用例不等于 Solid/Svelte 的独立 npm registry 浏览器证据，支持级别仍为
+实验性。这些是 Alpha 对应源码的具名验收，不属于上表的 Beta 证据。已发布安装路径见[快速开始](../guide/getting-started.md)。
 
 ## 版本与工具链边界
 
-本表同时记录已发布路径和 main 的候选能力；标为“未发布”的行不能通过安装 `@beta` 获得。
+本表分别记录 Beta、Alpha 与私有实验；Alpha 行不能通过安装 `@beta` 获得。
 
 | 层 | 版本 | 状态 | 边界 |
 | --- | --- | --- | --- |
@@ -49,13 +49,13 @@ Vue 将未传入的可选 Boolean prop 转成 `false` 的问题。Solid/Svelte �
 | Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 Chromium fixture 覆盖 Component mount/callback、Store action、prop update、`Readable` 声明，以及 Component/Store owner cleanup |
 | Octane | `0.9.0` | 私有 workspace 实验；不纳入 0.2 | 独立 fixture 使用 plugin 0.2.1、Vite 8.0.16，覆盖 Component/Store 实例隔离、props/event、销毁重建和声明；Node >=22.22.2；尚无 npm 发布或 SSR 承诺 |
 | Vite | `>=7 <9` | 主路径 | Vite 8.2.1 四框架独立打包、类型、生产浏览器和开发恢复验收；Vite 7 保持回归测试 |
-| Vite+ | `0.2.9`，core alias `0.2.9`（Vite `8.2.1`） | main 未发布的四框架验收 | Vue/React/Solid/Svelte 的干净 tarball 安装、`.rs` 生产构建、Chromium、严格声明检查、dev 重建与错误恢复 |
-| Rspack / Rsbuild | Rspack `>=2.1.10`；Rsbuild `>=2.1.13` | Experimental | Beta 保留旧 Vue/React/Rslib fixture；main 新增尚未发布的 Vue/React `.rs` 生产验收 |
+| Vite+ | `0.2.9`，core alias `0.2.9`（Vite `8.2.1`） | Alpha 四框架具名验收 | Vue/React/Solid/Svelte 的干净 tarball 安装、`.rs` 生产构建、Chromium、严格声明检查、dev 重建与错误恢复 |
+| Rspack / Rsbuild | Rspack `>=2.1.10`；Rsbuild `>=2.1.13` | Experimental | Beta 保留旧 Vue/React/Rslib fixture；Alpha 增加 Vue/React `.rs` 生产验收 |
 | Webpack | `>=5` | Experimental | 5.101.0、5.109.2 fixture；Webpack 4 不支持 |
 | Vue Vapor | Vue 3.6.0-beta.17 + Vite 8.2.1 | Experimental | 需要 Vue 的 `vaporInteropPlugin`，不是 Vooya 自己的 renderer |
 
 Solid 这一行只说明当前 Vite 7 + Chromium fixture 与 adapter unit test 的证据，
-main 另有尚未发布的 Vite 8 packed 证据；不推导 Rspack/Webpack、SSR、hydration 或其他浏览器已经兼容。
+Alpha 另有 Vite 8 packed 证据；不推导 Rspack/Webpack、SSR、hydration 或其他浏览器已经兼容。
 Svelte 这一行同样只说明具名 Vite 7 + Chromium fixture；不推导 Svelte 3/4、
 SvelteKit、SSR/hydration、Rspack/Webpack 或其他浏览器已经兼容。fixture
 在卸载子组件后断言 Component handle 与 generated Store 各调用一次 `dispose()`。
@@ -65,7 +65,7 @@ SvelteKit、SSR/hydration、Rspack/Webpack 或其他浏览器已经兼容。fixt
 配置即可正常 npm 安装，不需要 legacy peer resolver。范围限定为上述版本的 dev/build，
 不推导其他 Vite+ 版本、其全部工具或 SSR 支持。配置见 [Vite+ 接入](../guide/other-integrations.md#vite)。
 
-## 0.2 候选：Rust-file bundler 接入（未发布）
+## 0.2 Alpha：Rust-file bundler 接入
 
 `test:rust-bundlers` 从当前源码打包，在干净项目中验证 Webpack 5.109.2、
 Rspack 2.1.10 与 Vue/React 的 `.rs` Component、Store、props/event、scoped CSS、
@@ -74,7 +74,7 @@ Rspack 2.1.10 与 Vue/React 的 `.rs` Component、Store、props/event、scoped C
 CSS 更新、新增 `.rs` 和产物不会造成循环重建。Next.js/SSR、Webpack/Rspack
 下的 Solid/Svelte 尚未完成验收。
 
-## 0.2 候选：SSR 接入（未发布）
+## 0.2 Alpha：SSR 接入
 
 当前源码将 Vue Store 的创建推迟到浏览器挂载，并保留 React 的客户端边界。
 adapter 测试覆盖服务端渲染和 hydration，Nuxt 独立打包用例覆盖 WASM 加载、

@@ -63,20 +63,20 @@ MSVC host 需要 Visual Studio Build Tools 的 **Desktop development with C++**
 
 修复报错指向的 Rust 行并再次保存。已发布 Beta 的 Vite Rust-file 路径会尝试
 从失败构建恢复；成功的 Rust rebuild 会触发整页 reload，不保留组件 state。
-Rspack/Webpack 的普通 `.rs` watch 恢复目前只在 main 验证，尚未发布；
+Rspack/Webpack 的普通 `.rs` watch 恢复已在 Alpha 的具名用例验证；
 不要将它与 beta.0 的 legacy `.voo` fixture 混淆，见[Bundler 指南](./bundlers.md)。
 
 ## 源码没有出现在生成结果中
 
 已发布 Beta 应使用没有尾部点路径的专用源码目录，例如用 `rust` 代替 `rust/.`，
 避免扫描整个项目根目录。sourceRoot 规范化与依赖目录排除仍是
-[0.1 回补候选](../project/release-lines.md)，尚未发布；不能因为 main 有回归测试就假设安装包已有修复。
+[0.1 回补候选](../project/release-lines.md)，尚未在 Beta 发布；Alpha 已包含修复。不要把后续 main 测试当作已安装版本的证据。
 
 ## React Store factory 抛错却没有进入 `onError`
 
 已发布 React adapter 的高级 factory API 可能让同步抛错逃离创建错误回调。
 可暂用 `async` 包装 factory，将同步抛错转换成该 API 能处理的 Promise rejection；
-保留原工厂参数和返回类型，不要吞掉错误。对应修复仍是 0.1 回补候选，尚不是可安装的更新。
+保留原工厂参数和返回类型，不要吞掉错误。React alpha.0 已包含修复；独立的 0.1 回补候选尚不是已发布 Beta 更新。
 
 ## 仍有问题
 

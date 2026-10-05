@@ -1,7 +1,7 @@
 # API 参考
 
 本页参数表描述[已发布 Beta](../project/status.md) 的公开 API。main 中的
-托管工具链和 SSR 惰性工厂等变化尚未发布；Octane 保留为私有实验，不纳入本轮 0.2。
+托管工具链和 SSR 惰性工厂等变化从 0.2.0-alpha.0 起可用；Octane 保留为私有实验，不纳入本轮 0.2。
 具体见[发布线说明](../project/release-lines.md)。
 
 这里列的是从包的公开导出和已验证消费路径中整理出的 API。prerelease ABI 可能在
@@ -22,7 +22,7 @@ adapter。这个实现边界用于避免 generation 层出现框架分支，不�
 | --- | --- | --- | --- | --- |
 | `vooya()` | `Plugin` | — | 加入 Vite config | Vite `>=7 <9`；`plugins: [vue(), vooya()]` |
 | `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | 选择宿主 adapter | Vue 3、React 19 为 supported；Solid 1.9、Svelte 5 在 Vite 7 上为 experimental |
-| `rust.sourceRoot` | `string` | `"src"` | 指定应用根目录下的 Rust 源码目录 | Beta 的点路径匹配有已知缺陷；`"."` / `"rust/."` 修复仍是回补候选，见[发布线说明](../project/release-lines.md) |
+| `rust.sourceRoot` | `string` | `"src"` | 指定应用根目录下的 Rust 源码目录 | Beta 的点路径匹配有已知缺陷；`"."` / `"rust/."` 修复已在 alpha.0 可用，Beta 回补仍是候选，见[发布线说明](../project/release-lines.md) |
 | `rust.entry` | `string` | 未设置；生成模块根 | 指定相对应用根目录的 Rust crate 入口 | 显式入口与 conventional module graph 需可达；它不是 npm package 入口 |
 | `rust.files` | `string[]` | `[]` | 添加相对应用根目录的额外 Rust 输入 | 与 sourceRoot 发现的文件一起进入生成构建 |
 | `rust.public` | `string[]` | `[]` | 指定相对 sourceRoot 的公开根模块 | 不会把任意 Rust 值自动导出为 JavaScript；仍遵循 Component/Store 契约 |

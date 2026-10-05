@@ -1,6 +1,6 @@
 # API Reference
 
-Unless a section says otherwise, this reference describes the [published 0.1 beta packages](../project/status.md). Managed toolchain modes and SSR-safe Store factories belong to the [unreleased 0.2 work](../project/next-release.md); installing `@beta` does not enable them. Octane is a separate private workspace experiment, excluded from that release batch.
+Unless a section says otherwise, this reference describes the [published 0.1 beta packages](../project/status.md). Managed toolchain modes and SSR-safe Store factories belong to the [opt-in 0.2 alpha](../project/next-release.md); installing `@beta` does not enable them. Octane is a separate private workspace experiment, excluded from that release batch.
 
 This page lists the public consumption paths verified from the package exports.
 The beta ABI may change between prereleases. Internal `@vooya/build-core`

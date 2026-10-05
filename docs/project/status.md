@@ -1,5 +1,29 @@
 # Project Status
 
+## Opt-in 0.2 alpha
+
+The [0.2 alpha release run](https://github.com/vooyajs/vooya/actions/runs/37315595525) publishes eight packages at
+`0.2.0-alpha.0`: `@vooya/vite`, `@vooya/vue`, `@vooya/react`, `@vooya/build-core`,
+`@vooya/provider-rust`, `@vooya/preset`, `@vooya/rspack`, and `@vooya/webpack`.
+`@vooya/core` and `@vooya/compiler` remain at `0.1.0-beta.0`; Solid and Svelte
+adapters remain at `0.1.0-beta.2`. Use this exact mixed version graph; there is no
+Solid/Svelte alpha package in this release. Octane remains private and deferred.
+
+The publication run passed the complete `verify:release` gate and published all
+eight packages, but its registry-propagation check timed out and the workflow
+finished with failure. It is not an all-green release run. See the
+[publication and recovery record](../maintainers/releases/0.2.0-alpha.0.md) for
+the preserved original baseline, independent receipt and exact registry checks.
+Local Vue/React registry consumers and a separate preset registry consumer passed;
+the preset check reused its managed cache and does not establish a fresh download.
+
+
+The default quickstart continues to use beta. Alpha is an explicit opt-in for the
+managed toolchain, bounded Vite 8/Vite+ and Rust bundler paths, and SSR-safe
+client-mounted islands. See [alpha installation](./next-release.md).
+Publication does not establish every framework or SSR combination, and a source
+fixture is not by itself a registry-consumer test.
+
 The first Vooya beta, `0.1.0-beta.0`, was published for all ten public packages.
 The current npm `beta` channel has `@vooya/vite`, `@vooya/react`, `@vooya/solid`,
 and `@vooya/svelte` at `0.1.0-beta.2`, and `@vooya/vue` at `0.1.0-beta.1`.
@@ -29,7 +53,7 @@ and the four adapters accept [generated Store interfaces](https://github.com/voo
 without an arbitrary string index signature. The Store type fix is available
 since Vue beta.1 and React/Solid/Svelte beta.2; the raw import fix requires Vite beta.2.
 
-The ten public packages share one release workflow:
+The original ten beta packages share one release workflow (alpha adds `@vooya/preset` and `@vooya/provider-rust`, for twelve public packages):
 
 - `@vooya/compiler`
 - `@vooya/core`
@@ -121,7 +145,7 @@ See [the release guide](../maintainers/releases.md).
   has an experimental first-party adapter with Rsbuild, Rslib, and direct
   Rspack fixtures. Webpack `>=5` has an experimental first-party
   adapter. Both published non-Vite adapters retain transitional `.voo` fixture
-  evidence; their `.rs` integration is unreleased 0.2 work. Webpack 4, Rollup,
+  evidence; their `.rs` integration requires the opt-in 0.2 alpha packages. Webpack 4, Rollup,
   Turbopack, and other bundlers remain unsupported.
 - The newer Vite+ four-framework dev/build matrix runs against current-source
   tarballs. It does not expand the published beta claim or cover every Vite+ tool.
@@ -163,11 +187,11 @@ See [the release guide](../maintainers/releases.md).
 - Vooya Lab cases are evidence and product discovery, not a separate support
   matrix or an automatic beta gate; see [RFC 0011](../rfcs/0011-lab-self-hosting-program.md).
 
-## Unreleased 0.2 work
+## Available opt-in 0.2 scope
 
 The optional managed preset, SSR-safe islands and Nuxt fixture,
 Webpack/Rspack Rust-file integration, expanded Vite+ evidence, and merged
-Rust provider extraction belong to the [next feature batch](./next-release.md).
+Rust provider extraction are available in the [opt-in alpha package graph](./next-release.md).
 The [release-line review](../maintainers/release-lines.md) identifies two
 merged 0.1 maintenance backports; neither has been published. Do not treat
 the current main branch as a maintenance release candidate.
@@ -182,9 +206,10 @@ Rust-file Vue and React consumers, first with packed artifacts and then with
 exact registry versions. Future releases retain these separate acceptance steps.
 Current source adds separate clean Vite 8 dev/build consumers for all four adapters. Registry
 browser acceptance remains follow-up work before a broader support claim.
-Managed toolchain installation through `@vooya/preset` remains a separate
-`0.2` workstream in [#129](https://github.com/vooyajs/vooya/issues/129), not a
-prerequisite for this beta. Source consumers still need the Rust/WASM toolchain.
+Managed toolchain installation through `@vooya/preset@0.2.0-alpha.0` addresses
+the bounded source-authoring setup in [#129](https://github.com/vooyajs/vooya/issues/129).
+It is optional and does not remove host SDK requirements; beta users continue
+using their system Rust/WASM tools.
 
 1. Extend the existing `rsx!` conditional/keyed rendering and owned cleanup
    with evidence from more real component use cases.

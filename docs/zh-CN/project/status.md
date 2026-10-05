@@ -1,5 +1,24 @@
 # 项目状态
 
+## 可选的 0.2 Alpha
+
+[0.2 Alpha 发布运行](https://github.com/vooyajs/vooya/actions/runs/37315595525)发布了八个 `0.2.0-alpha.0` 包：
+`@vooya/vite`、`@vooya/vue`、`@vooya/react`、`@vooya/build-core`、
+`@vooya/provider-rust`、`@vooya/preset`、`@vooya/rspack`、`@vooya/webpack`。
+`@vooya/core`、`@vooya/compiler` 保持 `0.1.0-beta.0`；Solid、Svelte adapter
+保持 `0.1.0-beta.2`，本次没有这两个 adapter 的 Alpha 包。不要强制所有包同版。
+Octane 仍是延期的私有实验。
+
+本次运行通过完整 `verify:release` 门禁并发布了八个包，但 registry 传播检查超时，
+工作流最终为失败，不能称为全绿发布运行。[发布与恢复记录](../../maintainers/releases/0.2.0-alpha.0.md)
+保存原始基线、独立 receipt 与精确 registry 检查。Vue/React registry 消费及独立 preset
+registry 消费的本地验收已通过；preset 复用托管缓存，不代表重新验证了下载。
+
+
+默认快速开始继续使用 Beta。托管工具链、具名 Vite 8/Vite+ 与 Rust bundler 路径、
+SSR 安全客户端岛需要主动选择 Alpha，见 [Alpha 安装](./next-release.md)。
+发布不等于所有框架或 SSR 组合都兼容；源码 fixture 也不等于独立 registry 消费验收。
+
 Vooya 首个 Beta 的十个公开包均发布为 `0.1.0-beta.0`。当前 npm `beta` 渠道中，
 `@vooya/vite`、`@vooya/react`、`@vooya/solid`、`@vooya/svelte` 为
 `0.1.0-beta.2`，`@vooya/vue` 为 `0.1.0-beta.1`；其余五个包
@@ -48,9 +67,9 @@ source consumer 仍需要 Cargo、`wasm32-unknown-unknown` 和
 都不在当前承诺内。Rspack/Webpack 仍需按[兼容性矩阵](./compatibility.md)
 逐版本看 evidence。
 
-## main 的 0.2 候选（未发布）
+## 0.2 Alpha 的具名验收范围
 
-当前源码已有可选托管 Rust preset、四框架 Vite 8 与四框架
+Alpha 包提供可选托管 Rust preset、四框架 Vite 8 与四框架
 Vite+ 打包用例、Vue/React Rust-file Webpack/Rspack 接入，以及 SSR 安全岛和 Nuxt 用例。
 这些能力尚未包含在上面的 npm Beta 包中；具体证据见[兼容性矩阵](./compatibility.md)。
 

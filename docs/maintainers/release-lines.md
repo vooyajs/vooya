@@ -1,5 +1,22 @@
 # Release lines and the next feature batch
 
+## Published 0.2 alpha checkpoint
+
+[Release run 37315595525](https://github.com/vooyajs/vooya/actions/runs/37315595525)
+passed the complete `verify:release` gate and published the eight-package
+`0.2.0-alpha.0` set. It subsequently failed when registry propagation exceeded
+the verification timeout; the workflow itself did not finish successfully.
+See the [publication and recovery record](./releases/0.2.0-alpha.0.md) for the
+original baseline, independently completed checks and recovery receipt, and
+[the version graph](../project/next-release.md) for installation boundaries.
+Octane remains private. Historical scope reviews and dry-run results below are
+retained as planning evidence; their unpublished wording describes that review
+point. The separate 0.1 maintenance plan is not published by this alpha run.
+This checkpoint does not assert that the public documentation site was deployed.
+
+
+## Historical scope review
+
 This is the release-scope review for published commit
 [`689182fd`](https://github.com/vooyajs/vooya/commit/689182fd2c32bac2809d0f5e795cc39cc8bcfd44),
 the main-branch integration in

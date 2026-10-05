@@ -1,6 +1,6 @@
 # Tooling Reference
 
-The application options and CLI reference below describe the [published 0.1 beta](../project/status.md). Repository verification commands exercise the current checkout. [Unreleased 0.2 features](../project/next-release.md) have separate availability notes; they are not enabled by installing `@beta`.
+The application options and CLI reference below describe the [published 0.1 beta](../project/status.md). Repository verification commands exercise the current checkout. [Opt-in 0.2 alpha features](../project/next-release.md) have separate availability notes; they are not enabled by installing `@beta`.
 
 ## JavaScript output and TypeScript authoring
 
@@ -22,7 +22,7 @@ toolchain because it aliases `vite` to `@voidzero-dev/vite-plus-core`; it still
 uses the same `vooya()` plugin and does not create a second Vooya adapter API.
 The current source fixture installs normally with the documented npm aliases
 and overrides; it does not require `--legacy-peer-deps`. That four-framework
-Vite+ evidence belongs to the unreleased 0.2 batch, not the published beta.
+Vite+ evidence belongs to the opt-in 0.2 alpha batch, not the published beta.
 See [Vite+ setup](../guide/other-integrations.md#vite) for the pinned configuration.
 
 ```ts
@@ -77,7 +77,7 @@ manifest's `web-sys` dependency. Supplying the option explicitly takes priority.
 | Parameter | Type / values | Default | Purpose | Limit / evidence |
 | --- | --- | --- | --- | --- |
 | `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 are supported; Solid 1.9 and Svelte 5 have experimental Vite 7 evidence; it does not change the Rust ABI |
-| `rust.sourceRoot` | `string` | `"src"` | Selects the Rust source directory relative to the application root | Dot-segment roots such as `"."` and `"rust/."` have a known beta defect; the fix is a [backport candidate](../maintainers/release-lines.md#maintenance-backport-candidates) |
+| `rust.sourceRoot` | `string` | `"src"` | Selects the Rust source directory relative to the application root | Dot-segment roots such as `"."` and `"rust/."` have a known beta defect; alpha.0 includes the fix; the beta fix remains a [backport candidate](../maintainers/release-lines.md#maintenance-backport-candidates) |
 | `rust.entry` | `string` | Unset; generate a module root | Selects an authored crate entry relative to the application root | An authored entry must be configured explicitly |
 | `rust.files` | `string[]` | `[]` | Adds Rust input files relative to the application root | These join the files discovered under `sourceRoot` |
 | `rust.public` | `string[]` | `[]` | Selects public root modules relative to `sourceRoot` | JavaScript exposure still follows the Component/Store contract; this does not export arbitrary Rust values |
@@ -137,7 +137,7 @@ user's PATH preference.
 
 A project may choose and share its own Cargo policy across native and WASM
 builds, but that is project configuration, not a third Vooya-managed toolchain
-mode in the published beta. The unreleased source adds optional
+mode in the published beta. The 0.2 alpha packages add optional
 [managed/system/auto selection](../project/next-release.md#managed-rust-toolchain).
 A supported Rust-free precompiled consumer product remains future work.
 
@@ -208,11 +208,11 @@ npm run test:rust-hmr
 
 ## Rspack and Rsbuild
 
-::: warning Rust-file support is unreleased
-The npm 0.1 beta adapter covers transitional `.voo` regression fixtures, not
-the supported `.rs` authoring path. The configuration below documents the
-current source for the proposed 0.2 batch. Use Vite with published packages for
-a new Rust-file application; see the [release boundary](../project/next-release.md).
+::: warning Rust-file support requires 0.2 alpha
+The npm 0.1 beta adapter covers transitional `.voo` regression fixtures.
+Use the matching alpha.0 bundler and Vue/React adapter packages for the `.rs`
+configuration below. The [alpha installation guide](../project/next-release.md)
+records exact versions; SSR and unlisted framework combinations remain unverified.
 :::
 
 `@vooya/rspack` exposes `vooyaRsbuild()` for Rsbuild projects and
@@ -239,11 +239,11 @@ server.
 
 ## Webpack 5
 
-::: warning Rust-file support is unreleased
-The npm 0.1 beta adapter covers transitional `.voo` regression fixtures, not
-the supported `.rs` authoring path. The configuration below documents the
-current source for the proposed 0.2 batch. Use Vite with published packages for
-a new Rust-file application; see the [release boundary](../project/next-release.md).
+::: warning Rust-file support requires 0.2 alpha
+The npm 0.1 beta adapter covers transitional `.voo` regression fixtures.
+Use the matching alpha.0 bundler and Vue/React adapter packages for the `.rs`
+configuration below. The [alpha installation guide](../project/next-release.md)
+records exact versions; SSR and unlisted framework combinations remain unverified.
 :::
 
 `@vooya/webpack` uses Webpack's public plugin and loader protocols and delegates
