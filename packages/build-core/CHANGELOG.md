@@ -3,6 +3,44 @@
 Historical entries were reconstructed from published package metadata and release
 snapshots; see [release history evidence](../../docs/maintainers/release-history.md).
 
+## 0.2.0-alpha.0
+
+### Minor Changes
+
+- 4230642: Move Rust compilation, schema handling, workspace management, and toolchain
+  selection into `@vooya/provider-rust`. Keep `@vooya/build-core` as a compatible
+  entry point sharing the same functions, error classes, and cache. Existing
+  Rust projects need no configuration changes. This extraction does not add a
+  public provider registry or support for another source language.
+- 0c50316: Add an optional managed Rust/WASM toolchain with pinned downloads, an isolated cache, and shared automatic selection for builds and doctor. Projects may explicitly select their system toolchain. Host linker/SDK prerequisites still apply.
+- e17b0cc: Add experimental native Octane 0.9 support for Rust-file components and stores through Vite 8, including generated TypeScript declarations. The private experimental adapter remains available only to source/tarball fixtures and is excluded from this npm release. Legacy .voo inputs, SSR and older Octane versions are outside this initial scope.
+- 9bb6287: Support Rust-file components and Stores in Webpack/Rspack with shared adapter module generation, scoped CSS and centralized declarations. Keep the legacy .voo path and verify Vue/React in clean packed production consumers.
+
+  Normalize sourceRoot dot paths when selecting Rust modules and resolving schema imports, and exclude installed node_modules from Rust source discovery. Add clean packed Solid/Svelte browser and strict declaration acceptance on Vite 8.
+
+  Keep Rust-file watch builds stable by preserving unchanged generated CSS and comparing only authored Rust/Cargo/style inputs. Verify Rust error recovery and new module detection without restarting the watcher.
+- 6859de4: Start the 0.2 SSR integration foundation. Vue generated Store factories now load
+  only after client mount, and the advanced Store composable accepts a lazy factory.
+  React's package entry preserves its client-module directive. Server rendering
+  and host hydration have adapter-level regression coverage. The named Nuxt 4.5.2
+  fixture (Vite 8.3.1, Vue 3.5.43) also verifies production SSR hosts and
+  browser-mounted WASM islands, including components, Stores and cleanup.
+  Next.js, Edge runtimes and server rendering of Rust DOM content remain outside
+  this release's verified scope.
+
+  Extract Rust build mechanics behind the existing buildApplication facade and an
+  internal provider interface, preserving the public build result, locking, staged
+  artifacts, diagnostics, and default Rust configuration. The initial interface
+  still models Rust's single-WASM artifact; it is not a public multi-language API.
+
+  Route synchronous React Store factory failures through onError, matching asynchronous initialization failures.
+
+### Patch Changes
+
+- Updated dependencies [4230642]
+- Updated dependencies [d2f41cf]
+  - @vooya/provider-rust@0.2.0-alpha.0
+
 ## 0.1.0-beta.0
 
 ### Patch Changes

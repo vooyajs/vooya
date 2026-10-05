@@ -1,6 +1,6 @@
 {
   "name": "@vooya/provider-rust",
-  "version": "0.0.0",
+  "version": "0.2.0-alpha.0",
   "description": "Rust source, Cargo, wasm-bindgen, schema and toolchain support for Vooya.",
   "type": "module",
   "license": "MIT OR Apache-2.0",
