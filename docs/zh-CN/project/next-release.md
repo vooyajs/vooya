@@ -7,11 +7,8 @@
 保持 `0.1.0-beta.2`，本次没有这两个 adapter 的 Alpha 包。不要强制所有包同版。
 Octane 仍是延期的私有实验。
 
-本次运行通过完整 `verify:release` 门禁并发布了八个包，但 registry 传播检查超时，
-工作流最终为失败，不能称为全绿发布运行。[发布与恢复记录](../../maintainers/releases/0.2.0-alpha.0.md)
-保存原始基线、独立 receipt 与精确 registry 检查。Vue/React registry 消费及独立 preset
-registry 消费的本地验收已通过；preset 复用托管缓存，不代表重新验证了下载。
-
+原发布工作流在发布完成后失败；独立 registry 恢复验收及 GitHub 预发布核对已完成。
+证据与限制见[发布记录](../../maintainers/releases/0.2.0-alpha.0.md)。
 
 默认快速开始继续使用 Beta。托管工具链、具名 Vite 8/Vite+ 与 Rust bundler 路径、
 SSR 安全客户端岛需要主动选择 Alpha，见[包状态](./status.md)。

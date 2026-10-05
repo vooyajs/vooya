@@ -7,14 +7,9 @@ The [0.2 alpha release run](https://github.com/vooyajs/vooya/actions/runs/373155
 adapters remain at `0.1.0-beta.2`. Use this exact mixed version graph; there is no
 Solid/Svelte alpha package in this release. Octane remains private and deferred.
 
-The publication run passed the complete `verify:release` gate and published all
-eight packages, but its registry-propagation check timed out and the workflow
-finished with failure. It is not an all-green release run. See the
-[publication and recovery record](../maintainers/releases/0.2.0-alpha.0.md) for
-the preserved original baseline, independent receipt and exact registry checks.
-Local Vue/React registry consumers and a separate preset registry consumer passed;
-the preset check reused its managed cache and does not establish a fresh download.
-
+The original publication workflow failed after publishing; independent registry
+recovery and GitHub prerelease reconciliation are complete. See the
+[release record](../maintainers/releases/0.2.0-alpha.0.md) for evidence and limits.
 
 The default quickstart continues to use beta. Alpha is an explicit opt-in for the
 managed toolchain, bounded Vite 8/Vite+ and Rust bundler paths, and SSR-safe
