@@ -70,7 +70,12 @@ if (flags.has("--dry-run")) {
     const protectedTag = channel === "beta" ? "alpha" : "beta";
     const other = Object.fromEntries(packages.map(({ manifest }) => [manifest.name, metadata.get(manifest.name)?.["dist-tags"]?.[protectedTag] ?? null]));
     const unchanged = Object.fromEntries(packages.filter(({ manifest }) => !reviewed.some((entry: any) => entry.name === manifest.name)).map(({ manifest }) => [manifest.name, metadata.get(manifest.name)?.["dist-tags"]?.[channel] ?? null]));
-    writeFileSync(resolve(capturePath), `${JSON.stringify({ channel, latest, [protectedTag]: other, ...(line ? { line, candidates: reviewed, unchanged } : {}) }, null, 2)}\n`, { flag: "wx" });
+    // Only an actual registry 404 establishes first publication. An existing
+    // package without latest must retain that absence, not receive an exception.
+    const firstPublicationLatest = Object.fromEntries(candidates
+      .filter((entry: { name: string }) => metadata.get(entry.name) === undefined)
+      .map((entry: { name: string; version: string }) => [entry.name, entry.version]));
+    writeFileSync(resolve(capturePath), `${JSON.stringify({ channel, latest, [protectedTag]: other, ...(line ? { line, candidates: reviewed, unchanged } : {}), ...(Object.keys(firstPublicationLatest).length ? { firstPublicationLatest } : {}) }, null, 2)}\n`, { flag: "wx" });
     console.log("Captured npm latest tags before publication.");
   } else if (flags.has("--check-baseline")) {
     verifyBaseline(metadata);
@@ -132,9 +137,36 @@ function verifyBaseline(metadata: Map<string, any>) {
       if (!Object.hasOwn(before.unchanged ?? {}, manifest.name) || before.unchanged[manifest.name] !== (metadata.get(manifest.name)?.["dist-tags"]?.[channel] ?? null)) throw new Error(`Unchanged dependency ${manifest.name} channel tag moved during publication.`);
     }
   }
+  const firstPublicationLatest = new Map<string, string>();
+  if (Object.hasOwn(before, "firstPublicationLatest")) {
+    const exceptions: unknown = before.firstPublicationLatest;
+    if (exceptions === null || typeof exceptions !== "object" || Array.isArray(exceptions)) throw new Error("Invalid firstPublicationLatest snapshot.");
+    const otherTag = channel === "beta" ? "alpha" : "beta";
+    for (const [name, version] of Object.entries(exceptions)) {
+      if (typeof version !== "string" || !reviewed.some((entry: { name: string; version: string }) => entry.name === name && entry.version === version)
+        || !validateReleaseVersion(version, channel, line)
+        || !Object.hasOwn(before.latest ?? {}, name) || before.latest[name] !== null
+        || !Object.hasOwn(before[otherTag] ?? {}, name) || before[otherTag][name] !== null) {
+        throw new Error(`Invalid firstPublicationLatest snapshot entry for ${name}.`);
+      }
+      firstPublicationLatest.set(name, version);
+    }
+  }
   for (const tag of channel === "beta" ? ["latest", "alpha"] : ["latest", "beta"]) {
     for (const { manifest } of packages) {
       if (!Object.hasOwn(before[tag] ?? {}, manifest.name)) throw new Error(`Protected ${tag} snapshot is missing ${manifest.name}.`);
+      const expectedFirstLatest = tag === "latest" ? firstPublicationLatest.get(manifest.name) : undefined;
+      if (expectedFirstLatest !== undefined) {
+        const published = metadata.get(manifest.name);
+        // Before publication the package is absent; afterwards npm's automatic
+        // latest must name exactly the reviewed first version, never any other.
+        if (published === undefined) continue;
+        const exact = published.versions?.[expectedFirstLatest];
+        if (published["dist-tags"]?.latest !== expectedFirstLatest || exact?.name !== manifest.name || exact?.version !== expectedFirstLatest) {
+          throw new Error(`Invalid first-publication latest for ${manifest.name}; expected exact ${expectedFirstLatest}.`);
+        }
+        continue;
+      }
       if (before[tag][manifest.name] !== (metadata.get(manifest.name)?.["dist-tags"]?.[tag] ?? null)) throw new Error(`npm ${tag} changed during ${channel} publication for ${manifest.name}. Restore the recorded tag before completing the release.`);
     }
   }
