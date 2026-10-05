@@ -79,8 +79,10 @@ and documentation can continue; additional capabilities require a later batch:
 
 Octane is deferred as a private workspace experiment with an independent test.
 It is excluded from public build/publication candidates and the release gate.
-Restoring public status requires a first-release Changeset and acceptance;
-public packages may not depend on private workspace packages.
+Restoring public status requires a first-release Changeset and acceptance.
+Public packages may not reference private workspaces in `dependencies`,
+`optionalDependencies` or `peerDependencies`. Development-only tooling does not
+become an installed consumer dependency through `devDependencies`.
 
 Go/TinyGo experiments, a multi-language provider protocol, multilingual presets,
 new framework adapters, Rust server rendering, and state-preserving Rust HMR

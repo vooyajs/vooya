@@ -2,8 +2,9 @@
 // setup cache is distinct from the consumer's independently prepared cache.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { prepareToolchain } from "../packages/preset/lib/index.js";
 import { resolveToolchain } from "../packages/build-core/dist/index.js";
@@ -15,9 +16,11 @@ const prepared = await prepareToolchain({ cacheDirectory });
 // prepared environment here; auto-discovery is tested separately in the app.
 const env = { ...prepared.environment, VOOYA_TOOLCHAIN: "system" };
 const toolchain = resolveToolchain({ cwd: root, env });
-assert.equal(toolchain.cargo.path, prepared.cargoPath);
-assert.ok(toolchain.rustc.path.startsWith(cacheDirectory));
-assert.ok(toolchain.wasmBindgen.path.startsWith(cacheDirectory));
+assert.equal(realpathSync.native(toolchain.cargo.path), realpathSync.native(prepared.cargoPath));
+for (const path of [toolchain.cargo.path, toolchain.rustc.path, toolchain.wasmBindgen.path]) {
+  const inside = relative(realpathSync.native(cacheDirectory), realpathSync.native(path));
+  assert.ok(inside !== ".." && !inside.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && !isAbsolute(inside), "tool must resolve inside the setup cache");
+}
 const result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build", "--workspace", "@vooya/core"], {
   cwd: root, env, stdio: "inherit", shell: process.platform === "win32",
 });

@@ -32,7 +32,9 @@ factory 同步抛错应交给 `onError`；Rust sourceRoot 的点路径规范化�
 多语言 preset、Rust 服务端 HTML 和保留状态的 Rust HMR 不在本批范围。
 历史实验与 RFC 可以保留，但不是本批发布要求。
 Octane 保留为私有 workspace 和独立实验用例，不纳入公共构建、发布候选和发布门禁；
-后续公开需显式首发 Changeset 与验收，公开包不得依赖私有 workspace 包。
+后续公开需显式首发 Changeset 与验收。公开包的 `dependencies`、`optionalDependencies`
+和 `peerDependencies` 不得引用私有 workspace 包；`devDependencies` 中的开发工具
+不构成安装消费者的依赖。
 
 [PR #149](https://github.com/vooyajs/vooya/pull/149) 已将发布线工具和 Rust provider
 抽离合入 main，并通过候选 CI。后续类型检查和测试工具整理留在 main，不扩大维护线。

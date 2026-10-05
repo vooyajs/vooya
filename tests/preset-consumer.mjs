@@ -3,9 +3,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, copyFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, copyFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { startDevServer, stopDevServer } from "./helpers/dev-server.mjs";
@@ -15,6 +15,7 @@ const cacheDirectory = resolve(process.env.VOOYA_CACHE_DIR || join(root, "cache"
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 let server;
 let browser;
+let page;
 let output = "";
 let spawnError;
 function run(args, cwd, env = process.env) {
@@ -36,7 +37,7 @@ try {
   for (const name of ["Counter.rs", "Counter.css", "Store.rs", "main.js"]) copyFileSync(join(repositoryRoot, "tests/fixtures/rust-vue/src", name), join(app, "src", name));
   copyFileSync(join(repositoryRoot, "tests/fixtures/rust-vue/index.html"), join(app, "index.html"));
   writeFileSync(join(app, "vite.config.js"), 'import {defineConfig} from "vite"; import vue from "@vitejs/plugin-vue"; import {vooya} from "@vooya/vite"; export default defineConfig({plugins:[vue(),vooya({framework:"vue"})]});');
-  writeFileSync(join(app, "src/App.vue"), `<script setup>\nimport {computed} from 'vue'; import Counter from './Counter.rs'; import {useCart} from './Store.rs'; const {state,add}=useCart(); const count=computed(()=>state.value?.count??0); const selection=computed(()=>({id:count.value,tags:['managed']}));\n</script><template><Counter :count="count" :selection="selection"/><button @click="add(1)">Store: {{count}}</button></template>`);
+  writeFileSync(join(app, "src/App.vue"), `<script setup>\nimport {computed} from 'vue'; import Counter from './Counter.rs'; import {useCart} from './Store.rs'; const {state,add}=useCart(); const count=computed(()=>state.value?.count??0); const selection=computed(()=>({id:count.value,tags:['managed']}));\n</script><template><Counter :count="count" :selection="selection"/><button :disabled="state === undefined" @click="add(1)">Store: {{count}}</button></template>`);
   const blocked = join(root, "blocked-tools");
   mkdirSync(blocked);
   for (const tool of ["cargo", "rustc", "rustup", "wasm-bindgen"]) {
@@ -48,7 +49,7 @@ try {
     const ambient = spawnSync(tool, ["--version"], { env, encoding: "utf8", shell: process.platform === "win32" });
     assert.equal(ambient.status, 97, `ambient ${tool} must be blocked`);
   }
-  writeFileSync(join(app, "probe.mjs"), `import assert from 'node:assert/strict'; import {prepareToolchain} from '@vooya/preset'; import {resolveToolchain} from '@vooya/build-core'; const [a,b]=await Promise.all([prepareToolchain(),prepareToolchain()]); assert.equal(a.cargoPath,b.cargoPath); const t=resolveToolchain({cwd:process.cwd(),env:process.env}); assert.equal(t.cargoSelection,'managed'); assert.equal(t.cargo.path,a.cargoPath); assert.ok(t.cargo.path.startsWith(process.env.VOOYA_CACHE_DIR)); assert.match(t.rustc.version,/1\\.94\\.0/); const explicit=resolveToolchain({cwd:process.cwd(),env:t.environment,mode:'system',cargoPath:t.cargo.path}); assert.equal(explicit.cargoSelection,'explicit'); console.log(JSON.stringify(t));`);
+  writeFileSync(join(app, "probe.mjs"), `import assert from 'node:assert/strict'; import {realpathSync} from 'node:fs'; import {relative,isAbsolute,sep} from 'node:path'; import {prepareToolchain} from '@vooya/preset'; import {resolveToolchain} from '@vooya/build-core'; const [a,b]=await Promise.all([prepareToolchain(),prepareToolchain()]); assert.equal(realpathSync.native(a.cargoPath),realpathSync.native(b.cargoPath)); const t=resolveToolchain({cwd:process.cwd(),env:process.env}); assert.equal(t.cargoSelection,'managed'); assert.equal(realpathSync.native(t.cargo.path),realpathSync.native(a.cargoPath)); for(const path of [t.cargo.path,t.rustc.path,t.wasmBindgen.path]) {const inside=relative(realpathSync.native(process.env.VOOYA_CACHE_DIR),realpathSync.native(path)); assert.ok(inside!=='..'&&!inside.startsWith('..'+sep)&&!isAbsolute(inside));} assert.match(t.rustc.version,/1\\.94\\.0/); const explicit=resolveToolchain({cwd:process.cwd(),env:t.environment,mode:'system',cargoPath:t.cargo.path}); assert.equal(explicit.cargoSelection,'explicit'); console.log(JSON.stringify(t));`);
   const probe = spawnSync(process.execPath, ["probe.mjs"], { cwd: app, env, encoding: "utf8" });
   assert.equal(probe.status, 0, probe.stderr);
   const toolchain = JSON.parse(probe.stdout);
@@ -56,8 +57,11 @@ try {
   assert.equal(doctor.ok, true, JSON.stringify(doctor));
   assert.equal(doctor.schemaVersion, 1);
   assert.equal(doctor.cargo.selection, "managed");
-  assert.equal(doctor.cargo.path, toolchain.cargo.path);
-  assert.ok(doctor.rustc.path.startsWith(cacheDirectory));
+  assert.equal(realpathSync.native(doctor.cargo.path), realpathSync.native(toolchain.cargo.path));
+  for (const path of [doctor.cargo.path, doctor.rustc.path, doctor.wasmBindgen.path]) {
+    const inside = relative(realpathSync.native(cacheDirectory), realpathSync.native(path));
+    assert.ok(inside !== ".." && !inside.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && !isAbsolute(inside), "doctor tool must resolve inside the consumer cache");
+  }
   const port = await availablePort();
   server = startDevServer(npm, ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], { cwd: app, env, shell: process.platform === "win32", stdio: ["ignore", "pipe", "pipe"] });
   server.on("error", error => { spawnError = error; });
@@ -66,7 +70,9 @@ try {
   const url = `http://127.0.0.1:${port}`;
   await waitUntil(async () => { if (spawnError) throw spawnError; assert.equal(server.exitCode, null, output); assert.equal(server.signalCode, null, output); try { return (await fetch(url, { signal: AbortSignal.timeout(1000) })).ok; } catch { return false; } }, "dev server startup");
   browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  page = await browser.newPage();
+  page.on("pageerror", error => { output += `\nBrowser error: ${error.message}`; });
+  page.on("console", message => { if (message.type() === "error") output += `\nBrowser console: ${message.text()}`; });
   page.setDefaultTimeout(120_000);
   await page.goto(url);
   await page.getByRole("button", { name: "Count: 0", exact: true }).waitFor();
@@ -90,6 +96,14 @@ try {
   run(["run", "build"], app, env);
   console.log(`Managed packed consumer passed (${process.platform}/${process.arch}): ordinary dev/browser Component+Store, Rust edit, compiler error/recovery, production build, concurrent cache and doctor; ambient Rust commands blocked, host SDK retained.`);
 } catch (error) {
+  if (page && !page.isClosed()) {
+    try {
+      console.error("Failed page:", await page.locator("body").innerText({ timeout: 1000 }));
+      const screenshot = join(tmpdir(), `vooya-preset-failure-${Date.now()}.png`);
+      await page.screenshot({ path: screenshot, timeout: 5000 });
+      console.error(`Failure screenshot: ${screenshot}`);
+    } catch (captureError) { console.error("Could not capture failed page:", captureError); }
+  }
   if (output) console.error(output);
   throw error;
 } finally {
