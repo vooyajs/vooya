@@ -50,9 +50,11 @@ source consumer 仍需要 Cargo、`wasm32-unknown-unknown` 和
 
 ## main 的 0.2 候选（未发布）
 
-当前源码已有可选托管 Rust preset、Octane adapter、Solid/Svelte Vite 8 与五框架
+当前源码已有可选托管 Rust preset、四框架 Vite 8 与四框架
 Vite+ 打包用例、Vue/React Rust-file Webpack/Rspack 接入，以及 SSR 安全岛和 Nuxt 用例。
 这些能力尚未包含在上面的 npm Beta 包中；具体证据见[兼容性矩阵](./compatibility.md)。
+
+Octane 保留为私有 workspace 实验，延期且不纳入本批公共发布门禁。
 
 0.1 只维护已发布行为，0.2 按功能批次审查和冻结。Go/TinyGo、多语言协议、Rust
 服务端 HTML 和保留状态的 Rust HMR 不在本批范围。完整范围和发布工具限制见

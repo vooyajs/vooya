@@ -63,10 +63,11 @@ The following main-branch fixes stay with their 0.2 features:
 A Changeset marked `patch` describes a change relative to its development
 branch. It does not by itself establish eligibility for the 0.1 maintenance line.
 
-## Proposed 0.2 scope freeze
+## 0.2 scope freeze
 
 The theme is easier Rust toolchain setup and a more complete host integration.
-These are the proposed boundaries for the first 0.2 alpha:
+These are the frozen feature boundaries for the first 0.2 alpha. Fixes, tests
+and documentation can continue; additional capabilities require a later batch:
 
 | Area | Included | Boundary at freeze |
 | --- | --- | --- |
@@ -74,7 +75,12 @@ These are the proposed boundaries for the first 0.2 alpha:
 | Optional managed Rust preset | Pinned tools, verified downloads, isolated cache, failure recovery, doctor and system-tool selection | One optional Rust preset; host SDK/linker prerequisites remain |
 | SSR-safe islands | Vue lazy Store factories, React client entry, adapter hydration tests and the named Nuxt consumer | Browser-mounted WASM; no server-rendered Rust content; Next.js remains unverified |
 | Webpack/Rspack Rust sources | Named Vue/React components, Stores, CSS, declarations and tested watch recovery | Experimental integrations, limited to the documented fixture matrix |
-| Octane and Vite+ | Native Octane adapter and the existing five-adapter Vite+ dev/build matrix | Experimental, pinned compatibility evidence; no blanket toolchain claim |
+| Vite 8 and Vite+ | Packed Vue/React/Solid/Svelte dev/build, declarations and failed-build recovery | Pinned compatibility evidence; no blanket toolchain or SSR claim |
+
+Octane is deferred as a private workspace experiment with an independent test.
+It is excluded from public build/publication candidates and the release gate.
+Restoring public status requires a first-release Changeset and acceptance;
+public packages may not depend on private workspace packages.
 
 Go/TinyGo experiments, a multi-language provider protocol, multilingual presets,
 new framework adapters, Rust server rendering, and state-preserving Rust HMR
@@ -112,7 +118,7 @@ numeric target, monotonic versions, and dependency propagation against the
 final versions. Maintenance changesets must be patches. Existing historical
 release fixtures retain their original behavior without a line configuration.
 
-Local rehearsals of the actual source graphs produce nine feature candidates
+The current version plan excludes Octane and produces eight feature candidates
 at `0.2.0-alpha.0`, and five maintenance candidates: React/Vite beta.3 and
 build-core/Rspack/Webpack beta.1. Unchanged packages and historical changelog
 sections remain intact; repeating versioning without a new entry changes

@@ -30,8 +30,9 @@ Vue、React、Solid、Svelte 的 adapter 都已随 `0.1.0-beta.0` 发布，可�
 Vue 将未传入的可选 Boolean prop 转成 `false` 的问题。Solid/Svelte 原有路径已
 保留这些值，不需要照搬相同修复。
 
-当前 main 的 `test:vite8-frameworks` 已增加 Solid/Svelte 干净 tarball 安装、Vite 8.2.1
-生产构建、Chromium 交互和严格声明类型检查。Svelte 的 Vite 8 路径使用
+当前 main 的 `test:vite8-frameworks` 对 Vue/React/Solid/Svelte 分别进行干净 tarball
+安装，验证 Vite 8.2.1 的生产构建、Chromium 交互、严格声明类型，以及开发时 Rust
+修改、编译错误恢复、连续保存与宿主组件修改。Svelte 的 Vite 8 路径使用
 `@sveltejs/vite-plugin-svelte` 7.1.2。npm registry 验收仍待补齐，支持级别仍为
 实验性。这些是尚未发布的源码验收，不属于上表的已发布 Beta 证据。已发布安装路径见[快速开始](../guide/getting-started.md)。
 
@@ -46,9 +47,9 @@ Vue 将未传入的可选 Boolean prop 转成 `false` 的问题。Solid/Svelte �
 | React | `>=19` | Supported | fixture 覆盖 19.0.0 与 19.2.0 |
 | Solid | `>=1.9 <2` | Experimental | Vite 7 browser fixture 覆盖 Rust Component、callback event 和 Accessor 驱动的 Store 更新；adapter unit test 覆盖 owner cleanup 与 late resolve |
 | Svelte | `>=5 <6` | Experimental | Svelte 5 + Vite 7 Chromium fixture 覆盖 Component mount/callback、Store action、prop update、`Readable` 声明，以及 Component/Store owner cleanup |
-| Octane | `0.9.0` | main 未发布；Experimental，仅客户端 | 原生 plugin 0.2.1；Vite 8 与 Vite+ 0.2.9 packed fixture 覆盖 Component/Store 实例隔离、props/event、销毁重建及严格声明；Node >=22.22.2，未覆盖 SSR |
-| Vite | `>=7 <9` | 主路径 | Vite 8.2.1 是主要 packed target，Vite 7 保持回归测试 |
-| Vite+ | `0.2.9`，core alias `0.2.9`（Vite `8.2.1`） | main 未发布的五框架验收 | Vue/React/Solid/Svelte/Octane 的干净 tarball 安装、`.rs` 生产构建、Chromium、严格声明检查、dev 重建与错误恢复 |
+| Octane | `0.9.0` | 私有 workspace 实验；不纳入 0.2 | 独立 fixture 使用 plugin 0.2.1、Vite 8.0.16，覆盖 Component/Store 实例隔离、props/event、销毁重建和声明；Node >=22.22.2；尚无 npm 发布或 SSR 承诺 |
+| Vite | `>=7 <9` | 主路径 | Vite 8.2.1 四框架独立打包、类型、生产浏览器和开发恢复验收；Vite 7 保持回归测试 |
+| Vite+ | `0.2.9`，core alias `0.2.9`（Vite `8.2.1`） | main 未发布的四框架验收 | Vue/React/Solid/Svelte 的干净 tarball 安装、`.rs` 生产构建、Chromium、严格声明检查、dev 重建与错误恢复 |
 | Rspack / Rsbuild | Rspack `>=2.1.10`；Rsbuild `>=2.1.13` | Experimental | Beta 保留旧 Vue/React/Rslib fixture；main 新增尚未发布的 Vue/React `.rs` 生产验收 |
 | Webpack | `>=5` | Experimental | 5.101.0、5.109.2 fixture；Webpack 4 不支持 |
 | Vue Vapor | Vue 3.6.0-beta.17 + Vite 8.2.1 | Experimental | 需要 Vue 的 `vaporInteropPlugin`，不是 Vooya 自己的 renderer |

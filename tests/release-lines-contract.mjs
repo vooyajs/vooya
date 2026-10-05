@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 const { satisfies } = createRequire(import.meta.resolve("@changesets/assemble-release-plan"))("semver");
 import { readReviewedReleasePlan } from "../scripts/generated/release-plan.js";
+import { readReleaseModel, readChangesets } from "../scripts/generated/release-model.js";
 import { readReleaseChannel, readReleaseLine, validateReleaseVersion } from "../scripts/generated/release-channel.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -79,6 +80,33 @@ try {
   version(directory);
   assert.equal(read(directory, "packages/vue/package.json").version, "0.2.0-alpha.1");
   assert.equal(read(directory, "packages/core/package.json").version, "0.1.0-beta.0");
+
+  const experimental = fixture("private-experiment", feature, [
+    ["core", "0.1.0-beta.0"], ["octane", "0.0.0"],
+  ]);
+  const octane = read(experimental, "packages/octane/package.json");
+  write(experimental, "packages/octane/package.json", { ...octane, private: true });
+  changeset(experimental, "core-fix", [["core", "patch"]], "Public releases exclude private experiments.");
+  assert.deepEqual(readReleaseModel(experimental).packages.map(({ id }) => id), ["@vooya/core"]);
+  assert.deepEqual((await readReviewedReleasePlan(experimental)).plan.releases.map(({ name }) => name), ["@vooya/core"]);
+  version(experimental);
+  assert.equal(read(experimental, "packages/octane/package.json").version, "0.0.0");
+  assert.deepEqual(read(experimental, ".changeset/release.json").packages.map(({ name }) => name), ["@vooya/core"]);
+  changeset(experimental, "private-note", [["octane", "minor"]], "Private packages cannot enter a release changeset.");
+  assert.throws(() => readChangesets(experimental), /unknown Vooya package @vooya\/octane/);
+  rmSync(resolve(experimental, ".changeset/private-note.md"));
+  const core = read(experimental, "packages/core/package.json");
+  for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
+    write(experimental, "packages/core/package.json", { ...core, [field]: { "@vooya/octane": "0.0.0" } });
+    assert.throws(() => readReleaseModel(experimental), /cannot publish.*private workspace/);
+  }
+  write(experimental, "packages/core/package.json", core);
+  // Making an experimental package public later must not implicitly approve its first release.
+  write(experimental, "packages/octane/package.json", octane);
+  changeset(experimental, "next-fix", [["core", "patch"]], "A separate change does not approve an experimental package.");
+  await assert.rejects(readReviewedReleasePlan(experimental), /explicit first-release changeset/);
+  changeset(experimental, "approve-octane", [["octane", "minor"]], "Explicitly approve the first public release after separate acceptance.");
+  assert.equal((await readReviewedReleasePlan(experimental)).plan.releases.find(({ name }) => name === "@vooya/octane").newVersion, "0.2.0-alpha.0");
 
   const maintenance = fixture("maintenance", { baseVersion: "0.1.0", channel: "beta", branch: "release/0.1" }, [
     ["core", "0.1.0-beta.0"], ["compiler", "0.1.0-beta.0"],

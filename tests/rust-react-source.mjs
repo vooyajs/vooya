@@ -63,8 +63,11 @@ async function verifyBrowser() {
     }
     if (errors.length > 0) throw new Error(`Rust-file React fixture had browser errors:\n${errors.join("\n")}`);
   } finally {
-    await browser.close();
-    await new Promise((resolveClose) => server.close(resolveClose));
+    try {
+      await browser.close();
+    } finally {
+      await new Promise((resolveClose) => server.close(resolveClose));
+    }
   }
 }
 

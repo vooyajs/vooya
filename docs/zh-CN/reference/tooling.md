@@ -3,7 +3,7 @@
 本页的默认参数表与命令描述[已发布 Beta](../project/status.md)。main 的新增能力
 单独标明“未发布”，不代表当前 npm 包已经包含。
 
-未发布的 mode/preset、Octane 与 SSR 配置另见[下一轮发布](../project/next-release.md)。
+未发布的 mode/preset、SSR 配置，以及延期的 Octane 私有实验，另见[下一轮发布](../project/next-release.md)。
 
 ## `vooya()` 参数
 

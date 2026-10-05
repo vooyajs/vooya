@@ -75,7 +75,7 @@ Store state 是 Svelte `Readable`，模板通过 `$state` 读取；callback even
 ## Vite+
 
 ::: warning 未发布的 0.2 候选配置
-本节对应当前 main 的五框架打包验收，不能与上文的 `@beta` 安装混用。
+本节对应当前 main 的四框架打包验收，不能与上文的 `@beta` 安装混用。
 复现时从同一源码提交构建并安装相关包的 tarball，运行仓库的
 `npm run test:vite-plus-frameworks`；版本边界见[发布线说明](../project/release-lines.md)。
 :::
@@ -110,11 +110,11 @@ export default defineConfig({
 });
 ```
 
-执行 `npm run dev` 或 `npm run build`。React、Solid、Svelte、Octane 保留各自的
+执行 `npm run dev` 或 `npm run build`。React、Solid、Svelte 保留各自的
 框架插件和 `framework` 参数。Vite 8 的 Svelte fixture 使用 Svelte plugin 7.1.2；
-Octane 0.9 要求 Node 22.22.2 或更新版本。
+Octane 保留为私有 workspace 实验，不纳入本轮发布矩阵。
 
-`test:vite-plus-frameworks` 覆盖五框架的 `.rs` 生产构建、浏览器交互、严格声明检查、
+`test:vite-plus-frameworks` 覆盖四框架的 `.rs` 生产构建、浏览器交互、严格声明检查、
 开发重建、Rust 错误恢复和宿主组件更新。Rust 编辑仍使用整页刷新，不保留运行状态。
 验证范围为固定版本的 dev/build，不代表所有 Vite+ 工具或 SSR 都已支持。
 依赖配置依据 [Vite+ 官方迁移规则](https://viteplus.dev/guide/migrate-rules)。

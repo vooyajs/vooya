@@ -34,12 +34,19 @@ The [preset source README](https://github.com/vooyajs/vooya/blob/main/packages/p
 records cache and platform details. Published beta users should continue using
 [system toolchain diagnostics](../reference/tooling.md#doctor).
 
+The source acceptance command is `npm run test:preset-consumer`. It installs
+seven matching tarballs into a separate Vue application, then checks ordinary
+`npm run dev`, browser Component/Store interaction, Rust edits, compiler error
+recovery, and `npm run build`. Ambient Rust commands are blocked while the host
+SDK/linker remains available. The same test runs on Linux, macOS and Windows in
+CI with a fresh managed cache; a local reused cache does not verify downloads.
+
 ## Host integrations
 
 | Candidate | Source evidence and remaining boundary |
 | --- | --- |
-| Octane 0.9 | Native client Component and Store adapter; Node >=22.22.2; pinned Vite 8 and Vite+ fixtures. No SSR claim. |
-| Vite+ 0.2.9 | Five-framework packed dev/build fixtures with the documented aliases and overrides. Normal npm peer resolution; no claim for all Vite+ tools or versions. |
+| Vite 8.2.1 | Vue/React/Solid/Svelte packed production and dev consumers, strict declarations, Rust error recovery, rapid saves and host edits. |
+| Vite+ 0.2.9 | Four-framework packed dev/build fixtures with the documented aliases and overrides. Normal npm peer resolution; no claim for all Vite+ tools or versions. |
 | Webpack/Rspack `.rs` authoring | Vue/React components, Stores, CSS and declarations; Vue watch recovery and new-module checks. Other watch/framework combinations remain unverified. |
 | SSR-safe islands | Vue lazy Store creation and React client boundaries; named Nuxt production/browser fixture. Rust content still mounts in the browser; Next.js is unverified. |
 
@@ -47,6 +54,15 @@ See [source compatibility evidence](./compatibility.md#current-source-browser-fi
 [experimental setup](../guide/other-integrations.md#vite), and the
 [SSR boundary](./ssr-roadmap.md). These are candidate evaluation paths, not
 instructions to combine unpublished features with npm beta packages.
+
+## Octane is deferred
+
+The native Octane adapter remains a private workspace experiment, with its own
+packed browser test. It is excluded from this 0.2 publication candidate and
+public release gate. Do not install an unpublished `@vooya/octane` version.
+Making it public later requires explicit scope review, a first-release
+Changeset and registry acceptance; keeping the implementation does not commit
+to a release date.
 
 ## Rust provider extraction
 

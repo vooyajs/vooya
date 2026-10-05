@@ -3,6 +3,11 @@
 Experimental native Octane adapter for Vooya Rust `.rs` components and stores.
 It uses Octane's own hooks and compiler, without a React runtime bridge.
 
+This is a **private workspace experiment**, deferred from the first 0.2 release.
+There is no published `@vooya/octane` version to install. The independent packed
+fixture is retained; it is not part of the public release gate. Making this
+package public requires a reviewed first-release Changeset and consumer acceptance.
+
 The verified toolchain is **Octane 0.9.0**, **@octanejs/vite-plugin 0.2.1**,
 **Vite 8.0.16**, **TypeScript 5.9.3**, and **Node 22.22.2 or newer**.
 Older Octane versions (including 0.4.3) are not covered.

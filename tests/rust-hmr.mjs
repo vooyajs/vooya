@@ -16,6 +16,7 @@ const framework = process.argv[2] ?? "vue";
 let output = "";
 let server;
 let browser;
+const originalSources = new Map();
 
 try {
   if (!process.env.VOOYA_RUST_FIXTURE_ROOT) {
@@ -39,6 +40,7 @@ try {
 
   const componentPath = resolve(project, "src/Counter.rs");
   const source = readFileSync(componentPath, "utf8");
+  originalSources.set(componentPath, source);
   writeFileSync(componentPath, source.replace("Count: {}", "HMR: {}"));
   await page.getByRole("button", { name: "HMR: 0" }).first().waitFor();
 
@@ -58,19 +60,36 @@ try {
   if (framework === "octane") await page.getByRole("button", { name: "Store A: 0", exact: true }).click();
   else await page.locator(".store-add").click();
   await page.getByRole("button", { name: "Rapid 4: 1" }).first().waitFor();
-  if (process.env.VOOYA_VITE_PLUS) {
-    const extension = { vue: "vue", react: "jsx", solid: "jsx", svelte: "svelte", octane: "tsx" }[framework];
-    const hostPath = resolve(project, `src/App.${extension}`);
-    const host = readFileSync(hostPath, "utf8");
-    writeFileSync(hostPath, host.replace("Selected ", "Host updated "));
-    await page.getByText(/^Host updated /).first().waitFor();
-  }
+  const extension = { vue: "vue", react: "jsx", solid: "jsx", svelte: "svelte", octane: "tsx" }[framework];
+  const hostPath = resolve(project, `src/App.${extension}`);
+  const host = readFileSync(hostPath, "utf8");
+  originalSources.set(hostPath, host);
+  writeFileSync(hostPath, host.replace("Selected ", "Host updated "));
+  await page.getByText(/^Host updated /).first().waitFor();
   if (unexpectedErrors.length) throw new Error(`Unexpected browser errors: ${unexpectedErrors.join("\n")}`);
-  console.log(`Verified ${framework} Rust-file HMR rebuild, failure recovery, rapid-save coalescing, and full reload.`);
+  console.log(`Verified ${framework} Rust-file HMR rebuild, failure recovery, rapid-save coalescing, host edits, and full reload.`);
 } finally {
-  await browser?.close();
-  await stopDevServer(server);
-  rmSync(temporaryRoot, { force: true, recursive: true });
+  try {
+    await browser?.close();
+  } finally {
+    try {
+      await stopDevServer(server);
+      // stopDevServer also kills Vite+ descendants. Wait for the child's pipes
+      // to close before restoring source or deleting its working directory.
+      if (server && server.exitCode === null && server.signalCode === null) {
+        await new Promise((resolveClose, rejectClose) => {
+          const timer = setTimeout(() => rejectClose(new Error("Development server did not exit after cleanup.")), 5000);
+          server.once("close", () => { clearTimeout(timer); resolveClose(); });
+        });
+      }
+    } finally {
+      try {
+        for (const [path, source] of originalSources) writeFileSync(path, source);
+      } finally {
+        rmSync(temporaryRoot, { force: true, recursive: true });
+      }
+    }
+  }
 }
 
 function collectOutput(chunk) {

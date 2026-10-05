@@ -7,11 +7,15 @@ export function readReleaseModel(root: string) {
   if (config.access !== "public" || config.changelog === false || config.fixed?.length || config.linked?.length || config.ignore?.length) {
     throw new Error("Release configuration must generate changelogs and publish packages independently without ignored public packages.");
   }
+  const privatePackages = new Set<string>();
   const packages = readdirSync(resolve(root, "packages")).sort().flatMap((directory) => {
     const path = `packages/${directory}`;
     if (!existsSync(resolve(root, path, "package.json"))) return [];
     const manifest = JSON.parse(readFileSync(resolve(root, path, "package.json"), "utf8"));
-    if (manifest.private) return [];
+    if (manifest.private) {
+      privatePackages.add(manifest.name);
+      return [];
+    }
     if (!/^@vooya\/[a-z0-9-]+$/.test(manifest.name)) throw new Error(`Unexpected release package ${manifest.name}.`);
     return [{ directory, path, id: manifest.name as string, manifest }];
   });
@@ -21,6 +25,11 @@ export function readReleaseModel(root: string) {
     const version = entry.manifest.version;
     const semver = typeof version === "string" && /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/.exec(version);
     if (!semver || semver[4]?.split(".").some((part) => /^0\d+$/.test(part))) throw new Error(`Invalid version for ${entry.id}.`);
+    for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
+      for (const name of Object.keys(entry.manifest[field] ?? {})) {
+        if (privatePackages.has(name)) throw new Error(`${entry.id} cannot publish a ${field} reference to private workspace ${name}.`);
+      }
+    }
     for (const field of ["dependencies", "optionalDependencies"]) {
       for (const [name, range] of Object.entries(entry.manifest[field] ?? {})) {
         const dependency = byName.get(name);

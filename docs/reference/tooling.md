@@ -17,11 +17,11 @@ may remain JavaScript when Node or a consumer tool must execute them directly.
 
 The public plugin entry is `vooya()` from `@vooya/vite`.
 
-The plugin requires Vite `>=7`. Vite+ is tested as a separate
+The plugin requires Vite `>=7 <9`. Vite+ is tested as a separate
 toolchain because it aliases `vite` to `@voidzero-dev/vite-plus-core`; it still
 uses the same `vooya()` plugin and does not create a second Vooya adapter API.
 The current source fixture installs normally with the documented npm aliases
-and overrides; it does not require `--legacy-peer-deps`. That five-framework
+and overrides; it does not require `--legacy-peer-deps`. That four-framework
 Vite+ evidence belongs to the unreleased 0.2 batch, not the published beta.
 See [Vite+ setup](../guide/other-integrations.md#vite) for the pinned configuration.
 

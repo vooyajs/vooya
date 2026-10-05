@@ -16,7 +16,6 @@ const expectedPackages = [
   "@vooya/react",
   "@vooya/solid",
   "@vooya/svelte",
-  "@vooya/octane",
   "@vooya/preset",
   "@vooya/rspack",
   "@vooya/webpack",
@@ -54,12 +53,6 @@ try {
     }
     for (const [subpath, definition] of Object.entries(isRecord(manifest.exports) ? manifest.exports : {})) {
       if (!definition || !isRecord(definition) || !("import" in definition)) continue;
-      if (name === "@vooya/octane" && subpath === ".") {
-        // Octane assigns native hook slots while compiling the consuming app.
-        // Shipping precompiled JS would bypass that required compiler step.
-        assert(definition.import === "./src/index.tsx" && definition.types === "./src/index.tsx", name, "Octane must expose its authored compiler input");
-        continue;
-      }
       assert(typeof definition.import === "string" && definition.import.endsWith(".js"), name, `${subpath} must export executable JavaScript`);
       assert(typeof definition.types === "string" && definition.types.endsWith(".d.ts"), name, `${subpath} must export TypeScript declarations`);
       assert(files.has(stripPrefix(definition.import)), name, `archive is missing JavaScript for ${subpath}`);
@@ -112,7 +105,6 @@ try {
       assert(!file.includes(".vooya/"), name, `archive contains application workspace state ${file}`);
       assert(!file.includes("VOOYA_COLLABORATION_LOG"), name, `archive leaks internal collaboration file ${file}`);
       assert(!file.includes("VOOYA_PRODUCT_OPERATING_PLAN"), name, `archive leaks internal planning file ${file}`);
-      if (name === "@vooya/octane" && file === "src/index.tsx") continue;
       assert(!file.includes("/source/") && (!file.endsWith(".ts") || file.endsWith(".d.ts")), name, `archive must contain compiled JavaScript rather than TypeScript authoring source ${file}`);
     }
 
@@ -124,9 +116,9 @@ try {
   rmSync(packDirectory, { force: true, recursive: true });
 }
 
-function verifyTypeConsumer(packedPackages: ReadonlyMap<string, PackedArchive>, withOctane: boolean): void {
-  const consumer = join(packDirectory, withOctane ? "type-consumer-octane" : "type-consumer");
-  const packages = expectedPackages.filter((name) => withOctane || name !== "@vooya/octane");
+function verifyTypeConsumer(packedPackages: ReadonlyMap<string, PackedArchive>, newerTypeScript: boolean): void {
+  const consumer = join(packDirectory, newerTypeScript ? "type-consumer-ts59" : "type-consumer");
+  const packages = expectedPackages;
   mkdirSync(consumer, { recursive: true });
   writeFileSync(
     join(consumer, "package.json"),
@@ -141,12 +133,11 @@ function verifyTypeConsumer(packedPackages: ReadonlyMap<string, PackedArchive>, 
         }),
       ),
       devDependencies: {
-        typescript: withOctane ? "5.9.3" : "~5.5.4",
+        typescript: newerTypeScript ? "5.9.3" : "~5.5.4",
         "@types/node": "22.12.0",
-        vite: withOctane ? "8.3.1" : "^7.0.0",
+        vite: newerTypeScript ? "8.3.1" : "^7.0.0",
         "solid-js": "^1.9.9",
         svelte: "^5.56.10",
-        ...(withOctane ? { octane: "0.9.0" } : {}),
       },
     }, null, 2)}\n`,
   );
@@ -160,7 +151,6 @@ function verifyTypeConsumer(packedPackages: ReadonlyMap<string, PackedArchive>, 
         strict: true,
         noEmit: true,
         skipLibCheck: false,
-        ...(withOctane ? { jsx: "preserve", jsxImportSource: "octane" } : {}),
       },
       include: ["consumer.ts"],
     }, null, 2)}\n`,
@@ -194,7 +184,6 @@ import { vooyaRsbuild, vooyaRspack } from "@vooya/rspack";
 import { vooyaWebpack } from "@vooya/webpack";
 import { defineVooyaStore as defineSolidVooyaStore } from "@vooya/solid";
 import { defineVooyaStore as defineSvelteVooyaStore } from "@vooya/svelte";
-${withOctane ? 'import { defineVooyaStore as defineOctaneVooyaStore } from "@vooya/octane";' : ""}
 import { prepareToolchain } from "@vooya/preset";
 
 void parseVooComponent;
@@ -231,7 +220,6 @@ void vooyaRspack;
 void vooyaWebpack;
 void defineSolidVooyaStore;
 void defineSvelteVooyaStore;
-${withOctane ? "void defineOctaneVooyaStore;" : ""}
 async function verifyManagedToolchainContract() {
   const result = await prepareToolchain();
   const cargo: string = result.cargoPath;
@@ -265,7 +253,7 @@ for (const name of Object.keys(provider)) assert.equal(legacy[name], provider[na
   if (typecheck.status !== 0) {
     throw new Error(`packed type consumer failed:\n${typecheck.stderr || typecheck.stdout}`);
   }
-  console.log(`Verified packed package declarations in a clean TypeScript ${withOctane ? "5.9 Octane" : "5.5"} consumer.`);
+  console.log(`Verified packed package declarations in a clean TypeScript ${newerTypeScript ? "5.9" : "5.5"} consumer.`);
 }
 
 function readManifest(name: string) {
