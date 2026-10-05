@@ -15,22 +15,18 @@ try {
   // Replay the actual first-beta cohort, not packages introduced after beta.0.
   // New adapters/toolchains must not invent alpha history to join this rehearsal.
   // Omit external dependencies to stay offline.
-  cpSync(resolve(root, ".changeset"), resolve(fixture, ".changeset"), { recursive: true });
-  rmSync(resolve(fixture, ".changeset/line.json"), { force: true });
+  // Only replay this fixture's first-beta note and explicit earlier-alpha
+  // history below. Today's archive also contains later packages (preset and
+  // provider-rust), which did not exist in the historical ten-package graph.
+  mkdirSync(resolve(fixture, ".changeset"));
+  cpSync(resolve(root, ".changeset/config.json"), resolve(fixture, ".changeset/config.json"));
   const betaNote = resolve(fixture, ".changeset/first-source-author-beta.md");
-  if (!existsSync(betaNote)) {
-    const consumed = resolve(fixture, ".changeset/pre/first-source-author-beta.md");
-    assert(existsSync(consumed), "Keep the first-beta changeset or its prerelease archive for rehearsal.");
-    cpSync(consumed, betaNote);
-    rmSync(consumed);
-  }
+  const pendingBetaNote = resolve(root, ".changeset/first-source-author-beta.md");
+  const recordedBetaNote = existsSync(pendingBetaNote)
+    ? pendingBetaNote : resolve(root, ".changeset/pre/first-source-author-beta.md");
+  assert(existsSync(recordedBetaNote), "Keep the first-beta changeset or its prerelease archive for rehearsal.");
+  cpSync(recordedBetaNote, betaNote);
   const cohort = new Set(parseChangesetFile(readFileSync(betaNote, "utf8")).releases.map(({ name }) => name));
-  // Current work may reference packages that did not exist in the historical graph.
-  for (const name of readdirSync(resolve(fixture, ".changeset"))) {
-    if (name.endsWith(".md") && !["README.md", "first-source-author-beta.md"].includes(name)) {
-      rmSync(resolve(fixture, ".changeset", name));
-    }
-  }
   writeJson(".changeset/pre.json", { mode: "pre", tag: "beta" });
   writeJson("package.json", { name: "vooya-beta-fixture", private: true, type: "module", workspaces: ["packages/*"] });
   for (const directory of readdirSync(resolve(root, "packages"))) {
