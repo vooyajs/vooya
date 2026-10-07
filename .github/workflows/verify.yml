@@ -207,6 +207,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:rust-vue
       - run: npm run test:rust-react
+      - run: npm run test:rust-snapshot-diagnostics
 
   nuxt-ssr:
     name: Nuxt SSR packed consumer
