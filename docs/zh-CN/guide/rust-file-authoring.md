@@ -156,3 +156,8 @@ Svelte 的 `state` 是 `Readable`，模板通过 `$state` 自动订阅。生成�
 ABI v1 支持有限数字、`bigint`、布尔、owned string、vector、tuple 和 string-key
 map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-copy
 不在当前边界。完整限制见[英文 ABI RFC](../../rfcs/0007-rust-file-authoring-and-abi-v1.md)。
+
+已发布 alpha.0 中，无法表示字段的派生 struct 声明会退为 `Record<string, unknown>`。
+组件声明仍保留这一行为；当前尚未发布的源码会拒绝已解析 Store snapshot 中不受支持
+的字段，详见 [Snapshot 诊断](../concepts/store.md)。缺少 schema
+时仍使用 `unknown`，不能据此区分合法手写转换与意外缺失的元数据。

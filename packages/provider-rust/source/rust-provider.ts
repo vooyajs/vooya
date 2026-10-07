@@ -26,7 +26,7 @@ import {
   writeWorkspaceMetadata,
 } from "./workspace.js";
 import { buildRustComponentContracts, indexVooyaSchema, readVooyaSchema, validateVooyaSchemaGroups } from "./schema.js";
-import { generateRustSchemaDeclaration, generateRustStoreDeclaration } from "./schema-declarations.js";
+import { generateRustSchemaDeclaration, generateRustStoreDeclaration, RustSnapshotSchemaError } from "./schema-declarations.js";
 import type { RustSchemaDocument } from "./schema.js";
 
 import type { BuildProvider, BuildArtifact, MappedDiagnostic, GeneratedCss, GeneratedDeclaration } from "./provider.js";
@@ -525,6 +525,14 @@ function buildApplicationUnlocked({
   } catch (cause) {
     discardStaging(stagingOutputDir);
     discardStaging(stagingMetadata);
+    if (cause instanceof RustSnapshotSchemaError && cause.source) {
+      const source = cause.source;
+      const mapping = diagnosticMappings.get(resolve(workspacePath, source.file)) ?? diagnosticMappings.get(resolve(source.file));
+      if (mapping) {
+        const line = source.line === undefined ? undefined : mapping.startLine + source.line - 1 - mapping.generatedLineOffset;
+        throw new RustSnapshotSchemaError(cause.storeId, cause.fieldPath, cause.reason, { ...source, file: mapping.id, line });
+      }
+    }
     throw cause;
   }
 }

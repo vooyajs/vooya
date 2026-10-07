@@ -448,3 +448,47 @@ test("resolves crate, self and super references in conventional source layouts",
     assert.match(generateRustStoreDeclaration(store, "vue", types), /export type StoreSnapshot = Selection;/, reference);
   }
 });
+
+test("rejects unsupported reachable Store snapshot fields with source context in every adapter", () => {
+  const store = { version: 1, kind: "store", id: "WorkflowReplay", name: "WorkflowReplay", group: "src/WorkflowReplay.rs", snapshot: "ReplaySnapshot", actions: [] };
+  const source = { file: "src/WorkflowReplay.rs", line: 6, column: 16 };
+  const types = [{ version: 1, kind: "type", id: "ReplaySnapshot:to", name: "ReplaySnapshot", group: store.group, direction: "to", shape: { kind: "struct", fields: [
+    { name: "stage", type: "String" }, { name: "history", type: "&'static str", source },
+  ] } }];
+  for (const framework of ["vue", "react", "solid", "svelte"]) {
+    assert.throws(() => generateRustStoreDeclaration(store, framework, types), error => {
+      assert.equal(error.kind, "snapshot-schema");
+      assert.deepEqual(error.source, source);
+      assert.match(error.message, /src\/WorkflowReplay.rs:6:16.*ReplaySnapshot.history.*Unsupported Rust schema type/);
+      return true;
+    });
+  }
+  delete types[0].shape.fields[1].source;
+  assert.throws(() => generateRustStoreDeclaration(store, "vue", types), error => {
+    assert.deepEqual(error.source, { file: store.group });
+    assert.doesNotMatch(error.message, /WorkflowReplay.rs:\d/);
+    return true;
+  });
+});
+
+test("checks snapshot reachability, rejects cycles and keeps unresolved metadata explicitly unknown", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", snapshot: "State", actions: [] };
+  const state = { version: 1, kind: "type", id: "State:to", name: "State", direction: "to", shape: { kind: "struct", fields: [{ name: "children", type: "Vec<State>" }] } };
+  assert.throws(() => generateRustStoreDeclaration(store, "react", [state]), /State.children.*Recursive Rust schema/);
+  state.shape.fields = [{ name: "stage", type: "String" }];
+  const unrelated = { ...state, id: "Other:to", name: "Other", shape: { kind: "struct", fields: [{ name: "borrowed", type: "&str" }] } };
+  assert.match(generateRustStoreDeclaration(store, "react", [state, unrelated]), /stage: string/);
+  const opaque = generateRustStoreDeclaration({ ...store, snapshot: "Option<Opaque>" }, "vue");
+  assert.match(opaque, /ReplaySnapshot = unknown \| null/);
+  assert.match(opaque, /Snapshot schema metadata is missing/);
+  assert.doesNotMatch(generateRustStoreDeclaration(store, "vue", [state]), /Snapshot schema metadata is missing/);
+});
+
+test("nested snapshot failures identify the reachable field's own source", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", group: "src/store.rs", snapshot: "State", actions: [] };
+  const types = [
+    { version: 1, kind: "type", id: "State", name: "State", group: store.group, direction: "to", shape: { kind: "struct", fields: [{ name: "details", type: "details::Detail" }] } },
+    { version: 1, kind: "type", id: "Detail", name: "Detail", group: "src/details.rs", direction: "to", shape: { kind: "struct", fields: [{ name: "borrowed", type: "&str", source: { file: "src/details.rs", line: 8, column: 19 } }] } },
+  ];
+  assert.throws(() => generateRustStoreDeclaration(store, "vue", types), /src\/details.rs:8:19.*State.details.borrowed/);
+});

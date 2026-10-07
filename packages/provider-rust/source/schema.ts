@@ -9,9 +9,17 @@
 export const VOO_SCHEMA_SECTION = "__voo_schema";
 export const VOO_SCHEMA_VERSION = 1;
 
+/** Optional source metadata added to schema v1; older producers omit it. */
+export interface RustSchemaSource {
+  file: string;
+  line?: number;
+  column?: number;
+}
+
 export interface RustSchemaParameter {
   name: string;
   type: string;
+  source?: RustSchemaSource;
 }
 
 export interface RustSchemaField extends RustSchemaParameter {}
@@ -60,6 +68,7 @@ export interface RustStoreSchema {
   group?: string | null;
   actions: Array<{ name: string; params: RustSchemaParameter[] }>;
   snapshot?: string | null;
+  snapshotSource?: RustSchemaSource;
 }
 
 export interface RustTypeSchema {
@@ -281,7 +290,7 @@ function isRecord(value: unknown): value is RustSchemaRecord {
   if (record.kind === "props") return isParameters(record.fields);
   if (record.kind === "events") return isMethods(record.methods);
   if (record.kind === "component") return isParameters(record.params);
-  if (record.kind === "store") return isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
+  if (record.kind === "store") return (record.snapshotSource === undefined || isSchemaSource(record.snapshotSource)) && isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
   if (record.kind === "type") return (record.direction === "from" || record.direction === "to") && isTypeShape(record.shape);
   return false;
 }
@@ -301,6 +310,14 @@ function isStyles(value: unknown): value is RustStyleDependency[] {
   });
 }
 
+function isSchemaSource(value: unknown): value is RustSchemaSource {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Record<string, unknown>;
+  return typeof source.file === "string" && source.file.length > 0
+    && (source.line === undefined || (Number.isInteger(source.line) && typeof source.line === "number" && source.line > 0))
+    && (source.column === undefined || (source.line !== undefined && Number.isInteger(source.column) && typeof source.column === "number" && source.column > 0));
+}
+
 function isParameters(value: unknown): value is RustSchemaParameter[] {
   return Array.isArray(value) && value.every((item) => isParameter(item));
 }
@@ -316,7 +333,7 @@ function isMethods(value: unknown): value is Array<{ name: string; params: RustS
 function isParameter(value: unknown): value is RustSchemaParameter {
   if (!value || typeof value !== "object") return false;
   const parameter = value as Record<string, unknown>;
-  return typeof parameter.name === "string" && typeof parameter.type === "string";
+  return typeof parameter.name === "string" && typeof parameter.type === "string" && (parameter.source === undefined || isSchemaSource(parameter.source));
 }
 
 function readVarUint32(bytes: Uint8Array, start: number, sectionOffset: number): { value: number; next: number } {

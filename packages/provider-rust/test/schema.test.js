@@ -194,3 +194,15 @@ test("rejects a schema record with a non-integer version", () => {
     (error) => error instanceof RustSchemaError && /has an invalid schema version/.test(error.message),
   );
 });
+
+test("accepts additive snapshot source locations and rejects malformed optional metadata", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", snapshot: "State", actions: [] };
+  const source = { file: "src/Replay.rs", line: 12, column: 5 };
+  assert.equal(readVooyaSchema(wasm(customSection("__voo_schema", store))).records[0].snapshotSource, undefined);
+  assert.deepEqual(readVooyaSchema(wasm(customSection("__voo_schema", { ...store, snapshotSource: source }))).records[0].snapshotSource, source);
+  for (const invalid of [null, {}, { file: "" }, { file: "a.rs", line: 0 }, { file: "a.rs", line: -1 }, { file: "a.rs", column: 1 }, { file: "a.rs", line: 1, column: 0 }]) {
+    assert.throws(() => readVooyaSchema(wasm(customSection("__voo_schema", { ...store, snapshotSource: invalid }))), /not a supported record/);
+    const type = { version: 1, kind: "type", id: "State", name: "State", direction: "to", shape: { kind: "struct", fields: [{ name: "value", type: "String", source: invalid }] } };
+    assert.throws(() => readVooyaSchema(wasm(customSection("__voo_schema", type))), /not a supported record/);
+  }
+});
