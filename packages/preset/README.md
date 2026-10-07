@@ -40,3 +40,36 @@ module and generate `lib/*.js` and declarations from `source/*.ts`. The generate
 ordinary JavaScript through the existing package exports; no TypeScript loader
 is required. `npm test --workspace @vooya/preset` builds before running the
 installer regression tests.
+
+## Consumer acceptance
+
+The repository keeps two modes of the same consumer test:
+
+- `npm run test:preset-consumer` builds and installs the current source tarballs.
+  Pull requests use this mode on Linux, macOS and Windows, including concurrent
+  preparation of a fresh consumer cache. The publisher build uses a separate cache.
+- `npm run test:preset-registry` installs the exact published `0.2.0-alpha.0`
+  preset/Vite/Vue/provider/build-core packages and `0.1.0-beta.0` core/compiler
+  from the public npm registry into a temporary app with a fresh npm cache.
+  It needs no local package builds. Its first toolchain command is ordinary
+  `npm run dev`; doctor and concurrent cache-reuse checks run afterward.
+
+Both modes exercise a real Component and Store in Chromium, a Rust edit,
+compiler error and recovery, and ordinary production build and browser interaction.
+They block ambient Rust commands but retain the host SDK/linker. Hosted CI runners
+may still have Rust installed; these tests do not certify physically Rust-free hosts.
+
+The existing **Experimental integrations** workflow accepts `managed_source=registry`
+for an explicit release-acceptance run of the same three-platform matrix; it skips
+unrelated integration jobs. Normal pull requests continue testing source tarballs.
+Each registry job starts a fresh managed cache and uploads its result and npm lock.
+Do not set `VOOYA_CACHE_DIR` when collecting fresh-cache evidence. For a local
+smoke test, that variable can point to an existing cache; the result explicitly
+labels it `reused-external-cache`. `VOOYA_PRESET_EVIDENCE_DIR` saves the result
+and consumer lock outside the temporary app.
+
+Installer unit tests exercise interrupted HTTP downloads and retry, checksum
+failures, staging cleanup and cache locking. Those focused tests are distinct
+from interrupting a complete first-time Rust installation. Full-install network
+interruption/recovery and physically Rust-free Windows/macOS/Linux qualification
+remain separate acceptance work; a successful registry run does not establish them.

@@ -93,6 +93,29 @@ and return values must use the shared owned ABI mapping. See the [API
 reference](../reference/api.md) for adapter options and the [Rust authoring
 guide](../guide/rust-file-authoring.md) for the complete role syntax.
 
+## Snapshot diagnostics (unreleased)
+
+Current source rejects unrepresentable fields and recursive references in a
+resolved, named `ToJs` Store snapshot schema before replacing the last successful build
+output. The error identifies the snapshot field path and its Rust source location
+when supplied by the authoring macros. Older schema-v1 producers remain readable;
+without position metadata, the diagnostic reports the known source file and field
+path rather than inventing a line number. This change is not in alpha.0.
+
+Use owned ABI-v1 values, such as `String` instead of `&str`, and keep snapshot
+schemas nonrecursive. Generic public derives continue to fail at the Rust macro.
+These checks do not change snapshot identity, subscriptions, actions or disposal.
+
+A missing schema still produces `unknown` with an explanatory declaration comment.
+Schema v1 cannot distinguish an intentional hand-written `ToJs` value from
+accidentally missing metadata, so this is not a guarantee that the value has a
+supported precise shape. Full Rust module/alias resolution remains separate work;
+an unresolved name is not automatically classified as an unsupported value.
+An input-only `FromJs` schema does not trigger these output diagnostics: a manual
+`ToJs` implementation may return a different shape. The existing shared input/output
+declaration resolver can still reflect that input shape; this change does not
+establish accurate snapshot types for that combination.
+
 ## Contract
 
 | Part | Direction | Purpose | Current boundary |

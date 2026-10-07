@@ -1,4 +1,13 @@
-import type { RustComponentContract, RustEventsSchema, RustPropsSchema, RustSchemaParameter, RustStoreSchema, RustTypeSchema } from "./schema.js";
+import { VooyaUserError } from "./errors.js";
+import type { RustComponentContract, RustEventsSchema, RustPropsSchema, RustSchemaParameter, RustStoreSchema, RustTypeSchema, RustSchemaSource } from "./schema.js";
+
+/** A source-addressable failure in a Store's declared snapshot schema. */
+export class RustSnapshotSchemaError extends VooyaUserError {
+  constructor(readonly storeId: string, readonly fieldPath: string, readonly reason: string, readonly source?: RustSchemaSource) {
+    const location = source ? `${source.file}${source.line ? `:${source.line}${source.column ? `:${source.column}` : ""}` : ""}: ` : "";
+    super(`${location}Cannot generate Store snapshot ${fieldPath} for ${storeId}: ${reason} Use supported owned ABI-v1 values in snapshots.`, { kind: "snapshot-schema" });
+  }
+}
 
 export type SchemaDeclarationFramework = "vue" | "react" | "solid" | "svelte" | "octane";
 
@@ -54,13 +63,16 @@ function referenceKey(reference: string, group?: string | null): string {
   return JSON.stringify([group ?? null, reference]);
 }
 
-function generateTypes(types: RustTypeSchema[], required: TypeReference[], ownerId: string, ownerGroup?: string | null): { code: string; names: TypeNames } {
+function generateTypes(types: RustTypeSchema[], required: TypeReference[], ownerId: string, ownerGroup?: string | null, snapshotStore?: RustStoreSchema): { code: string; names: TypeNames; opaqueSnapshot: boolean } {
   // Index and coalesce FromJs/ToJs records once, rather than scanning all
   // schemas and serializing their shapes for every reference.
   const byName = new Map<string, RustTypeSchema[]>();
   const identities = new Set<string>();
+  const outputIdentities = new Set<string>();
+  const typeIdentity = (type: RustTypeSchema) => JSON.stringify([type.name, type.group ?? null, type.shape]);
   for (const type of types) {
-    const identity = JSON.stringify([type.name, type.group ?? null, type.shape]);
+    const identity = typeIdentity(type);
+    if (type.direction === "to") outputIdentities.add(identity);
     if (identities.has(identity)) continue;
     identities.add(identity);
     const bucket = byName.get(type.name) ?? [];
@@ -96,10 +108,40 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
     has: (name) => emittedNames.has(name),
     forGroup,
   });
+  let opaqueSnapshot = false;
+  if (snapshotStore) {
+    const validated = new Set<RustTypeSchema>();
+    const visit = (reference: string, group: string | null | undefined, path: string, source: RustSchemaSource | undefined, ancestors: Set<RustTypeSchema>, selfType?: RustTypeSchema) => {
+      try { declarationType(reference, forGroup(group)); } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        throw new RustSnapshotSchemaError(snapshotStore.id, path, error.message, source);
+      }
+      for (const nested of referencedTypeNamesFromType(reference)) {
+        const type = nested === "Self" ? selfType : resolved.get(referenceKey(nested, group));
+        // Missing metadata can describe a hand-written ToJs value. It is opaque,
+        // not evidence that this value is a supported, precise owned schema.
+        if (!type) { opaqueSnapshot = true; continue; }
+        // An input-only derive says nothing about a manual ToJs output. Keep
+        // legacy declaration resolution, but do not reject it as an output schema.
+        if (!outputIdentities.has(typeIdentity(type))) continue;
+        if (ancestors.has(type)) throw new RustSnapshotSchemaError(snapshotStore.id, path, `Recursive Rust schema reference "${nested}" is not supported.`, source);
+        if (validated.has(type)) continue;
+        if (type.shape.kind === "struct") {
+          const next = new Set(ancestors).add(type);
+          for (const field of type.shape.fields) {
+            visit(field.type, type.group, `${path}.${field.name}`, field.source ?? (type.group ? { file: type.group } : source), next, type);
+          }
+        }
+        validated.add(type);
+      }
+    };
+    if (snapshotStore.snapshot) visit(snapshotStore.snapshot, snapshotStore.group, snapshotStore.snapshot, snapshotStore.snapshotSource ?? (snapshotStore.group ? { file: snapshotStore.group } : undefined), new Set());
+    else opaqueSnapshot = true;
+  }
   const code = [...selected]
     .sort((a, b) => compareText(aliases.get(a)!, aliases.get(b)!))
     .map((type) => generateNamedType(type, forGroup(type.group), aliases.get(type)!)).join("");
-  return { code, names: forGroup(ownerGroup) };
+  return { code, names: forGroup(ownerGroup), opaqueSnapshot };
 }
 
 function compareText(a: string, b: string): number {
@@ -239,7 +281,7 @@ export function generateRustStoreDeclaration(
   for (const type of [store.snapshot, ...store.actions.flatMap((action) => action.params.map((parameter) => parameter.type))]) {
     if (type) for (const referenced of referencedTypeNamesFromType(type)) required.add(referenced);
   }
-  const { code: typeCode, names } = generateTypes(types, [...required].map((reference) => ({ reference, group: store.group })), store.id, store.group);
+  const { code: typeCode, names, opaqueSnapshot } = generateTypes(types, [...required].map((reference) => ({ reference, group: store.group })), store.id, store.group, store);
   // A hand-written ToJs implementation may emit any JavaScript value, so a
   // missing schema cannot justify an object-shaped fallback.
   const snapshot = store.snapshot ? declarationType(store.snapshot, names) : "unknown";
@@ -268,8 +310,9 @@ export function generateRustStoreDeclaration(
         : `${name}Snapshot | undefined`;
   const generatedHook = `\nexport declare function use${name}(options?: VooyaStoreOptions): {\n  state: ${name}Snapshot | undefined;\n${hookActions}\n};\n`;
   const typedGeneratedHook = generatedHook.replace(`state: ${name}Snapshot | undefined;`, `state: ${stateType};`);
+  const snapshotNote = opaqueSnapshot ? "/** Snapshot schema metadata is missing for one or more values. Those values remain opaque (unknown); no precise ABI shape is asserted. */\n" : "";
   const snapshotAlias = snapshot === `${name}Snapshot` ? "" : `export type ${name}Snapshot = ${snapshot};\n\n`;
-  return `// Generated by @vooya/build-core. Do not edit.\n${adapterImport}${typeCode}${snapshotAlias}export interface ${name}Store {\n  getSnapshot(): ${name}Snapshot;\n  subscribe(listener: () => void): () => void;\n${actions}\n  dispose(): void;\n}\n\nexport declare function create${name}Store(): Promise<${name}Store>;\nexport default create${name}Store;\n${typedGeneratedHook}`;
+  return `// Generated by @vooya/build-core. Do not edit.\n${adapterImport}${typeCode}${snapshotNote}${snapshotAlias}export interface ${name}Store {\n  getSnapshot(): ${name}Snapshot;\n  subscribe(listener: () => void): () => void;\n${actions}\n  dispose(): void;\n}\n\nexport declare function create${name}Store(): Promise<${name}Store>;\nexport default create${name}Store;\n${typedGeneratedHook}`;
 }
 
 /** Preserve supported containers while falling back only at an unresolved leaf. */

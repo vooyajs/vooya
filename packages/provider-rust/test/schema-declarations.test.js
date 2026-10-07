@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -447,4 +448,90 @@ test("resolves crate, self and super references in conventional source layouts",
     const types = [{ version: 1, kind: "type", id: "Selection:to", name: "Selection", group: target, direction: "to", shape: { kind: "struct", fields: [{ name: "id", type: "u32" }] } }];
     assert.match(generateRustStoreDeclaration(store, "vue", types), /export type StoreSnapshot = Selection;/, reference);
   }
+});
+
+test("rejects unsupported reachable Store snapshot fields with source context in every adapter", () => {
+  const store = { version: 1, kind: "store", id: "WorkflowReplay", name: "WorkflowReplay", group: "src/WorkflowReplay.rs", snapshot: "ReplaySnapshot", actions: [] };
+  const source = { file: "src/WorkflowReplay.rs", line: 6, column: 16 };
+  const types = [{ version: 1, kind: "type", id: "ReplaySnapshot:to", name: "ReplaySnapshot", group: store.group, direction: "to", shape: { kind: "struct", fields: [
+    { name: "stage", type: "String" }, { name: "history", type: "&'static str", source },
+  ] } }];
+  for (const framework of ["vue", "react", "solid", "svelte"]) {
+    assert.throws(() => generateRustStoreDeclaration(store, framework, types), error => {
+      assert.equal(error.kind, "snapshot-schema");
+      assert.deepEqual(error.source, source);
+      assert.match(error.message, /src\/WorkflowReplay.rs:6:16.*ReplaySnapshot.history.*Unsupported Rust schema type/);
+      return true;
+    });
+  }
+  delete types[0].shape.fields[1].source;
+  assert.throws(() => generateRustStoreDeclaration(store, "vue", types), error => {
+    assert.deepEqual(error.source, { file: store.group });
+    assert.doesNotMatch(error.message, /WorkflowReplay.rs:\d/);
+    return true;
+  });
+});
+
+test("checks snapshot reachability, rejects cycles and keeps unresolved metadata explicitly unknown", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", snapshot: "State", actions: [] };
+  const state = { version: 1, kind: "type", id: "State:to", name: "State", direction: "to", shape: { kind: "struct", fields: [{ name: "children", type: "Vec<State>" }] } };
+  assert.throws(() => generateRustStoreDeclaration(store, "react", [state]), /State.children.*Recursive Rust schema/);
+  state.shape.fields = [{ name: "children", type: "Vec<Self>" }];
+  assert.throws(() => generateRustStoreDeclaration(store, "react", [state]), /State.children.*Recursive Rust schema reference "Self"/);
+  state.shape.fields = [{ name: "stage", type: "String" }];
+  const unrelated = { ...state, id: "Other:to", name: "Other", shape: { kind: "struct", fields: [{ name: "borrowed", type: "&str" }] } };
+  assert.match(generateRustStoreDeclaration(store, "react", [state, unrelated]), /stage: string/);
+  const opaque = generateRustStoreDeclaration({ ...store, snapshot: "Option<Opaque>" }, "vue");
+  assert.match(opaque, /ReplaySnapshot = unknown \| null/);
+  assert.match(opaque, /Snapshot schema metadata is missing/);
+  assert.doesNotMatch(generateRustStoreDeclaration(store, "vue", [state]), /Snapshot schema metadata is missing/);
+});
+
+test("nested snapshot failures identify the reachable field's own source", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", group: "src/store.rs", snapshot: "State", actions: [] };
+  const types = [
+    { version: 1, kind: "type", id: "State", name: "State", group: store.group, direction: "to", shape: { kind: "struct", fields: [{ name: "details", type: "details::Detail" }] } },
+    { version: 1, kind: "type", id: "Detail", name: "Detail", group: "src/details.rs", direction: "to", shape: { kind: "struct", fields: [{ name: "borrowed", type: "&str", source: { file: "src/details.rs", line: 8, column: 19 } }] } },
+  ];
+  assert.throws(() => generateRustStoreDeclaration(store, "vue", types), /src\/details.rs:8:19.*State.details.borrowed/);
+});
+
+
+test("snapshot checks require ToJs evidence regardless of merged direction order", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", snapshot: "State", actions: [] };
+  const from = { version: 1, kind: "type", id: "State:from", name: "State", direction: "from", shape: { kind: "struct", fields: [{ name: "children", type: "Vec<Self>" }] } };
+  const to = { ...from, id: "State:to", direction: "to" };
+  assert.doesNotThrow(() => generateRustStoreDeclaration(store, "vue", [from]));
+  for (const types of [[from, to], [to, from]]) {
+    assert.throws(() => generateRustStoreDeclaration(store, "vue", types), /Recursive Rust schema reference "Self"/);
+  }
+});
+
+
+test("validates shared snapshot DAGs once without losing opaque or recursive checks", () => {
+  // A regression visits 2^25 paths. Isolate it so a broken traversal cannot hang
+  // the test runner; this is a completion bound, not a performance benchmark.
+  const moduleUrl = new URL("../dist/schema-declarations.js", import.meta.url).href;
+  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", `
+    import assert from "node:assert/strict";
+    import { generateRustStoreDeclaration } from ${JSON.stringify(moduleUrl)};
+    const store = { version: 1, kind: "store", id: "Graph", name: "Graph", snapshot: "Level0", actions: [] };
+    const types = Array.from({ length: 26 }, (_, index) => ({
+      version: 1, kind: "type", id: "Level" + index, name: "Level" + index,
+      direction: "to", shape: { kind: "struct", fields: index === 25
+        ? [{ name: "value", type: "String" }]
+        : [{ name: "left", type: "Level" + (index + 1) }, { name: "right", type: "Level" + (index + 1) }] },
+    }));
+    const generate = () => generateRustStoreDeclaration(store, "vue", types);
+    assert.equal((generate().match(/export interface Level/g) ?? []).length, 26);
+    types[25].shape.fields[0].type = "Opaque";
+    assert.match(generate(), /Snapshot schema metadata is missing/);
+    types[25].shape.fields[0].type = "Level0";
+    assert.throws(generate, /Recursive Rust schema reference/);
+    types[25].shape.fields[0].type = "String";
+    assert.doesNotMatch(generate(), /Snapshot schema metadata is missing/);
+  `], { encoding: "utf8", timeout: 10_000 });
+  assert.ifError(result.error);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });

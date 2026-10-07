@@ -273,6 +273,7 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "group": metadata.group,
         "actions": actions,
         "snapshot": snapshot,
+        "snapshotSource": snapshot_method.map(|method| schema_source(method.sig.output.span())),
     });
     let schema: proc_macro2::TokenStream = emit_schema(item.clone(), record, "store").into();
     let stem = snake_case_ident(&name);
@@ -903,6 +904,17 @@ fn derive_abi(input: DeriveInput, direction: AbiDirection) -> TokenStream {
     }
 }
 
+// Additive schema-v1 metadata: never invent a line when the compiler has none.
+fn schema_source(span: proc_macro2::Span) -> Value {
+    let start = span.start();
+    let mut source = json!({ "file": span.file() });
+    if start.line > 0 {
+        source["line"] = json!(start.line);
+        source["column"] = json!(start.column + 1);
+    }
+    source
+}
+
 fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String) -> Value {
     let direction = match direction { AbiDirection::From => "from", AbiDirection::To => "to" };
     let name = input.ident.to_string();
@@ -913,6 +925,7 @@ fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String)
                 Fields::Named(fields) => fields.named.iter().map(|field| json!({
                     "name": field.ident.as_ref().expect("named field").to_string(),
                     "type": type_name(&field.ty),
+                    "source": schema_source(field.ty.span()),
                 })).collect::<Vec<_>>(),
                 _ => Vec::new(),
             },

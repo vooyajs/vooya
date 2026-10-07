@@ -1,27 +1,27 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import ts from "typescript";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 // Exercise the actual generator without requiring a Rust build or stale dist output.
-const compiled = ts.transpileModule(
-  readFileSync(
-    resolve(root, "packages/provider-rust/source/schema-declarations.ts"),
-    "utf8",
-  ),
-  {
-    compilerOptions: {
-      module: ts.ModuleKind.ESNext,
-      target: ts.ScriptTarget.ES2022,
-    },
-  },
-).outputText;
-const { generateRustStoreDeclaration } = await import(
-  `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
-);
+// Use file modules so the generator's runtime error dependency resolves normally.
+const generatorDir = mkdtempSync(join(root, ".store-types-generator-"));
+let generateRustStoreDeclaration;
+try {
+  for (const name of ["errors", "schema-declarations"]) {
+    const compiled = ts.transpileModule(
+      readFileSync(resolve(root, `packages/provider-rust/source/${name}.ts`), "utf8"),
+      { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } },
+    ).outputText;
+    writeFileSync(join(generatorDir, `${name}.js`), compiled);
+  }
+  ({ generateRustStoreDeclaration } = await import(pathToFileURL(join(generatorDir, "schema-declarations.js")).href));
+} finally {
+  rmSync(generatorDir, { recursive: true, force: true });
+}
 
 export function checkGeneratedStoreTypes(framework) {
   const dir = mkdtempSync(join(root, ".store-types-"));
