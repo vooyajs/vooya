@@ -59,16 +59,17 @@ try {
     return true;
   });
   assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
-  const recursive = valid.replace("Vec<String>", "Vec<ReplaySnapshot>");
-  writeFileSync(file, recursive);
-  assert.throws(() => buildApplication(options), error => {
-    assert.equal(error.kind, "snapshot-schema");
-    assert.equal(error.source.file, file);
-    assert.equal(error.source.line, 5);
-    assert.match(error.message, /Recursive Rust schema/);
-    return true;
-  });
-  assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
+  for (const reference of ["ReplaySnapshot", "Self"]) {
+    writeFileSync(file, valid.replace("Vec<String>", `Vec<${reference}>`));
+    assert.throws(() => buildApplication(options), error => {
+      assert.equal(error.kind, "snapshot-schema");
+      assert.equal(error.source.file, file);
+      assert.equal(error.source.line, 5);
+      assert.match(error.message, /Recursive Rust schema/);
+      return true;
+    });
+    assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
+  }
   writeFileSync(file, valid);
   assert.match(buildApplication(options).declarations[0].code, /history: Array<string>/);
   // A manual ToJs value has no derive schema. It cannot be distinguished from

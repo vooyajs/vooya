@@ -107,13 +107,13 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
   });
   let opaqueSnapshot = false;
   if (snapshotStore) {
-    const visit = (reference: string, group: string | null | undefined, path: string, source: RustSchemaSource | undefined, ancestors: Set<RustTypeSchema>) => {
+    const visit = (reference: string, group: string | null | undefined, path: string, source: RustSchemaSource | undefined, ancestors: Set<RustTypeSchema>, selfType?: RustTypeSchema) => {
       try { declarationType(reference, forGroup(group)); } catch (error) {
         if (!(error instanceof Error)) throw error;
         throw new RustSnapshotSchemaError(snapshotStore.id, path, error.message, source);
       }
       for (const nested of referencedTypeNamesFromType(reference)) {
-        const type = resolved.get(referenceKey(nested, group));
+        const type = nested === "Self" ? selfType : resolved.get(referenceKey(nested, group));
         // Missing metadata can describe a hand-written ToJs value. It is opaque,
         // not evidence that this value is a supported, precise owned schema.
         if (!type) { opaqueSnapshot = true; continue; }
@@ -121,7 +121,7 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
         if (type.shape.kind === "struct") {
           const next = new Set(ancestors).add(type);
           for (const field of type.shape.fields) {
-            visit(field.type, type.group, `${path}.${field.name}`, field.source ?? (type.group ? { file: type.group } : source), next);
+            visit(field.type, type.group, `${path}.${field.name}`, field.source ?? (type.group ? { file: type.group } : source), next, type);
           }
         }
       }

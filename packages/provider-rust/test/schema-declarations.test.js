@@ -475,6 +475,8 @@ test("checks snapshot reachability, rejects cycles and keeps unresolved metadata
   const store = { version: 1, kind: "store", id: "Replay", name: "Replay", snapshot: "State", actions: [] };
   const state = { version: 1, kind: "type", id: "State:to", name: "State", direction: "to", shape: { kind: "struct", fields: [{ name: "children", type: "Vec<State>" }] } };
   assert.throws(() => generateRustStoreDeclaration(store, "react", [state]), /State.children.*Recursive Rust schema/);
+  state.shape.fields = [{ name: "children", type: "Vec<Self>" }];
+  assert.throws(() => generateRustStoreDeclaration(store, "react", [state]), /State.children.*Recursive Rust schema reference "Self"/);
   state.shape.fields = [{ name: "stage", type: "String" }];
   const unrelated = { ...state, id: "Other:to", name: "Other", shape: { kind: "struct", fields: [{ name: "borrowed", type: "&str" }] } };
   assert.match(generateRustStoreDeclaration(store, "react", [state, unrelated]), /stage: string/);
