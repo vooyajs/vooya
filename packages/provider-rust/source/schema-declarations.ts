@@ -110,6 +110,7 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
   });
   let opaqueSnapshot = false;
   if (snapshotStore) {
+    const validated = new Set<RustTypeSchema>();
     const visit = (reference: string, group: string | null | undefined, path: string, source: RustSchemaSource | undefined, ancestors: Set<RustTypeSchema>, selfType?: RustTypeSchema) => {
       try { declarationType(reference, forGroup(group)); } catch (error) {
         if (!(error instanceof Error)) throw error;
@@ -124,12 +125,14 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
         // legacy declaration resolution, but do not reject it as an output schema.
         if (!outputIdentities.has(typeIdentity(type))) continue;
         if (ancestors.has(type)) throw new RustSnapshotSchemaError(snapshotStore.id, path, `Recursive Rust schema reference "${nested}" is not supported.`, source);
+        if (validated.has(type)) continue;
         if (type.shape.kind === "struct") {
           const next = new Set(ancestors).add(type);
           for (const field of type.shape.fields) {
             visit(field.type, type.group, `${path}.${field.name}`, field.source ?? (type.group ? { file: type.group } : source), next, type);
           }
         }
+        validated.add(type);
       }
     };
     if (snapshotStore.snapshot) visit(snapshotStore.snapshot, snapshotStore.group, snapshotStore.snapshot, snapshotStore.snapshotSource ?? (snapshotStore.group ? { file: snapshotStore.group } : undefined), new Set());

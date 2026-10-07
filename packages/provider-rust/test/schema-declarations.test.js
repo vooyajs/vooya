@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -504,4 +505,33 @@ test("snapshot checks require ToJs evidence regardless of merged direction order
   for (const types of [[from, to], [to, from]]) {
     assert.throws(() => generateRustStoreDeclaration(store, "vue", types), /Recursive Rust schema reference "Self"/);
   }
+});
+
+
+test("validates shared snapshot DAGs once without losing opaque or recursive checks", () => {
+  // A regression visits 2^25 paths. Isolate it so a broken traversal cannot hang
+  // the test runner; this is a completion bound, not a performance benchmark.
+  const moduleUrl = new URL("../dist/schema-declarations.js", import.meta.url).href;
+  const result = spawnSync(process.execPath, ["--input-type=module", "--eval", `
+    import assert from "node:assert/strict";
+    import { generateRustStoreDeclaration } from ${JSON.stringify(moduleUrl)};
+    const store = { version: 1, kind: "store", id: "Graph", name: "Graph", snapshot: "Level0", actions: [] };
+    const types = Array.from({ length: 26 }, (_, index) => ({
+      version: 1, kind: "type", id: "Level" + index, name: "Level" + index,
+      direction: "to", shape: { kind: "struct", fields: index === 25
+        ? [{ name: "value", type: "String" }]
+        : [{ name: "left", type: "Level" + (index + 1) }, { name: "right", type: "Level" + (index + 1) }] },
+    }));
+    const generate = () => generateRustStoreDeclaration(store, "vue", types);
+    assert.equal((generate().match(/export interface Level/g) ?? []).length, 26);
+    types[25].shape.fields[0].type = "Opaque";
+    assert.match(generate(), /Snapshot schema metadata is missing/);
+    types[25].shape.fields[0].type = "Level0";
+    assert.throws(generate, /Recursive Rust schema reference/);
+    types[25].shape.fields[0].type = "String";
+    assert.doesNotMatch(generate(), /Snapshot schema metadata is missing/);
+  `], { encoding: "utf8", timeout: 10_000 });
+  assert.ifError(result.error);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });
