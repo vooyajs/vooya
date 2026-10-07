@@ -5,16 +5,23 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      managed_source:
+        description: Managed consumer source (registry is a release acceptance run)
+        type: choice
+        options: [packed, registry]
+        default: packed
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}-${{ inputs.managed_source || 'packed' }}
   cancel-in-progress: true
 
 jobs:
   browser:
+    if: ${{ inputs.managed_source != 'registry' }}
     name: ${{ matrix.script }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -58,8 +65,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Validate managed consumer mode
+        run: node -e "if (!['packed', 'registry'].includes(process.env.MANAGED_SOURCE)) throw new Error('Invalid managed consumer mode')"
+        env:
+          MANAGED_SOURCE: ${{ inputs.managed_source || 'packed' }}
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
       # The packed consumer shields system Rust, keeps the native SDK/linker,
       # and verifies managed selection plus real browser dev/error recovery.
-      - run: npm run test:preset-consumer
+      - if: ${{ inputs.managed_source != 'registry' }}
+        run: npm run test:preset-consumer
+      - if: ${{ inputs.managed_source == 'registry' }}
+        run: npm run test:preset-registry
+        env:
+          VOOYA_PRESET_EVIDENCE_DIR: preset-registry-evidence
+      - if: ${{ always() && inputs.managed_source == 'registry' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: preset-registry-${{ matrix.os }}
+          path: preset-registry-evidence
+          if-no-files-found: warn

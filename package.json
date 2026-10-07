@@ -83,6 +83,7 @@
     "test:packed-release": "npm run build:packages && node tests/packed-release-consumer.mjs",
     "release:beta": "npm run build:scripts && node scripts/generated/publish-alpha.js --channel beta",
     "test:preset": "npm test --workspace @vooya/preset",
+    "test:preset-registry": "node tests/preset-consumer.mjs --registry",
     "test:preset-consumer": "npm run build --workspace @vooya/preset && npm run build --workspace @vooya/vite && node tests/prepare-preset-consumer.mjs && npm run build --workspace @vooya/vue && node tests/preset-consumer.mjs",
     "test:rust-octane": "node tests/rust-octane-source.mjs",
     "test:rust-bundlers": "npm run build:packages && node tests/rust-bundler-source.mjs",
