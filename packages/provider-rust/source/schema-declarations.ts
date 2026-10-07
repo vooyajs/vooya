@@ -68,8 +68,11 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
   // schemas and serializing their shapes for every reference.
   const byName = new Map<string, RustTypeSchema[]>();
   const identities = new Set<string>();
+  const outputIdentities = new Set<string>();
+  const typeIdentity = (type: RustTypeSchema) => JSON.stringify([type.name, type.group ?? null, type.shape]);
   for (const type of types) {
-    const identity = JSON.stringify([type.name, type.group ?? null, type.shape]);
+    const identity = typeIdentity(type);
+    if (type.direction === "to") outputIdentities.add(identity);
     if (identities.has(identity)) continue;
     identities.add(identity);
     const bucket = byName.get(type.name) ?? [];
@@ -117,6 +120,9 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
         // Missing metadata can describe a hand-written ToJs value. It is opaque,
         // not evidence that this value is a supported, precise owned schema.
         if (!type) { opaqueSnapshot = true; continue; }
+        // An input-only derive says nothing about a manual ToJs output. Keep
+        // legacy declaration resolution, but do not reject it as an output schema.
+        if (!outputIdentities.has(typeIdentity(type))) continue;
         if (ancestors.has(type)) throw new RustSnapshotSchemaError(snapshotStore.id, path, `Recursive Rust schema reference "${nested}" is not supported.`, source);
         if (type.shape.kind === "struct") {
           const next = new Set(ancestors).add(type);

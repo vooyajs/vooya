@@ -84,6 +84,19 @@ impl voo::ToJs for ReplaySnapshot {
   const opaque = buildApplication(options).declarations[0].code;
   assert.match(opaque, /WorkflowReplaySnapshot = unknown/);
   assert.match(opaque, /Snapshot schema metadata is missing/);
+  // Input schema is not evidence of a manual output shape: this recursive
+  // input can legitimately serialize to a scalar instead of walking children.
+  const manualOutput = valid.replace("voo::ToJs", "voo::FromJs").replace("Vec<String>", "Vec<Self>") + `
+impl voo::ToJs for ReplaySnapshot {
+    fn to_js(&self) -> Result<voo::__private::wasm_bindgen::JsValue, voo::__private::wasm_bindgen::JsValue> {
+        Ok(voo::__private::wasm_bindgen::JsValue::from_str(&self.stage))
+    }
+}
+`;
+  writeFileSync(file, manualOutput);
+  // Existing direction-neutral declarations are intentionally not redesigned by
+  // this test; only the new false rejection is prevented here.
+  assert.ok(buildApplication(options).declarations[0].code.includes("createWorkflowReplayStore"));
   // Existing macro rejection still reports the author's generic source span.
   writeFileSync(file, valid.replace("pub struct ReplaySnapshot {", "pub struct ReplaySnapshot<T> {").replace("pub stage: String", "pub stage: T").replace("-> ReplaySnapshot", "-> ReplaySnapshot<String>"));
   let diagnostics = "";

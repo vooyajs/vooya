@@ -494,3 +494,14 @@ test("nested snapshot failures identify the reachable field's own source", () =>
   ];
   assert.throws(() => generateRustStoreDeclaration(store, "vue", types), /src\/details.rs:8:19.*State.details.borrowed/);
 });
+
+
+test("snapshot checks require ToJs evidence regardless of merged direction order", () => {
+  const store = { version: 1, kind: "store", id: "Replay", name: "Replay", snapshot: "State", actions: [] };
+  const from = { version: 1, kind: "type", id: "State:from", name: "State", direction: "from", shape: { kind: "struct", fields: [{ name: "children", type: "Vec<Self>" }] } };
+  const to = { ...from, id: "State:to", direction: "to" };
+  assert.doesNotThrow(() => generateRustStoreDeclaration(store, "vue", [from]));
+  for (const types of [[from, to], [to, from]]) {
+    assert.throws(() => generateRustStoreDeclaration(store, "vue", types), /Recursive Rust schema reference "Self"/);
+  }
+});
