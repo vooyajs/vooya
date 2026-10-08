@@ -95,7 +95,8 @@ unsubscribe }`；`dispatch(name, ...args)` 调用声明的 store action。
 | Generated component | React component props | — | 导入 `#[voo::component]` `.rs` | React `>=19`；`import Counter from "./Counter.rs"` |
 | Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `useSyncExternalStore`；每个 hook 生命周期一个 instance |
 | `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例集成 | 高级 API；factory 可同步或 Promise |
-| `onError` / `onNotify` | callbacks | — | 观察创建失败/通知 | adapter callback，不是全局 event bus |
+| `onError` | callback | — | 观察创建失败 | 生成 Store 创建失败；不接收 Rust domain event |
+| `onNotify` | `(name: string, payload: unknown) => void` | — | custom factory instrumentation | 仅 React adapter callback，不是类型化 generated Store event channel |
 
 ## `@vooya/solid`
 
@@ -127,6 +128,10 @@ lifecycle 包装 framework-neutral bridge。Store `state` 是
 | `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例 | 高级 API；factory 可同步或 Promise |
 | `onError` | `(cause: unknown) => void` | — | 观察异步 factory 失败 | Component 与 generated Store cleanup 绑定 Svelte destruction |
 | `onNotify` | 转发给 custom factory 的 callback 字段 | — | 高级 factory instrumentation | generated Svelte Store 通过 `Readable` 发布，不承诺独立 notification bus |
+
+所有 first-party adapter 当前都没有 generated Store 的 domain notification。后续 ABI
+需要让 Store 关联显式 event schema，生成类型化 host callback，并保证 notification 的
+unsubscribe/dispose 独立于 snapshot subscription；见 [Issue #153](https://github.com/vooyajs/vooya/issues/153)。
 
 当前证据是 Svelte 5 + Vite 7 + Chromium：覆盖 Component mount/callback、Store
 action、Component prop update、generated declarations，以及 Component handle 与

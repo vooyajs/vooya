@@ -281,6 +281,13 @@ operation; an action returning `Result<(), JsValue>` propagates its error to
 the generated binding. Failed actions do not roll back mutations made before
 the error, and async actions are outside ABI v1.
 
+`#[voo::events]` currently declares Component callbacks. A Store cannot yet
+attach that trait to generated Rust-to-host notifications, and `useCart()` does
+not accept generated `onEventName` callbacks. The runtime's internal domain
+listener helpers are not a public Store event API. Typed Store notifications,
+including payload schema, subscription cleanup, and generated host callbacks,
+are tracked in [Issue #153](https://github.com/vooyajs/vooya/issues/153).
+
 The generated `.d.rs.ts` declaration mirrors both sides of the module. It
 includes the factory, default export, snapshot/store types, and the generated
 hook for the selected framework. Store snapshots use the same standalone type
