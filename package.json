@@ -88,6 +88,7 @@
     "test:preset-consumer": "npm run build --workspace @vooya/preset && npm run build --workspace @vooya/vite && node tests/prepare-preset-consumer.mjs && npm run build --workspace @vooya/vue && node tests/preset-consumer.mjs",
     "test:rust-octane": "node tests/rust-octane-source.mjs",
     "test:rust-bundlers": "npm run build:packages && node tests/rust-bundler-source.mjs",
+    "test:turbopack-blocker": "node tests/turbopack-rust-blocker.mjs",
     "test:vite8-frameworks": "npm run build:packages && node tests/vite8-frameworks.mjs",
     "test:build-core": "npm run test:provider-rust && npm test --workspace @vooya/build-core",
     "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs",

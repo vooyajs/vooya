@@ -1,7 +1,9 @@
 # Turbopack Research
 
 This post-beta research record addresses [Issue #38](https://github.com/vooyajs/vooya/issues/38).
-It does not add a Turbopack compatibility claim or a Next.js adapter.
+The bounded reproduction in [Issue #154](https://github.com/vooyajs/vooya/issues/154)
+tests one documented loader boundary. Neither issue adds a Turbopack
+compatibility claim or a Next.js adapter.
 
 ## Result
 
@@ -41,8 +43,16 @@ The implementation evidence below is pinned to Next.js `16.3.6`, whose
 Turbopack loader bridge is part of the Next.js source tree. The [official
 configuration reference](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack)
 was also checked on 2026-10-02; that live page then showed version `16.3.8`.
-This document records an API and source review, not a clean Next.js consumer
-build or browser compatibility test.
+The repository includes `npm run test:turbopack-blocker`, a clean Next.js
+`16.3.6` reproduction that imports a local `.rs` file from a client component.
+Its loader attempts the documented asset-emission operation and asserts that
+Turbopack rejects it. The reproduction proves this specific production asset
+boundary; it does not build Rust or establish browser compatibility. Run it
+from a checkout with npm registry access:
+
+```sh
+npm run test:turbopack-blocker
+```
 
 ## Established Capabilities And Limits
 
