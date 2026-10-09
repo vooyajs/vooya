@@ -161,3 +161,15 @@ map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-c
 组件声明仍保留这一行为；当前尚未发布的源码会拒绝已解析 Store snapshot 中不受支持
 的字段，详见 [Snapshot 诊断](../concepts/store.md)。缺少 schema
 时仍使用 `unknown`，不能据此区分合法手写转换与意外缺失的元数据。
+
+未限定的命名类型会优先在所属 Component 或 Store 的 source group 中解析。引用其他
+模块的类型时使用 Rust 限定路径，例如 `models::Selection`。同一声明中如果两个已解析
+类型短名相同，生成的 TypeScript 会保留模块前缀：`models::Selection` 与
+`filters::Selection` 分别成为 `ModelsSelection` 和 `FiltersSelection`；嵌套字段、props、
+events 与 Store signature 都使用同一别名。唯一短名保持不变，缺少 schema 时仍是
+`unknown`，不会因为其他模块恰好存在同名类型而猜测形状。
+
+当前路径解析只覆盖常规 `.rs` / `mod.rs` source group，以及 `self::`、`super::` 和
+`crate::` 路径（`crate::` 需要 `src/` root）。它不是完整 Rust name resolution：`use`
+alias、inline module 与 `#[path]` override 仍需要更丰富的 schema metadata；见
+[Issue #119](https://github.com/vooyajs/vooya/issues/119)。
