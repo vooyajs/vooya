@@ -3,8 +3,10 @@
 ## 用户需要安装 Rust 吗？
 
 已发布 Beta 的 source-authoring 路径需要 Cargo、稳定 Rust、`wasm32-unknown-unknown`
-和 `wasm-bindgen-cli 0.2.115`。main 中可选的托管 preset 尚未发布；它仍需宿主 SDK/linker。
-预编译消费者未来可能不需要 Rust，但正式产品尚未发布。
+和 `wasm-bindgen-cli 0.2.115`。可选托管 preset 已作为
+`@vooya/preset@0.2.0-alpha.0` 发布，需显式选择 Alpha；它仍需宿主 SDK/linker，
+也不等于物理上不安装 Rust 的机器已经得到完整认证。预编译消费者未来可能不需要 Rust，
+但正式产品尚未发布。
 
 ## TypeScript 是用户依赖吗？
 
