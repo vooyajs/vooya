@@ -21,6 +21,13 @@ const artifact = buildApplication({ applicationRoot, toolchain });
 the same error classes and toolchain cache. The synchronous `buildApplication`
 API, Rust options, generated paths, and output shape are unchanged.
 
+Each application build currently produces one aggregate Rust/WASM artifact for
+its authored roots. Package extraction does not create lazy or independently
+loadable WASM artifacts, and importing one lightweight root does not isolate
+unrelated Rust dependencies. Per-root artifact grouping, loading, watching,
+diagnostics, and disposal are tracked separately in
+[Issue #106](https://github.com/vooyajs/vooya/issues/106).
+
 The optional `@vooya/preset` prepares pinned Rust tools. This provider discovers
 it from the consuming project, just as the previous build-core implementation
 did. The provider does not install the preset or download tools on import.

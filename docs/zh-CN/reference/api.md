@@ -57,7 +57,7 @@ Vue 应用消费 Store 的主入口，返回 `{ state, ...typedActions }`；`sta
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |
-| Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `const { state, add } = useCart()` |
+| Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `const { state, add } = useCart()`；当前生成 action 返回 `void` |
 | `options` | `VooyaStoreOptions` | `{}` | 观察创建失败并配置适配器行为 | generated hook 自动拥有并释放实例 |
 
 ### `useVooyaStore(source, options?)`（高级 API）
@@ -88,7 +88,9 @@ unsubscribe }`；`dispatch(name, ...args)` 调用声明的 store action。
 ## `@vooya/react`
 
 生成的 `.rs` import 会暴露组件或 `useCart()` 这类 typed hook。Vue、React、Solid 和 Svelte
-获得相同的生成名称与字段：`state` 加类型化 action；React 的 `state` 是当前快照值。
+获得相同的生成名称与字段：`state` 加类型化 action 参数；React 的 `state` 是当前快照值。
+即使 Rust action 有成功返回值，生成 action 当前仍返回 `void`；类型化 action result 由
+[Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。
 
 | 导出/参数 | 类型/取值 | 默认值 | 何时使用 | 当前边界/最小例子 |
 | --- | --- | --- | --- | --- |

@@ -144,12 +144,17 @@ Vue、React、Solid 和 Svelte 的生成入口保持同一组名称与字段；�
 
 - `getSnapshot()`：读取当前快照；
 - `subscribe(listener)`：监听快照变化并可取消订阅；
-- 声明的同步 action：执行 Rust 拥有的状态转换；
+- 声明的同步 action：执行 Rust 拥有的状态转换；参数使用 ABI v1，当前生成 action 返回 `void`；
 - `dispose()`：释放订阅、listener 和其他由实例拥有的资源。
 
 Rust runtime 内部存在领域 listener helper，但当前不会写入 generated Store schema、
 binding、`useName()` 或 TypeScript declaration。custom factory 的 adapter `onNotify`
 也不是跨 adapter 的类型化 generated Store event channel。
+
+生成 action 保留 `()` 和 `Result<(), JsValue>` 的失败传播，但暂不会把 Rust 的成功返回值
+交给宿主。后续 action-result ABI 需要让支持的 owned value 穿过 Rust wrapper、generated
+bridge 和 TypeScript declaration，且不改变 action 顺序或 snapshot notification；见
+[Issue #152](https://github.com/vooyajs/vooya/issues/152)。
 
 因此，当前设计不是“每个框架各自定义一套 Store”。beta 阶段保持框架特有的消费
 层，以保证各自的生命周期语义正确；后续如果需要统一开发者体验，可以在共享 Store

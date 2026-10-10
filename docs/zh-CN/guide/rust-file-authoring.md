@@ -162,6 +162,10 @@ Rust 到宿主 notification，`useCart()` 也不接受生成的 `onEventName` ca
 内部 domain listener 并不是公开 Store event API；类型化 payload、订阅 cleanup 和生成的
 host callback 由 [Issue #153](https://github.com/vooyajs/vooya/issues/153) 跟踪。
 
+action 当前不会把 Rust 的成功返回值暴露给生成的宿主 API。wrapper 会丢弃非 unit 成功值，
+因此 generated action declaration 返回 `void`。支持 owned value 和 `Result<T, JsValue>`
+的受限 result ABI 由 [Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。
+
 已发布 alpha.0 中，无法表示字段的派生 struct 声明会退为 `Record<string, unknown>`。
 组件声明仍保留这一行为；当前尚未发布的源码会拒绝已解析 Store snapshot 中不受支持
 的字段，详见 [Snapshot 诊断](../concepts/store.md)。缺少 schema
