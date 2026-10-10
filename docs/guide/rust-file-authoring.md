@@ -281,6 +281,13 @@ operation; an action returning `Result<(), JsValue>` propagates its error to
 the generated binding. Failed actions do not roll back mutations made before
 the error, and async actions are outside ABI v1.
 
+`#[voo::events]` currently declares Component callbacks. A Store cannot yet
+attach that trait to generated Rust-to-host notifications, and `useCart()` does
+not accept generated `onEventName` callbacks. The runtime's internal domain
+listener helpers are not a public Store event API. Typed Store notifications,
+including payload schema, subscription cleanup, and generated host callbacks,
+are tracked in [Issue #153](https://github.com/vooyajs/vooya/issues/153).
+
 Actions do not yet expose a successful Rust return value to the generated host
 API. The current wrapper discards non-unit success values, so generated action
 declarations return `void`. A bounded result ABI for supported owned values,

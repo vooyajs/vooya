@@ -157,6 +157,11 @@ ABI v1 支持有限数字、`bigint`、布尔、owned string、vector、tuple �
 map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-copy
 不在当前边界。完整限制见[英文 ABI RFC](../../rfcs/0007-rust-file-authoring-and-abi-v1.md)。
 
+`#[voo::events]` 当前只声明 Component callback。Store 还不能将该 trait 关联到生成的
+Rust 到宿主 notification，`useCart()` 也不接受生成的 `onEventName` callback。runtime
+内部 domain listener 并不是公开 Store event API；类型化 payload、订阅 cleanup 和生成的
+host callback 由 [Issue #153](https://github.com/vooyajs/vooya/issues/153) 跟踪。
+
 action 当前不会把 Rust 的成功返回值暴露给生成的宿主 API。wrapper 会丢弃非 unit 成功值，
 因此 generated action declaration 返回 `void`。支持 owned value 和 `Result<T, JsValue>`
 的受限 result ABI 由 [Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。

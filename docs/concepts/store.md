@@ -5,6 +5,11 @@ machine and exposes a snapshot, subscriptions, declared actions, and disposal.
 It does not own a DOM subtree; the host application remains responsible for
 rendering the snapshot.
 
+Store snapshots and component-style domain events are separate concepts. The
+current generated Store contract publishes snapshot changes only. It does not
+generate typed Rust-to-host notification callbacks from `#[voo::events]`; that
+follow-up is tracked in [Issue #153](https://github.com/vooyajs/vooya/issues/153).
+
 ## Basic usage
 
 Declare the public role and keep the Rust implementation in an ordinary `.rs`
@@ -124,6 +129,12 @@ establish accurate snapshot types for that combination.
 | Subscription | Rust → Host | Notify the adapter after a snapshot change | Every subscription is disposable |
 | Action | Host → Rust | Run a declared synchronous state transition | Arguments use ABI v1; generated actions currently return `void` and async actions are not ABI v1 |
 | Dispose | Host → Rust | Release listeners and owned resources | The owner must call it for shared instances |
+
+The Rust runtime has internal domain-listener helpers, but they are not exposed
+through generated Store schema, bindings, `useName()`, or TypeScript
+declarations. An adapter-specific `onNotify` option for a custom store factory
+is likewise not a typed generated Store event channel and is not portable across
+the first-party adapters.
 
 Stores are instance-scoped by default. A component or host service may own one
 store, or several consumers may share one when a separate owner controls its

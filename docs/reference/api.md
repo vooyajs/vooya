@@ -111,7 +111,8 @@ a successful value; typed action results are tracked in [Issue #152](https://git
 | Generated component | React component props | — | Import a `#[voo::component]` `.rs` file | React `>=19`; `import Counter from "./Counter.rs"` |
 | Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | Uses `useSyncExternalStore`; one store instance per hook lifetime |
 | `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a store or Promise |
-| `onError` / `onNotify` | callbacks | — | Observe creation failures or notifications | Adapter callbacks only; no global event bus |
+| `onError` | callback | — | Observe creation failures | Reports generated or custom factory creation failures; it does not receive Rust domain events |
+| `onNotify` | `(name: string, payload: unknown) => void` | — | Instrument a custom factory | Forwarded to custom factories, also in Solid and Svelte; not a typed generated Store event channel |
 
 ## `@vooya/solid`
 
@@ -146,6 +147,11 @@ framework-neutral bridge is wrapped with Svelte component lifecycle and a
 | `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a Store or Promise |
 | `onError` | `(cause: unknown) => void` | — | Observe an asynchronous factory failure | Component and generated Store cleanup are tied to Svelte destruction |
 | `onNotify` | callback field forwarded to a custom factory | — | Advanced factory-specific instrumentation | Generated Svelte Stores publish through `Readable`; no separate notification bus is documented |
+
+Generated Store domain notifications are not yet available in any first-party
+adapter. The planned ABI must associate a Store with an explicit event schema,
+generate typed host callbacks, and ensure notification unsubscribe/dispose is
+independent from snapshot subscriptions; see [Issue #153](https://github.com/vooyajs/vooya/issues/153).
 
 The current evidence is Svelte 5 + Vite 7 + Chromium. It covers Component
 mount and callback, Store action, Component prop update, generated declarations,

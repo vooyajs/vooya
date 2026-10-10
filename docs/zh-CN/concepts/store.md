@@ -3,6 +3,10 @@
 Vooya Store 是一个无 DOM 的 Rust/WASM 状态能力。它拥有实例级状态、快照、订阅、
 声明的动作和释放语义，但不拥有页面或 DOM 子树。
 
+当前生成的 Store 只发布快照变化，不会从 `#[voo::events]` 生成 Rust 到宿主的类型化
+领域通知回调。该后续能力由 [Issue #153](https://github.com/vooyajs/vooya/issues/153)
+跟踪。
+
 本文中的“宿主”统一指承载 Vooya 的现有 Web 应用及其渲染器（renderer）。英文资料和 API 名称
 中可能仍出现 `host`，但中文正文统一使用“宿主”。宿主负责页面、路由和周围的业务状态；
 Store 负责一块可以由 Rust 可靠维护、又能被多个宿主视图消费的状态或计算能力。
@@ -142,6 +146,10 @@ Vue、React、Solid 和 Svelte 的生成入口保持同一组名称与字段；�
 - `subscribe(listener)`：监听快照变化并可取消订阅；
 - 声明的同步 action：执行 Rust 拥有的状态转换；参数使用 ABI v1，当前生成 action 返回 `void`；
 - `dispose()`：释放订阅、listener 和其他由实例拥有的资源。
+
+Rust runtime 内部存在领域 listener helper，但当前不会写入 generated Store schema、
+binding、`useName()` 或 TypeScript declaration。custom factory 的 adapter `onNotify`
+也不是跨 adapter 的类型化 generated Store event channel。
 
 生成 action 保留 `()` 和 `Result<(), JsValue>` 的失败传播，但暂不会把 Rust 的成功返回值
 交给宿主。后续 action-result ABI 需要让支持的 owned value 穿过 Rust wrapper、generated
