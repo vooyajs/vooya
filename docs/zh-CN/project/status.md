@@ -70,6 +70,13 @@ Alpha 包提供可选托管 Rust preset、四框架 Vite 8 与四框架
 Vite+ 打包用例、Vue/React Rust-file Webpack/Rspack 接入，以及 SSR 安全岛和 Nuxt 用例。
 这些能力尚未包含在上面的 npm Beta 包中；具体证据见[兼容性矩阵](./compatibility.md)。
 
+`@vooya/provider-rust` 已将 Rust 编译、schema、workspace 与 toolchain 行为抽离为
+内部 package boundary，`@vooya/build-core` 保持兼容入口。这不等于已经存在公共多语言
+provider registry、provider-neutral artifact/lifecycle protocol，或第二种 authoring language。
+AssemblyScript、Emscripten、Go 等 canary 仍是后续研究；边界见
+[语言 provider 研究（英文原文）](../../project/language-provider-research.md)和
+[Issue #94](https://github.com/vooyajs/vooya/issues/94)。
+
 Octane 保留为私有 workspace 实验，延期且不纳入本批公共发布门禁。
 
 0.1 只维护已发布行为，0.2 按功能批次审查和冻结。Go/TinyGo、多语言协议、Rust
