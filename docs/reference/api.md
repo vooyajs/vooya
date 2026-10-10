@@ -67,7 +67,7 @@ the primary Store API for Vue application code; `state` is a readonly reactive
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |
-| Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | `const { state, add } = useCart()` |
+| Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | `const { state, add } = useCart()`; current generated actions return `void` |
 | `options` | `VooyaStoreOptions` | `{}` | Observe creation failures and configure adapter behavior | Generated hook owns and disposes its instance |
 
 ### `useVooyaStore(source, options?)` (advanced)
@@ -102,7 +102,9 @@ The return value is `{ snapshot, dispatch, unsubscribe }`. `dispatch(name,
 
 Generated `.rs` imports expose a component or a typed hook such as `useCart()`.
 Vue, React, Solid, and Svelte receive the same generated names and fields: `state` plus
-typed actions. React's `state` is the current snapshot value.
+typed action arguments. React's `state` is the current snapshot value. Generated
+Store actions currently return `void`, even if their Rust implementation returns
+a successful value; typed action results are tracked in [Issue #152](https://github.com/vooyajs/vooya/issues/152).
 
 | Export / parameter | Type / values | Default | When to use | Current boundary / minimal example |
 | --- | --- | --- | --- | --- |

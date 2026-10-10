@@ -8,6 +8,8 @@ Vooya 是一个公开 beta 项目，正在验证“传统 Web 应用与 WASM 之
 - [发布线与功能批次](./release-lines.md)：已发布 0.1 维护与未发布 0.2 候选的边界。
 - [状态](./status.md)：当前 beta 已经能做什么，以及仍有哪些限制。
 - [兼容性矩阵](./compatibility.md)：框架、bundler、浏览器和工具链证据。
+- [语言 provider 研究（英文原文）](../../project/language-provider-research.md)：
+  Rust reference provider、normalized artifact 和后续跨语言 canary 的边界。
 - [路线图与 RFC（英文原文）](../../rfcs/0008-layer-boundary-and-roadmap.md)：从集成基础设施走向稳定 layer 契约的版本方向。
 - [发布说明（英文原文）](../../maintainers/releases.md)：协调各包发布的规则。
 - [基准测试（英文原文）](../../benchmarks/data-grid.md)：特定 workload 的测量与限制。
