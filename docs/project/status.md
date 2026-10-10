@@ -144,6 +144,10 @@ See [the release guide](../maintainers/releases.md).
   Turbopack, and other bundlers remain unsupported.
 - The newer Vite+ four-framework dev/build matrix runs against current-source
   tarballs. It does not expand the published beta claim or cover every Vite+ tool.
+- Rust provider extraction preserves one application-local aggregate WASM artifact.
+  Lazy isolated artifacts for independent authored roots, including per-group
+  rebuild and payload evidence, remain separate work in
+  [Issue #106](https://github.com/vooyajs/vooya/issues/106).
 - Turbopack has no compatibility claim. Its loader API evidence and unverified integration requirements are
   recorded in [Turbopack research](turbopack-research.md); Webpack and Rspack
   evidence must not be generalized to Turbopack.
