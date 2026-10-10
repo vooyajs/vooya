@@ -40,6 +40,11 @@ Solid/Svelte 还没有后者的独立验收，不能宣传为与 Vue/React 同�
 无需任意字符串索引签名。Store 类型修复自 Vue beta.1 和
 React/Solid/Svelte beta.2 起可用；源码导入修复需要 Vite beta.2。
 
+Vooya Lab 持续作为 self-hosting 与 evidence 计划：影响产品契约的发现必须回流为
+本仓库的 focused issue 和修复。它不构成第二套支持矩阵，也不会自动成为未完成的
+Beta 发布 gate；见 [RFC 0011](../../rfcs/0011-lab-self-hosting-program.md) 和
+[Issue #103](https://github.com/vooyajs/vooya/issues/103)。
+
 ## 已发布 Beta 的验证范围
 
 - 普通 `.rs` component/store 编译为 application-local WASM。
