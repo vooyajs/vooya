@@ -322,8 +322,12 @@ module prefixes: `models::Selection` and `filters::Selection` become
 signatures use the same resolved names. Names are assigned before rendering and
 are independent of schema traversal order. Longer source prefixes (then numeric
 suffixes) disambiguate aliases that are already occupied; unique short names stay
-unchanged. Missing schemas remain `unknown`, even if another module defines the
-same short name.
+unchanged. A qualified reference without a matching schema remains `unknown`, even
+if another module defines the same short name. An unqualified reference with no
+match in its source group currently falls back to global same-name candidates:
+a unique candidate is selected, while multiple candidates produce an ambiguity
+error. Use qualified paths for cross-module references rather than relying on
+that fallback as exact Rust type resolution.
 
 Path resolution uses conventional `.rs` / `mod.rs` source groups, including
 `self::`, `super::`, and `crate::` paths (`crate::` requires a `src/` root).
