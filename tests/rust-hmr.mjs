@@ -23,6 +23,11 @@ try {
     cpSync(fixture, project, { recursive: true });
     symlinkSync(resolve(repositoryRoot, "node_modules"), resolve(project, "node_modules"), "dir");
   }
+  const extension = { vue: "vue", react: "jsx", solid: "jsx", svelte: "svelte", octane: "tsx" }[framework];
+  const hostPath = resolve(project, `src/App.${extension}`);
+  const originalHost = readFileSync(hostPath, "utf8");
+  originalSources.set(hostPath, originalHost);
+  writeFileSync(hostPath, originalHost.replace('"./Counter.rs"', '"/src/Counter.rs"'));
   server = startDevServer(process.execPath, [vite, ...(process.env.VOOYA_VITE_PLUS ? ["dev"] : []), "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     cwd: project,
     env: { ...process.env, FORCE_COLOR: "0" },
@@ -37,6 +42,17 @@ try {
   page.setDefaultTimeout(60_000);
   await page.goto(`http://127.0.0.1:${port}`);
   await page.getByRole("button", { name: "Count: 0" }).first().waitFor();
+
+  if (framework === "vue" || framework === "octane") {
+    const stylePath = resolve(project, "src/Counter.css");
+    const style = readFileSync(stylePath, "utf8");
+    originalSources.set(stylePath, style);
+    writeFileSync(stylePath, `${style}\nbutton { outline: 7px solid rgb(12, 34, 56); }\n`);
+    await page.waitForFunction(() => {
+      const element = document.querySelector("[data-voo-scope] button");
+      return element && getComputedStyle(element).outlineWidth === "7px";
+    });
+  }
 
   const componentPath = resolve(project, "src/Counter.rs");
   const source = readFileSync(componentPath, "utf8");
@@ -60,10 +76,7 @@ try {
   if (framework === "octane") await page.getByRole("button", { name: "Store A: 0", exact: true }).click();
   else await page.locator(".store-add").click();
   await page.getByRole("button", { name: "Rapid 4: 1" }).first().waitFor();
-  const extension = { vue: "vue", react: "jsx", solid: "jsx", svelte: "svelte", octane: "tsx" }[framework];
-  const hostPath = resolve(project, `src/App.${extension}`);
   const host = readFileSync(hostPath, "utf8");
-  originalSources.set(hostPath, host);
   writeFileSync(hostPath, host.replace("Selected ", "Host updated "));
   await page.getByText(/^Host updated /).first().waitFor();
   if (unexpectedErrors.length) throw new Error(`Unexpected browser errors: ${unexpectedErrors.join("\n")}`);

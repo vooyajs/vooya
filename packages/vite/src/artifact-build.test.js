@@ -5,12 +5,13 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 import { buildPrecompiledVueArtifact, validatePrecompiledVueArtifactOutput } from "../dist/build-core.js";
+import { assertBindingsRetry } from "./module-loading-helper.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const counterSource = resolve(repositoryRoot, "tests/fixtures/precompiled-vue/artifact/component/PortableCounter.voo");
 const vueVersion = JSON.parse(readFileSync(resolve(repositoryRoot, "packages/vue/package.json"), "utf8")).version;
 
-test("builds a Vue artifact from an explicitly named non-prefix package", () => {
+test("builds a Vue artifact with retryable WASM loading from an explicitly named non-prefix package", async () => {
   const fixture = createArtifactFixture();
   try {
     const manifest = buildPrecompiledVueArtifact({ packageRoot: fixture.root, source: fixture.source });
@@ -37,6 +38,10 @@ test("builds a Vue artifact from an explicitly named non-prefix package", () => 
     assert.equal(existsSync(resolve(fixture.root, "dist/component/PortableCounter.voo")), false);
     const manifestText = readFileSync(resolve(fixture.root, "dist/manifest.json"), "utf8");
     assert.doesNotMatch(manifestText, new RegExp(fixture.root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    await assertBindingsRetry(readFileSync(resolve(fixture.root, "dist/index.js"), "utf8"), {
+      runtimeSpecifier: "./wasm/vooya_app.js",
+      exports: [manifest.bindings.mount, manifest.bindings.dispose, ...Object.values(manifest.bindings.updates)],
+    });
   } finally {
     fixture.cleanup();
   }

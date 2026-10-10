@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
@@ -12,6 +12,27 @@ function sourcePlugin() {
   const { name, enforce, resolveId, load } = vooya();
   return { name, enforce, resolveId, load };
 }
+
+test("Rust imports keep Vite's root, relative, alias and query resolution", async () => {
+  const root = realpathSync(mkdtempSync(resolve(tmpdir(), "vooya-rust-resolution-")));
+  mkdirSync(resolve(root, "src"));
+  const source = resolve(root, "src/Counter.rs");
+  writeFileSync(source, "// Rust source\n");
+  const server = await createServer({
+    configFile: false, root, logLevel: "silent", plugins: [sourcePlugin()],
+    resolve: { alias: { "@source": resolve(root, "src") } },
+    server: { middlewareMode: true },
+  });
+  try {
+    for (const request of ["./Counter.rs", "/src/Counter.rs", "@source/Counter.rs"]) {
+      const result = await server.pluginContainer.resolveId(`${request}?import`, resolve(root, "src/App.vue"));
+      assert.equal(result?.id, `${source.replaceAll("\\", "/")}?import`);
+    }
+  } finally {
+    await server.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("Vite preserves Rust and Voo source strings for direct and glob raw imports", async () => {
   const root = realpathSync(mkdtempSync(resolve(tmpdir(), "vooya-raw-query-")));

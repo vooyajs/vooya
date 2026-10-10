@@ -66,7 +66,12 @@ events:
 test("resolves Rust-file imports with Vite query parameters", () => {
   const plugin = vooya();
   const importer = "/consumer/src/App.vue?vue&type=script";
-  const resolved = plugin.resolveId.call({}, "./Counter.rs?import", importer);
+  const resolved = plugin.resolveId.call({ resolve(source, from, options) {
+    assert.equal(source, "./Counter.rs?import");
+    assert.equal(from, importer);
+    assert.equal(options.skipSelf, true);
+    return "/consumer/src/Counter.rs?import";
+  } }, "./Counter.rs?import", importer);
   assert.equal(resolved, "/consumer/src/Counter.rs?import");
 });
 
@@ -125,7 +130,9 @@ test("loads and scopes Rust-file CSS through the bundler hook", () => {
     })).toString("base64url")}.css`;
     const resolved = plugin.resolveId(source);
     assert.doesNotMatch(resolved, /[\0{}"']/);
-    const css = plugin.load(resolved);
+    const watched = [];
+    const css = plugin.load.call({ addWatchFile(path) { watched.push(path); } }, resolved);
+    assert.deepEqual(watched, [resolve(root, "Counter.css")]);
     assert.match(css, /data-voo-scope/);
     assert.match(css, /color: red/);
   } finally {
