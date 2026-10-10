@@ -95,8 +95,8 @@ unsubscribe }`；`dispatch(name, ...args)` 调用声明的 store action。
 | Generated component | React component props | — | 导入 `#[voo::component]` `.rs` | React `>=19`；`import Counter from "./Counter.rs"` |
 | Generated hook | `useName(options?)` | — | 消费 `#[voo::store]` `.rs` | `useSyncExternalStore`；每个 hook 生命周期一个 instance |
 | `useVooyaStore` | `(factory, props, options?)` | — | 自定义 adapter 或共享实例集成 | 高级 API；factory 可同步或 Promise |
-| `onError` | callback | — | 观察创建失败 | 生成 Store 创建失败；不接收 Rust domain event |
-| `onNotify` | `(name: string, payload: unknown) => void` | — | custom factory instrumentation | 仅 React adapter callback，不是类型化 generated Store event channel |
+| `onError` | callback | — | 观察创建失败 | 接收生成或自定义 factory 的创建失败；不接收 Rust domain event |
+| `onNotify` | `(name: string, payload: unknown) => void` | — | custom factory instrumentation | 转发给 custom factory，Solid/Svelte 也提供；不是类型化 generated Store event channel |
 
 ## `@vooya/solid`
 

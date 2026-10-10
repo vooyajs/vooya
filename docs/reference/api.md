@@ -109,8 +109,8 @@ typed actions. React's `state` is the current snapshot value.
 | Generated component | React component props | — | Import a `#[voo::component]` `.rs` file | React `>=19`; `import Counter from "./Counter.rs"` |
 | Generated hook | `useName(options?)` | — | Consume a `#[voo::store]` `.rs` file | Uses `useSyncExternalStore`; one store instance per hook lifetime |
 | `useVooyaStore` | `(factory, props, options?)` | — | Build a custom adapter or shared-instance integration | Advanced API; factory may return a store or Promise |
-| `onError` | callback | — | Observe creation failures | Generated Store creation only; it does not receive Rust domain events |
-| `onNotify` | `(name: string, payload: unknown) => void` | — | Instrument a custom factory | React adapter-only callback; not a typed generated Store event channel |
+| `onError` | callback | — | Observe creation failures | Reports generated or custom factory creation failures; it does not receive Rust domain events |
+| `onNotify` | `(name: string, payload: unknown) => void` | — | Instrument a custom factory | Forwarded to custom factories, also in Solid and Svelte; not a typed generated Store event channel |
 
 ## `@vooya/solid`
 
