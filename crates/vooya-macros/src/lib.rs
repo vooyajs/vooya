@@ -326,9 +326,7 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             });
             call_parameters.push(quote! { #parameter_name });
         }
-        let returns_result = matches!(&method.sig.output,
-            syn::ReturnType::Type(_, ty) if matches!(ty.as_ref(), Type::Path(path)
-                if path.path.segments.last().is_some_and(|segment| segment.ident == "Result")));
+        let returns_result = action_returns_result(&method.sig.output);
         let invoke = if returns_result {
             quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
         } else {
@@ -1093,6 +1091,36 @@ fn parameters(inputs: &syn::punctuated::Punctuated<FnArg, syn::token::Comma>) ->
         .collect()
 }
 
+// Only recognize the documented standard Result spellings. A qualified domain
+// type can also be named Result without implementing Rust's fallible contract.
+fn action_returns_result(output: &syn::ReturnType) -> bool {
+    let syn::ReturnType::Type(_, ty) = output else {
+        return false;
+    };
+    let Type::Path(path) = ty.as_ref() else {
+        return false;
+    };
+    if path.qself.is_some() {
+        return false;
+    }
+    let segments = &path.path.segments;
+    if !segments
+        .last()
+        .is_some_and(|segment| matches!(segment.arguments, syn::PathArguments::AngleBracketed(_)))
+    {
+        return false;
+    }
+    match segments.len() {
+        1 => path.path.leading_colon.is_none() && segments[0].ident == "Result",
+        3 => {
+            (segments[0].ident == "std" || segments[0].ident == "core")
+                && segments[1].ident == "result"
+                && segments[2].ident == "Result"
+        }
+        _ => false,
+    }
+}
+
 fn return_type(output: &syn::ReturnType) -> String {
     match output {
         syn::ReturnType::Default => "()".to_owned(),
@@ -1286,4 +1314,27 @@ fn schema_metadata(
         id: id.unwrap_or_else(|| fallback.to_owned()),
         group: Some(group.unwrap_or(source_file)),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::action_returns_result;
+    use syn::parse_quote;
+
+    #[test]
+    fn recognizes_only_standard_action_result_paths() {
+        for output in [
+            parse_quote!(-> Result<(), JsValue>),
+            parse_quote!(-> std::result::Result<(), JsValue>),
+            parse_quote!(-> core::result::Result<(), JsValue>),
+            parse_quote!(-> ::std::result::Result<(), JsValue>),
+            parse_quote!(-> ::core::result::Result<(), JsValue>),
+        ] {
+            assert!(action_returns_result(&output));
+        }
+        // This domain value has no Try implementation; the action must keep
+        // discarding it rather than generating a question-mark operator.
+        assert!(!action_returns_result(&parse_quote!(-> domain::Result<u32>)));
+        assert!(!action_returns_result(&syn::ReturnType::Default));
+    }
 }
