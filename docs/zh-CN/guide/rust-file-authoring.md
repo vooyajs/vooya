@@ -166,8 +166,10 @@ map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-c
 模块的类型时使用 Rust 限定路径，例如 `models::Selection`。同一声明中如果两个已解析
 类型短名相同，生成的 TypeScript 会保留模块前缀：`models::Selection` 与
 `filters::Selection` 分别成为 `ModelsSelection` 和 `FiltersSelection`；嵌套字段、props、
-events 与 Store signature 都使用同一别名。唯一短名保持不变，缺少 schema 时仍是
-`unknown`，不会因为其他模块恰好存在同名类型而猜测形状。
+events 与 Store signature 都使用同一别名。唯一短名保持不变。限定路径找不到匹配的
+schema 时生成 `unknown`，不会选用其他模块的同名类型。未限定名称在所属 source group
+中无匹配时，当前仍会回退到全局同名候选：唯一候选会被采用，多个候选会报歧义错误。
+跨模块引用应使用限定路径，避免把这种回退当作精确的 Rust 类型解析。
 
 当前路径解析只覆盖常规 `.rs` / `mod.rs` source group，以及 `self::`、`super::` 和
 `crate::` 路径（`crate::` 需要 `src/` root）。它不是完整 Rust name resolution：`use`
