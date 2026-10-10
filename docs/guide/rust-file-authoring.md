@@ -281,6 +281,11 @@ operation; an action returning `Result<(), JsValue>` propagates its error to
 the generated binding. Failed actions do not roll back mutations made before
 the error, and async actions are outside ABI v1.
 
+Actions do not yet expose a successful Rust return value to the generated host
+API. The current wrapper discards non-unit success values, so generated action
+declarations return `void`. A bounded result ABI for supported owned values,
+including `Result<T, JsValue>`, is tracked in [Issue #152](https://github.com/vooyajs/vooya/issues/152).
+
 The generated `.d.rs.ts` declaration mirrors both sides of the module. It
 includes the factory, default export, snapshot/store types, and the generated
 hook for the selected framework. Store snapshots use the same standalone type

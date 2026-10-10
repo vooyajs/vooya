@@ -122,7 +122,7 @@ establish accurate snapshot types for that combination.
 | --- | --- | --- | --- |
 | Snapshot | Rust → Host | Read current serializable state | Cached output is published through the store subscription |
 | Subscription | Rust → Host | Notify the adapter after a snapshot change | Every subscription is disposable |
-| Action | Host → Rust | Run a declared synchronous state transition | Actions are explicit; async actions are not ABI v1 |
+| Action | Host → Rust | Run a declared synchronous state transition | Arguments use ABI v1; generated actions currently return `void` and async actions are not ABI v1 |
 | Dispose | Host → Rust | Release listeners and owned resources | The owner must call it for shared instances |
 
 Stores are instance-scoped by default. A component or host service may own one
@@ -130,6 +130,12 @@ store, or several consumers may share one when a separate owner controls its
 lifetime. Generated `useName()` entries own and dispose the instance they create;
 the lower-level Vue `disposeOnUnmount` option remains explicit for custom
 integrations. A store is not a global singleton by implication.
+
+Generated actions preserve `()` and `Result<(), JsValue>` failure behavior, but
+do not yet return a successful Rust value to the host. The planned action-result
+ABI must carry supported owned values through the Rust wrapper, generated bridge,
+and TypeScript declaration without changing action ordering or snapshot
+notification behavior; see [Issue #152](https://github.com/vooyajs/vooya/issues/152).
 
 ## Why signals?
 
