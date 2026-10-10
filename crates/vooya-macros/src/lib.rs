@@ -326,12 +326,13 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             });
             call_parameters.push(quote! { #parameter_name });
         }
-        let returns_result = matches!(&method.sig.output, syn::ReturnType::Type(_, ty) if type_name(ty).replace(' ', "").starts_with("Result<"));
-        let invoke = match &method.sig.output {
-            syn::ReturnType::Type(_, ty) if type_name(ty).replace(' ', "").starts_with("Result<") => {
-                quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
-            }
-            _ => quote! { let _ = state.#method_name(#(#call_parameters),*); },
+        let returns_result = matches!(&method.sig.output,
+            syn::ReturnType::Type(_, ty) if matches!(ty.as_ref(), Type::Path(path)
+                if path.path.segments.last().is_some_and(|segment| segment.ident == "Result")));
+        let invoke = if returns_result {
+            quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
+        } else {
+            quote! { let _ = state.#method_name(#(#call_parameters),*); }
         };
         let dispatch = if returns_result {
             quote! { existing.store.dispatch(|state| { #invoke })?; }

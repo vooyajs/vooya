@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { createServer as createNetServer } from "node:net";
@@ -61,6 +62,16 @@ async function verifyBrowser() {
       await page.getByRole("button", { name: `Count: ${count}`, exact: true }).waitFor();
       await page.getByText(`Selected ${count} selected,react`, { exact: true }).waitFor();
     }
+    await page.getByRole("button", { name: "Check action errors", exact: true }).click();
+    const actionResult = page.getByTestId("action-result");
+    await actionResult.filter({ hasText: "notifications" }).waitFor();
+    assert.deepEqual(JSON.parse(await actionResult.textContent()), {
+      errors: ["std action failed", "core action failed", "plain action failed"],
+      count: 14,
+      notifications: 4,
+      stable: true,
+      successIsVoid: true,
+    });
     if (errors.length > 0) throw new Error(`Rust-file React fixture had browser errors:\n${errors.join("\n")}`);
   } finally {
     try {

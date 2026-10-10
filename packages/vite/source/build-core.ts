@@ -223,6 +223,9 @@ async function loadBindings() {
           return { dispose() { ${binding.disposeName}(handle); }, ${updates} };
         },
       };
+    }).catch((cause) => {
+      bindings = undefined;
+      throw cause;
     });
   }
   return bindings;

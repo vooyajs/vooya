@@ -176,11 +176,7 @@ export function vooya({
       if (rawQuery.test(source)) return null;
       if (!importer) return null;
       const sourcePath = modulePath(source);
-      const suffix = source.slice(sourcePath.length);
-      if (sourcePath.endsWith(rustExtension)) {
-        return `${resolve(dirname(modulePath(importer)), sourcePath)}${suffix}`;
-      }
-      if (!sourcePath.endsWith(componentExtension)) return null;
+      if (!sourcePath.endsWith(rustExtension) && !sourcePath.endsWith(componentExtension)) return null;
       // Preserve Vite's root, alias and package semantics without re-entering
       // this plugin for the delegated request.
       return this.resolve(source, importer, { ...options, skipSelf: true });
@@ -202,6 +198,7 @@ export function vooya({
         const styles = payload.styles ?? [];
         const content = styles.map((style) => {
           const stylePath = resolve(dirname(componentId), style.path);
+          this.addWatchFile(stylePath);
           return readFileSync(stylePath, "utf8");
         }).join("\n");
         const scoped = styles.some((style) => style.scoped);
@@ -253,6 +250,9 @@ export function vooya({
                     };
                   }
                 };
+              }).catch((cause) => {
+                bindings = undefined;
+                throw cause;
               });
             }
             return bindings;
@@ -278,7 +278,10 @@ export function vooya({
         let bindings;
         async function loadBindings() {
           if (!bindings) {
-            bindings = init().then(() => ({ ${component.exportName} }));
+            bindings = init().then(() => ({ ${component.exportName} })).catch((cause) => {
+              bindings = undefined;
+              throw cause;
+            });
           }
           return bindings;
         }

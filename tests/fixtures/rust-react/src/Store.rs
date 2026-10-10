@@ -1,4 +1,5 @@
 use vooya as voo;
+use wasm_bindgen::JsValue;
 
 #[derive(voo::ToJs, PartialEq, Clone)]
 pub struct CartTotals {
@@ -24,6 +25,24 @@ impl Cart {
     #[voo::action]
     pub fn add(&mut self, amount: u32) {
         self.count += amount;
+    }
+
+    #[voo::action]
+    pub fn checked_add(&mut self, amount: u32, fail: bool) -> std::result::Result<(), JsValue> {
+        self.count += amount;
+        if fail { Err(JsValue::from_str("std action failed")) } else { Ok(()) }
+    }
+
+    #[voo::action]
+    pub fn checked_core(&mut self, amount: u32) -> ::core::result::Result<(), JsValue> {
+        self.count += amount;
+        Err(JsValue::from_str("core action failed"))
+    }
+
+    #[voo::action]
+    pub fn checked_plain(&mut self, amount: u32) -> Result<(), JsValue> {
+        self.count += amount;
+        Err(JsValue::from_str("plain action failed"))
     }
 
     #[voo::snapshot]

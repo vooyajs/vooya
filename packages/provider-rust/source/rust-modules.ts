@@ -59,6 +59,9 @@ async function loadBindings() {
           };
         }
       };
+    }).catch((cause) => {
+      bindings = undefined;
+      throw cause;
     });
   }
   return bindings;
@@ -97,6 +100,9 @@ async function loadBindings() {
     bindings = initializeWasm(init).then(() => {
       assertVooAbiVersion(voo_abi_version(), 1);
       return true;
+    }).catch((cause) => {
+      bindings = undefined;
+      throw cause;
     });
   }
   return bindings;
