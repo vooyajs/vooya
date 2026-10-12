@@ -153,6 +153,58 @@ Svelte 的 `state` 是 `Readable`，模板通过 `$state` 自动订阅。生成�
 保持一致，但响应式容器不会被伪装成同一种类型。需要自己管理共享实例或编写 adapter 时，才使用
 对应 adapter 的底层 `useVooyaStore`。
 
+### 失败的 action 会保留之前的状态变更
+
+一个可失败的 action 可以先修改 snapshot，再返回错误：
+
+```rust
+use wasm_bindgen::JsValue;
+
+#[voo::action]
+pub fn checked_add(&mut self, amount: u32, fail: bool) -> Result<(), JsValue> {
+    self.count += amount;
+    if fail { Err(JsValue::from_str("action failed")) } else { Ok(()) }
+}
+```
+
+action 边界也接受完整限定形式
+`std::result::Result<(), JsValue>` 和 `::core::result::Result<(), JsValue>`。
+这些是该 result 形状支持的路径写法；这不表示系统会解析任意类型别名。
+
+生成的宿主 action 收到 `Err` 时会抛出错误，但错误之前的状态变更仍然可见。
+成功的 action 返回值目前仍是 `void`：
+
+```js
+import createCartStore from "./Store.rs";
+
+const store = await createCartStore();
+let notifications = 0;
+const unsubscribe = store.subscribe(() => notifications++);
+
+const success = store.checked_add(2, false);
+try {
+  store.checked_add(3, true);
+} catch (error) {
+  console.log(String(error));
+}
+
+console.log(success); // undefined
+console.log(store.getSnapshot().count); // 5
+console.log(notifications); // 2
+
+try {
+  store.checked_add(0, true);
+} catch {}
+console.log(notifications); // 仍为 2：snapshot 没有变化
+
+unsubscribe();
+store.dispose();
+```
+
+只有 snapshot 发生变化时才会通知 subscriber，即使 action 随后返回 `Err` 也是如此。
+如果 snapshot 没有变化，单独的错误不会产生通知。成功 action 的返回值目前仍为 `void`；
+更丰富的 result 值由 [Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。
+
 ABI v1 支持有限数字、`bigint`、布尔、owned string、vector、tuple 和 string-key
 map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-copy
 不在当前边界。完整限制见[英文 ABI RFC](../../rfcs/0007-rust-file-authoring-and-abi-v1.md)。
