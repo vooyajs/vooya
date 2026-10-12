@@ -184,3 +184,17 @@ schema 时生成 `unknown`，不会选用其他模块的同名类型。未限定
 `crate::` 路径（`crate::` 需要 `src/` root）。它不是完整 Rust name resolution：`use`
 alias、inline module 与 `#[path]` override 仍需要更丰富的 schema metadata；见
 [Issue #119](https://github.com/vooyajs/vooya/issues/119)。
+
+inline module 或非标准文件布局中的 ABI type 可以在两个 derive 上显式声明稳定 identity：
+
+```rust
+#[voo(type_path = "crate::domain::Selection")]
+#[derive(voo::FromJs, voo::ToJs)]
+pub struct Selection {
+    pub id: u32,
+}
+```
+
+public props、event parameter 与 Store schema 应使用该 canonical `crate::...` path。
+proc macro 无法从 token 解析本地 `use` alias；在每个 use site 的 schema metadata 能携带
+显式 reference path 前，alias 形式的 public reference 仍不支持。

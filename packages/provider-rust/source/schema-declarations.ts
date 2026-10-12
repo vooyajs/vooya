@@ -67,9 +67,10 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
   // Index and coalesce FromJs/ToJs records once, rather than scanning all
   // schemas and serializing their shapes for every reference.
   const byName = new Map<string, RustTypeSchema[]>();
+  const byPath = new Map<string, RustTypeSchema[]>();
   const identities = new Set<string>();
   const outputIdentities = new Set<string>();
-  const typeIdentity = (type: RustTypeSchema) => JSON.stringify([type.name, type.group ?? null, type.shape]);
+  const typeIdentity = (type: RustTypeSchema) => JSON.stringify([type.name, type.group ?? null, type.typePath ?? null, type.shape]);
   for (const type of types) {
     const identity = typeIdentity(type);
     if (type.direction === "to") outputIdentities.add(identity);
@@ -78,6 +79,11 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
     const bucket = byName.get(type.name) ?? [];
     bucket.push(type);
     byName.set(type.name, bucket);
+    if (type.typePath) {
+      const pathBucket = byPath.get(type.typePath) ?? [];
+      pathBucket.push(type);
+      byPath.set(type.typePath, pathBucket);
+    }
   }
   const pending = [...required];
   const resolved = new Map<string, RustTypeSchema | undefined>();
@@ -86,7 +92,7 @@ function generateTypes(types: RustTypeSchema[], required: TypeReference[], owner
     const { reference, group } = pending.pop()!;
     const key = referenceKey(reference, group);
     if (resolved.has(key)) continue;
-    const type = resolveNamedType(byName, reference, group, ownerId);
+    const type = resolveNamedType(byName, byPath, reference, group, ownerId);
     resolved.set(key, type);
     if (!type || selected.has(type)) continue;
     selected.add(type);
@@ -160,7 +166,8 @@ function allocateTypeNames(types: RustTypeSchema[]): Map<RustTypeSchema, string>
       aliases.set(type, type.name);
       continue;
     }
-    const parts = sourceModule(type.group).split("/").filter(Boolean);
+    const path = type.typePath?.replace(/^crate::/, "").replaceAll("::", "/");
+    const parts = (path ? path.split("/").slice(0, -1).join("/") : sourceModule(type.group)).split("/").filter(Boolean);
     let base = type.name;
     let alias = base;
     for (let depth = 1; depth <= parts.length; depth += 1) {
@@ -179,15 +186,16 @@ function allocateTypeNames(types: RustTypeSchema[]): Map<RustTypeSchema, string>
   return aliases;
 }
 
-function resolveNamedType(byName: ReadonlyMap<string, RustTypeSchema[]>, reference: string, ownerGroup: string | null | undefined, ownerId: string): RustTypeSchema | undefined {
+function resolveNamedType(byName: ReadonlyMap<string, RustTypeSchema[]>, byPath: ReadonlyMap<string, RustTypeSchema[]>, reference: string, ownerGroup: string | null | undefined, ownerId: string): RustTypeSchema | undefined {
   const name = reference.split("::").at(-1) ?? reference;
   const candidates = byName.get(name) ?? [];
-  const matches = reference.includes("::")
+  const explicit = byPath.get(reference);
+  const matches = explicit ?? (reference.includes("::")
     ? candidates.filter((type) => typeMatchesRustReference(type, reference, ownerGroup))
     : (() => {
         const scoped = ownerGroup ? candidates.filter((type) => type.group === ownerGroup) : [];
         return scoped.length > 0 ? scoped : candidates;
-      })();
+      })());
   if (matches.length > 1) {
     throw new Error(
       `Ambiguous Rust type schema reference "${reference}" for ${ownerId}. ` +
@@ -198,7 +206,7 @@ function resolveNamedType(byName: ReadonlyMap<string, RustTypeSchema[]>, referen
 }
 
 function formatTypeCandidate(type: RustTypeSchema): string {
-  return `${type.id} (${type.group ?? "source group unavailable"})`;
+  return `${type.typePath ?? type.id} (${type.group ?? "source group unavailable"})`;
 }
 
 /** Conventional source layout only; source groups cannot resolve Rust use

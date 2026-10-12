@@ -84,6 +84,26 @@ test("indexes directional named type schema records", () => {
   assert.deepEqual(index.types[2].shape.variants, ["Reached", "Rejected"]);
 });
 
+test("reads an optional stable Rust type path", () => {
+  const bytes = wasm(customSection("__voo_schema", {
+    version: 1, kind: "type", id: "inline:Selection:to", name: "Selection",
+    typePath: "crate::inline::Selection", direction: "to",
+    shape: { kind: "struct", fields: [] },
+  }));
+  assert.equal(indexVooyaSchema(readVooyaSchema(bytes)).types[0].typePath, "crate::inline::Selection");
+});
+
+test("rejects malformed stable Rust type paths", () => {
+  const record = {
+    version: 1, kind: "type", id: "inline:Selection:to", name: "Selection",
+    direction: "to", shape: { kind: "struct", fields: [] },
+  };
+  assert.throws(
+    () => readVooyaSchema(wasm(customSection("__voo_schema", { ...record, typePath: "models::Selection" }))),
+    /not a supported record/,
+  );
+});
+
 test("reads multiple newline-delimited records merged into one custom section", () => {
   const bytes = wasm(customSectionRecords("__voo_schema", [
     { version: 1, kind: "props", id: "cart::Props", name: "Props", fields: [] },

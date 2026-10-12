@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::{
-    Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct,
+    Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct, Meta,
     ItemTrait, Lit, LitStr, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
 };
 use syn::{
@@ -856,12 +856,12 @@ fn expand_rsx_for(loop_node: &RsxFor, view: &Expr) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(FromJs)]
+#[proc_macro_derive(FromJs, attributes(voo))]
 pub fn derive_from_js(input: TokenStream) -> TokenStream {
     derive_abi(parse_macro_input!(input as DeriveInput), AbiDirection::From)
 }
 
-#[proc_macro_derive(ToJs)]
+#[proc_macro_derive(ToJs, attributes(voo))]
 pub fn derive_to_js(input: TokenStream) -> TokenStream {
     derive_abi(parse_macro_input!(input as DeriveInput), AbiDirection::To)
 }
@@ -881,7 +881,11 @@ fn derive_abi(input: DeriveInput, direction: AbiDirection) -> TokenStream {
         .into_compile_error()
         .into();
     }
-    let schema = abi_type_schema(&input, &direction, input.span().file());
+    let type_path = match abi_type_path(&input) {
+        Ok(path) => path,
+        Err(error) => return error.into_compile_error().into(),
+    };
+    let schema = abi_type_schema(&input, &direction, input.span().file(), type_path);
     let name = input.ident;
     let generated = match (input.data, direction) {
         (Data::Struct(data), AbiDirection::From) => derive_struct_from(&name, data.fields),
@@ -914,7 +918,7 @@ fn schema_source(span: proc_macro2::Span) -> Value {
     source
 }
 
-fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String) -> Value {
+fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String, type_path: Option<String>) -> Value {
     let direction = match direction { AbiDirection::From => "from", AbiDirection::To => "to" };
     let name = input.ident.to_string();
     let shape = match &input.data {
@@ -938,12 +942,51 @@ fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String)
     json!({
         "version": SCHEMA_VERSION,
         "kind": "type",
-        "id": format!("{}:{}:{}", group, name, direction),
+        "id": format!("{}:{}", type_path.as_deref().unwrap_or(&format!("{}:{}", group, name)), direction),
         "name": name,
         "group": group,
+        "typePath": type_path,
         "direction": direction,
         "shape": shape,
     })
+}
+
+fn abi_type_path(input: &DeriveInput) -> syn::Result<Option<String>> {
+    let mut path = None;
+    for attribute in &input.attrs {
+        if !attribute.path().is_ident("voo") {
+            continue;
+        }
+        let Meta::List(list) = &attribute.meta else {
+            continue;
+        };
+        let entries = Punctuated::<MetaNameValue, Token![,]>::parse_terminated.parse2(list.tokens.clone())?;
+        for entry in entries {
+            let MetaNameValue { path: key, value, .. } = entry;
+            if !key.is_ident("type_path") {
+                return Err(syn::Error::new_spanned(key, "only type_path = \"...\" is supported on ABI derives"));
+            }
+            let Expr::Lit(value) = value else {
+                return Err(syn::Error::new_spanned(value, "type_path must be a string literal"));
+            };
+            let Lit::Str(value) = value.lit else {
+                return Err(syn::Error::new_spanned(value, "type_path must be a string literal"));
+            };
+            if path.replace(value.value()).is_some() {
+                return Err(syn::Error::new_spanned(attribute, "type_path may be declared only once"));
+            }
+        }
+    }
+    if let Some(path) = &path {
+        if !path.starts_with("crate::") || path.split("::").any(|part| {
+            let mut characters = part.chars();
+            !matches!(characters.next(), Some(character) if character == '_' || character.is_ascii_alphabetic()) ||
+                !characters.all(|character| character == '_' || character.is_ascii_alphanumeric())
+        }) {
+            return Err(syn::Error::new_spanned(input, "type_path must be an absolute Rust path such as crate::models::Selection"));
+        }
+    }
+    Ok(path)
 }
 
 fn derive_struct_from(name: &syn::Ident, fields: Fields) -> syn::Result<proc_macro2::TokenStream> {

@@ -450,6 +450,36 @@ test("resolves crate, self and super references in conventional source layouts",
   }
 });
 
+test("prefers explicit stable type paths over source-group inference", () => {
+  const store = { version: 1, kind: "store", id: "ui::Picker", name: "Picker", group: "src/ui.rs", snapshot: "crate::inline::Selection", actions: [] };
+  const types = [
+    { version: 1, kind: "type", id: "generated:Selection:to", name: "Selection", group: "src/generated.rs", typePath: "crate::inline::Selection", direction: "to", shape: { kind: "struct", fields: [{ name: "id", type: "u32" }] } },
+    { version: 1, kind: "type", id: "source:Selection:to", name: "Selection", group: "src/inline.rs", direction: "to", shape: { kind: "struct", fields: [{ name: "query", type: "String" }] } },
+  ];
+  const code = generateRustStoreDeclaration(store, "vue", types);
+  assert.match(code, /id: number/);
+  assert.doesNotMatch(code, /query: string/);
+});
+
+test("keeps same-shaped explicit type paths distinct", () => {
+  const contract = {
+    component: { version: 1, kind: "component", id: "ui::Picker", name: "Picker", group: "src/ui.rs", params: [] },
+    props: { version: 1, kind: "props", id: "ui::Props", name: "Props", group: "src/ui.rs", fields: [
+      { name: "left", type: "crate::inline::Left::Selection" },
+      { name: "right", type: "crate::inline::Right::Selection" },
+    ] },
+  };
+  const types = [
+    { version: 1, kind: "type", id: "inline:Selection:left:from", name: "Selection", group: "src/inline.rs", typePath: "crate::inline::Left::Selection", direction: "from", shape: { kind: "struct", fields: [{ name: "id", type: "u32" }] } },
+    { version: 1, kind: "type", id: "inline:Selection:right:from", name: "Selection", group: "src/inline.rs", typePath: "crate::inline::Right::Selection", direction: "from", shape: { kind: "struct", fields: [{ name: "id", type: "u32" }] } },
+  ];
+  const code = generateRustSchemaDeclaration({ framework: "react", contract, types });
+  assert.match(code, /left: LeftSelection/);
+  assert.match(code, /right: RightSelection/);
+  assert.match(code, /export interface LeftSelection/);
+  assert.match(code, /export interface RightSelection/);
+});
+
 test("rejects unsupported reachable Store snapshot fields with source context in every adapter", () => {
   const store = { version: 1, kind: "store", id: "WorkflowReplay", name: "WorkflowReplay", group: "src/WorkflowReplay.rs", snapshot: "ReplaySnapshot", actions: [] };
   const source = { file: "src/WorkflowReplay.rs", line: 6, column: 16 };

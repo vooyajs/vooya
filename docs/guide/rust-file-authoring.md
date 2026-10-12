@@ -336,6 +336,22 @@ This is not full Rust name resolution: `use` aliases, inline modules, and
 name index once per declaration and caches scoped lookups during that generation;
 it does not retain a process-wide schema cache.
 
+An ABI type in an inline module or non-conventional file layout can declare its
+stable identity explicitly on both derives:
+
+```rust
+#[voo(type_path = "crate::domain::Selection")]
+#[derive(voo::FromJs, voo::ToJs)]
+pub struct Selection {
+    pub id: u32,
+}
+```
+
+Use that canonical `crate::...` path in public props, event parameters, and
+Store schemas. The compiler cannot resolve a local `use` alias from macro
+tokens, so an aliased public reference remains unsupported until schema metadata
+can carry an explicit reference path at each use site.
+
 ```ts
 import type { Ref } from "vue";
 import type { VooyaStoreOptions } from "@vooya/vue";

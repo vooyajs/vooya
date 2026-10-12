@@ -77,6 +77,8 @@ export interface RustTypeSchema {
   id: string;
   name: string;
   group?: string | null;
+  /** Optional authored absolute Rust path for identities source groups cannot express. */
+  typePath?: string;
   direction: "from" | "to";
   shape: { kind: "struct"; fields: RustSchemaField[] } | { kind: "enum"; variants: string[] };
 }
@@ -291,7 +293,7 @@ function isRecord(value: unknown): value is RustSchemaRecord {
   if (record.kind === "events") return isMethods(record.methods);
   if (record.kind === "component") return isParameters(record.params);
   if (record.kind === "store") return (record.snapshotSource === undefined || isSchemaSource(record.snapshotSource)) && isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
-  if (record.kind === "type") return (record.direction === "from" || record.direction === "to") && isTypeShape(record.shape);
+  if (record.kind === "type") return (record.typePath === undefined || isRustTypePath(record.typePath)) && (record.direction === "from" || record.direction === "to") && isTypeShape(record.shape);
   return false;
 }
 
@@ -300,6 +302,10 @@ function isTypeShape(value: unknown): value is RustTypeSchema["shape"] {
   const shape = value as Record<string, unknown>;
   if (shape.kind === "struct") return isParameters(shape.fields);
   return shape.kind === "enum" && Array.isArray(shape.variants) && shape.variants.every((variant) => typeof variant === "string");
+}
+
+function isRustTypePath(value: unknown): boolean {
+  return typeof value === "string" && /^crate::[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*$/.test(value);
 }
 
 function isStyles(value: unknown): value is RustStyleDependency[] {
