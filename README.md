@@ -8,7 +8,6 @@
   <a href="https://www.npmjs.com/package/@vooya/vite"><img src="https://img.shields.io/npm/v/@vooya/vite/beta?label=beta" alt="npm beta version"></a>
   <a href="https://github.com/vooyajs/vooya/actions/workflows/verify.yml"><img src="https://github.com/vooyajs/vooya/actions/workflows/verify.yml/badge.svg?branch=main" alt="build status"></a>
   <a href="LICENSE-MIT"><img src="https://img.shields.io/github/license/vooyajs/vooya" alt="license"></a>
-  <a href="https://deepwiki.com/vooyajs/vooya"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
 <p align="center">
@@ -101,10 +100,15 @@ documented installation path rather than assigning one version to every package.
 | --- | --- |
 | Authoring | Rust `.rs` Components and Stores; other language providers are research |
 | Frameworks | Vue and React supported; Solid and Svelte experimental |
-| Bundlers | Vite 7/8 is the primary path; Rspack and Webpack Rust-file integrations are experimental alpha paths |
+| Bundlers | Vite 7/8 is the primary path; Rspack / Rsbuild and Webpack support Rust `.rs` Components and Stores in `0.2.0-alpha.0`, with Vue/React coverage |
 | Toolchains | System Rust tools; optional managed `@vooya/preset` in alpha, with native SDK/linker prerequisites |
 | Development | Rust rebuilds reload the page; Rust state is not preserved |
 | Distribution | Precompiled consumption has test evidence; a supported precompiled component product is not published |
+
+Rspack and Webpack integrations remain experimental. Their npm `beta` packages
+cover the legacy `.voo` path; Rust `.rs` authoring requires the **0.2 alpha**
+package set. Production browser tests cover Vue and React; Rust watch recovery
+is verified for Vue. Other framework/watch combinations are not yet verified.
 
 See the [compatibility matrix](https://vooyajs.com/project/compatibility),
 [project status](https://vooyajs.com/project/status), and
