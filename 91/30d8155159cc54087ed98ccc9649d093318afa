@@ -1,0 +1,19 @@
+packages/vite/src/runtime.test.js
+  s_075f1eb9cedde3::t_0be542da2cc2dc 38,40,42,46-47,50-51,55-57,60-64,66-70,72-74,76-77,81,83,87,90-92,96-100,102-109,112-115,117-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "9130d8155159cc54087ed98ccc9649d093318afa",
+  "prompts": {},
+  "sessions": {
+    "s_075f1eb9cedde3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ff9-49be-71b3-abbc-e869b7091379",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
