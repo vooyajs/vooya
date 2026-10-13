@@ -1,0 +1,25 @@
+docs/index.md
+  s_568f81b04a7ecb::t_4db477b11476d7 25-37
+docs/zh-CN/index.md
+  s_568f81b04a7ecb::t_4db477b11476d7 25-35
+docs/maintainers/architecture-diagram.md
+  s_568f81b04a7ecb::t_4db477b11476d7 1-77
+docs/public/architecture.svg
+  s_568f81b04a7ecb::t_70e404dce651ad 1-494
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "d032c72abd1f4f2beaafc5772057425ac4b0ce6c",
+  "prompts": {},
+  "sessions": {
+    "s_568f81b04a7ecb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13417-7ded-7a90-84b8-3de565086ece",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
