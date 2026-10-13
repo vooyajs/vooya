@@ -1,0 +1,28 @@
+README.md
+  s_568f81b04a7ecb::t_c8671fead23c88 103,108-111
+  s_431c0dc6280fe2::t_ffbfa8f48672f4 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c25dcac43c8a303c415edcfb3471bc9510f489aa",
+  "prompts": {},
+  "sessions": {
+    "s_431c0dc6280fe2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a124e2-9728-7653-b897-e1d0b29669a5",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    },
+    "s_568f81b04a7ecb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13417-7ded-7a90-84b8-3de565086ece",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
