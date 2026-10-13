@@ -22,6 +22,17 @@ features:
     details: Vooya 连接 Rust/WASM、框架适配器和 bundler，而不是替换它们。
 ---
 
+## Vooya 在技术栈中的位置
+
+前端框架管理应用，bundler 负责构建。Vooya 通过语言 provider、类型绑定和框架
+适配器，把 Rust/WASM 接入这套已有的技术栈。
+
+<a href="/architecture.svg"><img src="/architecture.svg" width="1448" height="1086" alt="Vooya 架构：构建阶段连接 bundler、语言 provider 和原生工具链；运行阶段连接框架适配器、WASM 与浏览器 API。"></a>
+
+目前已实现 Rust provider；虚线表示计划中的语言扩展，星号表示实验性集成。
+可选的 preset 准备的是原生构建工具，浏览器执行的是生成的 JavaScript 和 WASM。
+具体支持组合见[兼容性矩阵](project/compatibility.md)。
+
 ## 为什么会有 Vooya
 
 传统 Web 应用往往只想把一个局部能力交给 Rust，却不想重写页面、路由、

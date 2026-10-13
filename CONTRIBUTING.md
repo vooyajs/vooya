@@ -6,6 +6,9 @@ evidence are more useful than broad framework promises.
 
 This document is the canonical contribution guide for the repository.
 
+Coding agents should also read [AGENTS.md](AGENTS.md) for repository navigation
+and guidance on choosing and reporting validation.
+
 ## Before you start
 
 - Small documentation fixes can be submitted directly as a pull request.
@@ -168,6 +171,11 @@ Rust/WASM builds can share generated artifacts, so run build-dependent suites
 serially unless a test explicitly documents that parallel execution is safe.
 
 ## Pull requests
+
+Name branches for the change, using `feat/`, `fix/`, `docs/`, `refactor/`,
+`test/`, or `chore/` followed by a short description, such as
+`fix/rust-workspace-lock` or `docs/readme-architecture`. Avoid tool-name
+prefixes such as `codex/`.
 
 Keep each pull request focused and reviewable:
 

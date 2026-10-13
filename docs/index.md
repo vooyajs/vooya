@@ -22,6 +22,19 @@ features:
     details: Vooya connects Rust and WebAssembly to existing bundlers and framework adapters.
 ---
 
+## How Vooya fits into your stack
+
+Your framework owns the application. Your bundler owns the build. Vooya connects
+them to Rust/WASM through language providers, typed bindings, and framework
+adapters.
+
+<a href="/architecture.svg"><img src="/architecture.svg" width="1448" height="1086" alt="Vooya architecture: bundlers, language providers, and native tools at build time; framework adapters, WASM, and browser APIs at runtime."></a>
+
+Rust is implemented today. Dashed providers show planned extensions; asterisks
+mark experimental integrations. The optional preset prepares native build tools;
+the browser runs the generated JavaScript and WASM. See the
+[compatibility matrix](project/compatibility.md) for supported combinations.
+
 ## Start with the integration layer
 
 An existing traditional Web application may have one capability that belongs in
