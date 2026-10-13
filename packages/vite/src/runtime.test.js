@@ -35,14 +35,20 @@ test("shares an in-flight WASM initialization across component modules", async (
   assert.equal(calls, 1);
 });
 
-test("shares a failing in-flight WASM initialization across callers and runs once", async () => {
+test("shares a failed initialization rejection and allows a fresh attempt", async () => {
   let calls = 0;
-  let reject;
-  const failure = new Error("shared init failure");
+  let rejectFirst;
+  let resolveSecond;
+  const failure = new Error("WASM initialization failed");
   const initializer = () => {
     calls += 1;
-    return new Promise((_, fail) => {
-      reject = fail;
+    if (calls === 1) {
+      return new Promise((_, reject) => {
+        rejectFirst = reject;
+      });
+    }
+    return new Promise((resolve) => {
+      resolveSecond = resolve;
     });
   };
 
@@ -51,116 +57,64 @@ test("shares a failing in-flight WASM initialization across callers and runs onc
   assert.equal(first, second);
   assert.equal(calls, 1);
 
-  reject(failure);
+  rejectFirst(failure);
+  await Promise.all([
+    assert.rejects(first, (cause) => cause === failure),
+    assert.rejects(second, (cause) => cause === failure),
+  ]);
 
-  await assert.rejects(first, (cause) => {
-    assert.equal(cause, failure);
-    return true;
-  });
-  await assert.rejects(second, (cause) => {
-    assert.equal(cause, failure);
-    return true;
-  });
-  assert.equal(calls, 1);
-});
-
-test("after rejection, the next pair shares a fresh attempt and subsequent calls reuse the success", async () => {
-  let calls = 0;
-  let failFirst;
-  let resolveSecond;
-  const failure = new Error("first attempt failure");
-  const initializer = () => {
-    calls += 1;
-    if (calls === 1) {
-      return new Promise((_, fail) => {
-        failFirst = fail;
-      });
-    }
-    return new Promise((done) => {
-      resolveSecond = done;
-    });
-  };
-
-  const failCaller1 = initializeWasm(initializer);
-  const failCaller2 = initializeWasm(initializer);
-  assert.equal(failCaller1, failCaller2);
-  assert.equal(calls, 1);
-
-  failFirst(failure);
-  await assert.rejects(failCaller1, (cause) => {
-    assert.equal(cause, failure);
-    return true;
-  });
-  await assert.rejects(failCaller2, (cause) => {
-    assert.equal(cause, failure);
-    return true;
-  });
-
-  const retryCaller1 = initializeWasm(initializer);
-  const retryCaller2 = initializeWasm(initializer);
-  assert.equal(retryCaller1, retryCaller2);
-  assert.notEqual(retryCaller1, failCaller1);
+  const retry = initializeWasm(initializer);
+  const retryCaller = initializeWasm(initializer);
+  assert.equal(retry, retryCaller);
+  assert.notEqual(retry, first);
   assert.equal(calls, 2);
 
-  resolveSecond("recovered wasm");
-  assert.equal(await retryCaller1, "recovered wasm");
-  assert.equal(await retryCaller2, "recovered wasm");
-
+  resolveSecond("recovered exports");
+  assert.equal(await retry, "recovered exports");
+  assert.equal(await retryCaller, "recovered exports");
   const laterCaller = initializeWasm(initializer);
-  assert.equal(laterCaller, retryCaller1);
-  assert.equal(await laterCaller, "recovered wasm");
+  assert.equal(laterCaller, retry);
+  assert.equal(await laterCaller, "recovered exports");
   assert.equal(calls, 2);
 });
 
-test("synchronous throw rejects the returned promise and does not prevent a later successful attempt", async () => {
+test("a synchronous initializer throw rejects and a later attempt can succeed", async () => {
   let calls = 0;
-  const failure = new Error("sync failure");
+  const failure = new Error("synchronous initialization failure");
   const initializer = () => {
     calls += 1;
     if (calls === 1) throw failure;
-    return "recovered sync";
+    return "recovered exports";
   };
 
-  const failingCall = initializeWasm(initializer);
-  await assert.rejects(failingCall, (cause) => {
-    assert.equal(cause, failure);
-    return true;
-  });
-  assert.equal(calls, 1);
-
-  const succeedingCall = initializeWasm(initializer);
-  assert.equal(await succeedingCall, "recovered sync");
-  assert.equal(calls, 2);
-
-  const laterCall = initializeWasm(initializer);
-  assert.equal(await laterCall, "recovered sync");
+  await assert.rejects(initializeWasm(initializer), (error) => error === failure);
+  assert.equal(await initializeWasm(initializer), "recovered exports");
+  assert.equal(await initializeWasm(initializer), "recovered exports");
   assert.equal(calls, 2);
 });
 
-test("failure of initializer A does not evict the successful cached result for initializer B", async () => {
-  let bCalls = 0;
-  const initializerB = () => {
-    bCalls += 1;
-    return Promise.resolve("exports B");
-  };
-
-  assert.equal(await initializeWasm(initializerB), "exports B");
-  assert.equal(bCalls, 1);
-
-  let aCalls = 0;
-  const failureA = new Error("initializer A failed");
+test("a failed initializer does not evict another initializer's cached success", async () => {
+  let rejectA;
+  let callsA = 0;
+  let callsB = 0;
+  const failure = new Error("initializer A failed");
   const initializerA = () => {
-    aCalls += 1;
-    return Promise.reject(failureA);
+    callsA += 1;
+    return new Promise((_, reject) => {
+      rejectA = reject;
+    });
+  };
+  const initializerB = () => {
+    callsB += 1;
+    return "initializer B exports";
   };
 
-  await assert.rejects(initializeWasm(initializerA), (cause) => {
-    assert.equal(cause, failureA);
-    return true;
-  });
-  assert.equal(aCalls, 1);
+  assert.equal(await initializeWasm(initializerB), "initializer B exports");
+  const failedA = initializeWasm(initializerA);
+  rejectA(failure);
+  await assert.rejects(failedA, (error) => error === failure);
 
-  assert.equal(await initializeWasm(initializerB), "exports B");
-  assert.equal(bCalls, 1);
+  assert.equal(await initializeWasm(initializerB), "initializer B exports");
+  assert.equal(callsA, 1);
+  assert.equal(callsB, 1);
 });
-
