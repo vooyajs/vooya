@@ -37,6 +37,10 @@ The target architecture separates four responsibilities:
 | Bundler integration | Virtual modules, asset emission, development invalidation, error presentation, and adapter imports | Source compilation details for a particular language |
 | Framework adapter | Component/store lifecycle, event delivery, prop updates, disposal, and framework-native state containers | Provider toolchain selection or language runtime loading policy |
 
+The [portable interface design](portable-interface-design.md) records the
+internal type/capability proposal that must be agreed before the Go Store spike
+or any public provider contract is implemented.
+
 The provider loader remains provider-specific. For example, an Emscripten
 provider can require generated JavaScript, workers, and data files; a Go
 provider can require its version-matched support script; a managed runtime can

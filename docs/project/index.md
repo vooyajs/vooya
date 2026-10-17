@@ -16,6 +16,8 @@ passing fixture is not mistaken for a broad support promise.
 - [Language provider research](./language-provider-research.md): the post-beta
   provider and normalized artifact boundary; Rust remains the only beta source
   language.
+- [Portable interface design](./portable-interface-design.md): the internal
+  contract proposal for JS-facing and provider-portable interfaces.
 - [Roadmap](../rfcs/0008-layer-boundary-and-roadmap.md): version-level direction
   from the integration foundation toward a stable layer contract.
 - [Releases](../maintainers/releases.md): independent package versions and release acceptance.
