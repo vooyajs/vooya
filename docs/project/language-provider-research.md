@@ -118,6 +118,14 @@ Start with the standard Go compiler and a browser `js/wasm` target. The official
 instantiation alone is not the Vooya readiness or disposal contract. WASI is a
 separate target and does not supply a browser component integration.
 
+The scoped Go Store spike in [Issue #177](https://github.com/vooyajs/vooya/issues/177)
+must wait for the shared portable interface design in
+[Issue #175](https://github.com/vooyajs/vooya/issues/175) and the provider-owned
+multi-asset loader boundary in [Issue #176](https://github.com/vooyajs/vooya/issues/176).
+There is currently no Go provider, Go toolchain integration, Go consumer fixture,
+or public provider loader contract. Do not treat the Rust provider extraction or
+the managed Rust preset as evidence of Go source-authoring support.
+
 The first experiment should adapt a small existing Go calculation or parser as
 a Store, with Vue and React consumers. Test typed inputs/results, one snapshot
 notification per change, independent instances, cancellation during loading,

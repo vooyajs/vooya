@@ -82,6 +82,12 @@ AssemblyScript、Emscripten、Go 等 canary 仍是后续研究；边界见
 [语言 provider 研究（英文原文）](../../project/language-provider-research.md)和
 [Issue #94](https://github.com/vooyajs/vooya/issues/94)。
 
+Go Store spike 还依赖 shared portable interface（[Issue #175](https://github.com/vooyajs/vooya/issues/175)）
+和 provider-owned multi-asset loader（[Issue #176](https://github.com/vooyajs/vooya/issues/176)）。
+当前没有 Go provider、Go toolchain integration、Go consumer fixture 或公共 provider loader
+contract；`@vooya/provider-rust` 与 Rust preset 不能作为 Go source-authoring 支持的证据。见
+[Issue #177](https://github.com/vooyajs/vooya/issues/177)。
+
 Octane 保留为私有 workspace 实验，延期且不纳入本批公共发布门禁。
 
 0.1 只维护已发布行为，0.2 按功能批次审查和冻结。Go/TinyGo、多语言协议、Rust
