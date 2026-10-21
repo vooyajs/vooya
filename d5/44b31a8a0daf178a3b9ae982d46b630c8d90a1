@@ -1,0 +1,80 @@
+docs/zh-CN/index.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 77
+docs/project/compatibility.md
+  s_1b23af2f97f386::t_f1337dc82dc975 139-141
+docs/zh-CN/project/status.md
+  s_1b23af2f97f386::t_c673bd2088529d 3-6
+  s_1b23af2f97f386::t_be269d473da6f1 71-72
+docs/zh-CN/reference/tooling.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 76-77
+.changeset/retire-custom-authoring.md
+  s_1b23af2f97f386::t_0ce5c1f081f05a 14
+.changeset/rust-acronym-exports.md
+  s_1b23af2f97f386::t_0ce5c1f081f05a 5
+docs/zh-CN/why-vooya.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 111-112
+docs/zh-CN/faq.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 8-10
+docs/project/retired-authoring.md
+  s_1b23af2f97f386::t_f1337dc82dc975 5-6,44-47
+docs/zh-CN/project/index.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 15-16
+docs/zh-CN/project/retired-authoring.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 4-5,33-35
+docs/zh-CN/guide/index.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 25-26
+docs/project/status.md
+  s_1b23af2f97f386::t_f1337dc82dc975 3-9,160,220-221,224
+docs/zh-CN/project/compatibility.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 98-99
+docs/project/beta-boundary.md
+  s_1b23af2f97f386::t_0ce5c1f081f05a 80,89-91,93,95-96,102-106
+docs/why-vooya.md
+  s_1b23af2f97f386::t_f1337dc82dc975 132-133
+.changeset/remove-precompiled-component-packaging.md
+  s_1b23af2f97f386::t_f1337dc82dc975 1-10
+docs/rfcs/0008-layer-boundary-and-roadmap.md
+  s_1b23af2f97f386::t_f1337dc82dc975 118,153
+docs/index.md
+  s_1b23af2f97f386::t_f1337dc82dc975 100-101
+docs/faq.md
+  s_1b23af2f97f386::t_f1337dc82dc975 7,11-13
+  s_1b23af2f97f386::t_657bd183d4f828 14
+docs/reference/tooling.md
+  s_1b23af2f97f386::t_0ce5c1f081f05a 142-144
+docs/README.md
+  s_1b23af2f97f386::t_fa320b1b47e1ae 94
+README.md
+  s_1b23af2f97f386::t_f1337dc82dc975 106
+docs/guide/index.md
+  s_1b23af2f97f386::t_f1337dc82dc975 42-44
+docs/project/language-provider-research.md
+  s_1b23af2f97f386::t_f1337dc82dc975 25,107-113
+  s_1b23af2f97f386::t_be269d473da6f1 63-65,206
+docs/rfcs/0003-production-readiness.md
+  s_1b23af2f97f386::t_f1337dc82dc975 43-44
+docs/rfcs/0006-precompiled-vue-artifacts.md
+  s_1b23af2f97f386::t_e579b20f63d3d4 1,5-9,11,13-15,17-20,22-25,27,29-33
+package.json
+  s_1b23af2f97f386::t_89a94007062e65 71
+packages/vite/source/build-core.ts
+  s_1b23af2f97f386::t_2103870e854bbe 1,3
+scripts/source/verify-packed-packages.ts
+  s_1b23af2f97f386::t_0bb311fd7d0b4e 178,208-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "d544b31a8a0daf178a3b9ae982d46b630c8d90a1",
+  "prompts": {},
+  "sessions": {
+    "s_1b23af2f97f386": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15c7f-f419-7a62-9f05-79bae305e994",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
