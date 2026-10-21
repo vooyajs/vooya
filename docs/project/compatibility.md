@@ -79,7 +79,6 @@ Only the release evidence above establishes the npm beta boundary.
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
 | Vue DataGrid | Filter, sort, virtual scroll, local measurement control | `npm run test:e2e` (benchmark target) |
 | Vue Canvas scatter | 150,000-point initial island, point-count update, zoom/reset, no page or console error | `npm run test:e2e:scatter` |
-| Vue precompiled build fixture | Generated WASM in a clean Vite consumer without Rust tooling; mount and prop update | `npm run test:precompiled-vue` |
 
 ## Rust-file bundler additions
 
@@ -137,8 +136,9 @@ Next.js remains unverified. See the [SSR scope](./ssr-roadmap.md) for the API bo
 - Svelte 3/4, SvelteKit, Svelte SSR/hydration, and Svelte
   through Rspack/Webpack have no current compatibility claim. The Svelte row
   above is limited to its named Vite 7/8 + Chromium fixtures.
-- No precompiled component product is currently published; the Vue fixture is
-  build-contract evidence only.
+- The dedicated precompiled component-package builder and its Vue fixture are
+  retired on the current development line. Authors own component packaging;
+  see the [retirement record](../rfcs/0006-precompiled-vue-artifacts.md).
 - Webpack 4, Rspack versions below 2.1.10, Rollup, Turbopack, and other unlisted
   bundlers have no compatibility claim. The Turbopack API evidence and remaining integration questions are
   recorded in [Turbopack research](turbopack-research.md); exact Rspack evidence

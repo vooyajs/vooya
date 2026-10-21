@@ -40,8 +40,8 @@ and builds a source `.voo` component there.
 This historical stage also contained a Vue-only precompiled-artifact experiment.
 The published `@vooya/artifact-vue-counter` alpha package was later retired from
 the coordinated release unit because it was a validation specimen rather than a
-component product. The reusable build contract and a test-only consumer proof
-remain; a future product must have its own user-facing name and adoption case.
+component product. The dedicated builder and test-only consumer proof were later
+removed from the development line; see the [retirement record](0006-precompiled-vue-artifacts.md).
 
 ## ABI rule
 
@@ -88,7 +88,6 @@ cargo test -p vooya-core
 npm run test:compiler
 npm run test:voo
 npm run test:portable
-npm run test:precompiled-vue
 npm run test:hmr
 npm run test:e2e
 npm run typecheck

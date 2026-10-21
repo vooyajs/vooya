@@ -1,8 +1,8 @@
 # 旧源码格式退役
 
 当前开发线统一使用普通 Rust `.rs` Component 和 Store，移除了 `.voo` parser、
-formatter、旧编译分支、bundler loader 和旧声明生成。示例、验收 fixture 和预编译
-Vue producer 也都使用 Rust 源码。历史发布版本和 changelog 保持原状；本轮改动尚未发布。
+formatter、旧编译分支、bundler loader 和旧声明生成。示例和验收 fixture 使用 Rust
+源码。历史发布版本和 changelog 保持原状；本轮改动尚未发布。
 
 ## 应用迁移
 
@@ -30,6 +30,6 @@ Vue producer 也都使用 Rust 源码。历史发布版本和 changelog 保持�
 `@vooya/compiler` 保留共享 ABI 和作用域样式辅助函数。`voo_abi_version`、
 `__voo_schema`、`use vooya as voo` 是内部 ABI 名称或 Rust 简写，不是旧源码格式。
 
-预编译 Vue helper 接受一个显式 `.rs` 源文件，从 schema 生成 bridge；manifest 记录
-原子的 props 更新 binding。消费者仍只需要生成的 JS/WASM 和 Vue adapter，正式的
-预编译组件产品则是另一个待完成事项。
+当前开发线也已移除专用预编译 Vue 组件包 helper。普通 `.rs` 导入继续使用原有构建
+和适配链路；需要分发组件时，由作者自行组织 JS/WASM wrapper 和 npm 元数据。详见
+[组件包实验退役记录](../../rfcs/0006-precompiled-vue-artifacts.md)。

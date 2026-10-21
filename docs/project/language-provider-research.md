@@ -22,7 +22,7 @@ There is no provider-to-build-core dependency. Workspace management, locking,
 errors, and the toolchain cache move with Rust because they currently share Rust
 schema and toolchain assumptions. The compatibility entry uses the same
 functions and classes, preserving error identity and cache clearing. Generated
-`.vooya` paths, metadata, and the precompiled Vue artifact format do not change.
+`.vooya` paths and metadata did not change during that extraction.
 Bundler packages and application configuration continue to use their existing
 entry points.
 
@@ -60,8 +60,9 @@ define a versioned artifact manifest with at least these fields:
 | Cache identity | Include provider version, toolchain inputs, build mode, and relevant environment so stale artifacts cannot be reused |
 
 The manifest is an internal proposal until an RFC assigns its wire format and
-compatibility policy. It must support precompiled artifacts as well as source
-providers; a precompiled consumer must not require Cargo or a source provider.
+compatibility policy. Its loading boundary should accept provider-built bundles
+without invoking Cargo or another source compiler. This is independent of
+component npm publication.
 
 ## Rust Reference Provider
 
@@ -103,11 +104,13 @@ these changes in an internal consuming path before publishing an extension API:
 - Provider/toolchain identity in caches, complete watch inputs, and diagnostics
   with authored source locations.
 
-The existing [precompiled Vue artifact](../rfcs/0006-precompiled-vue-artifacts.md)
-is already a consumer format. Reconcile its version and compatibility rules
-before introducing a second serialized manifest. A future language-neutral
-build-core should stop depending on the default Rust implementation; the
-current compatibility facade is an intermediate step toward that boundary.
+The earlier [precompiled Vue package experiment](../rfcs/0006-precompiled-vue-artifacts.md)
+is retired. Its format is historical evidence, not a required component-package
+contract. Provider-owned loaders and prebuilt bundles remain an internal research
+boundary, separate from application-authored npm packages. A future
+language-neutral build-core should stop depending on the default Rust
+implementation; the current compatibility facade is an intermediate step toward
+that boundary.
 
 ## Go Experiment
 
@@ -200,6 +203,6 @@ The research can advance to an architecture RFC only when it specifies the
 artifact manifest, provider lifecycle, cache and clean behavior, watch and
 diagnostic model, and compatibility policy. The first implementation stage is
 complete only when the Rust reference provider preserves beta fixtures and a
-precompiled artifact can be consumed without Cargo. AssemblyScript and
+provider-built bundle can be consumed without Cargo. AssemblyScript and
 Emscripten require the same lifecycle and ABI conformance suite before either
 is described as an experimental first-party provider.

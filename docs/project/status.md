@@ -1,5 +1,12 @@
 # Project Status
 
+The current development line removes the experimental precompiled Vue
+component-package builder and its dedicated consumer fixture. Rust source
+authoring and the optional pinned toolchain preset remain the supported paths.
+Component authors manage their own JS/WASM packages and npm publication. This
+source change does not alter previously published packages; see the
+[retirement record](../rfcs/0006-precompiled-vue-artifacts.md).
+
 ## Opt-in 0.2 alpha
 
 The [0.2 alpha release run](https://github.com/vooyajs/vooya/actions/runs/37315595525) publishes eight packages at
@@ -97,8 +104,6 @@ See [the release guide](../maintainers/releases.md).
   self-hosting and evidence program; Lab findings that affect product contracts
   return here as focused issues and fixes.
 - Build packed npm artifacts from a project outside the repository checkout.
-- Verify a test-only precompiled Vue WASM consumer in a clean Vite project
-  without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
 - Extract versioned Rust-file schema records from WASM, validate file groups,
   and generate central `.d.rs.ts` declarations for Vue, React, Solid, and Svelte
   consumers.
@@ -152,8 +157,7 @@ See [the release guide](../maintainers/releases.md).
 - Turbopack has no compatibility claim. Its loader API evidence and unverified integration requirements are
   recorded in [Turbopack research](turbopack-research.md); Webpack and Rspack
   evidence must not be generalized to Turbopack.
-- No precompiled component product is currently published; the retained Vue
-  fixture is build-contract evidence, not a user-facing package.
+- Vooya does not provide a dedicated component-package format or publisher.
 - A non-trivial component still uses some direct `web_sys` APIs.
 - Props, event payloads, action arguments, and store snapshots share the
   owned ABI v1 mapping for finite numbers, bigint, nullability, vectors,
@@ -213,13 +217,11 @@ using their system Rust/WASM tools.
 
 1. Extend the existing `rsx!` conditional/keyed rendering and owned cleanup
    with evidence from more real component use cases.
-2. Design a supported, explicitly named component product on top of the generic
-   precompiled Vue producer.
-3. Define state-preserving HMR semantics.
-4. Extend the shipped owned struct/unit-enum declarations and scoped-name
+2. Define state-preserving HMR semantics.
+3. Extend the shipped owned struct/unit-enum declarations and scoped-name
    lookup where real consumers need richer Rust type resolution; recursive and
    borrowed values still require an ownership design.
-5. Expand browser and framework coverage beyond the named fixtures. The existing
+4. Expand browser and framework coverage beyond the named fixtures. The existing
    Vue 3.6/Vapor smoke remains experimental; it does not establish full support.
 
 The benchmark result remains deliberately modest: the first 100,000-row case

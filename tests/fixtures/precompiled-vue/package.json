@@ -1,1 +1,0 @@
-{"name":"vooya-precompiled-vue-fixture","private":true,"type":"module","scripts":{"build":"vite build"},"dependencies":{"vue":"^3.5.0"},"devDependencies":{"@vitejs/plugin-vue":"^6.0.0","vite":"^7.0.0"}}

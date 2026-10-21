@@ -91,7 +91,7 @@ next available number.
 - [RFC 0002: reactive component model](rfcs/0002-reactive-component-model.md)
 - [RFC 0003: first public alpha](rfcs/0003-production-readiness.md)
 - [RFC 0005: island events and lifecycle diagnostics](rfcs/0005-island-events-lifecycle-diagnostics.md)
-- [RFC 0006: precompiled Vue artifacts](rfcs/0006-precompiled-vue-artifacts.md)
+- [RFC 0006: retired precompiled Vue package experiment](rfcs/0006-precompiled-vue-artifacts.md)
 - [RFC 0007: Rust-file authoring and ABI v1](rfcs/0007-rust-file-authoring-and-abi-v1.md)
 - [RFC 0008: layer boundary and version roadmap](rfcs/0008-layer-boundary-and-roadmap.md)
 - [RFC 0010: opt-in in-place component updates](rfcs/0010-in-place-component-updates.md)

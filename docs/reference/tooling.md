@@ -139,7 +139,9 @@ A project may choose and share its own Cargo policy across native and WASM
 builds, but that is project configuration, not a third Vooya-managed toolchain
 mode in the published beta. The 0.2 alpha packages add optional
 [managed/system/auto selection](../project/next-release.md#managed-rust-toolchain).
-A supported Rust-free precompiled consumer product remains future work.
+The preset prepares compatible native build tools. Authors who publish compiled
+components organize their own JavaScript/WASM entry points and npm packages;
+Vooya does not provide a dedicated component-package builder.
 
 ## Generated application workspace
 

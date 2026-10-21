@@ -5,11 +5,9 @@
 已发布 Beta 的 source-authoring 路径需要 Cargo、稳定 Rust、`wasm32-unknown-unknown`
 和 `wasm-bindgen-cli 0.2.115`。可选托管 preset 已作为
 `@vooya/preset@0.2.0-alpha.0` 发布，需显式选择 Alpha；它仍需宿主 SDK/linker，
-也不等于物理上不安装 Rust 的机器已经得到完整认证。预编译消费者未来可能不需要 Rust，
-但正式产品尚未发布。当前只有 Vue 专用的 test fixture：它在消费者 PATH 没有 Rust
-工具时验证生成产物的 mount、prop update 和 ABI mismatch，不是可安装的 component
-product，也没有 React artifact consumer 或一个携带 adapter 依赖的统一产品包；见
-[Issue #20](https://github.com/vooyajs/vooya/issues/20)。
+也不等于物理上不安装 Rust 的机器已经得到完整认证。当前开发线已移除专用的组件包
+builder 和 Vue 消费 fixture；组件作者自行组织 JS/WASM 入口、资源、声明与 npm
+元数据。preset 只负责固定工具链，详见[退役记录](../rfcs/0006-precompiled-vue-artifacts.md)。
 
 ## TypeScript 是用户依赖吗？
 

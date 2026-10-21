@@ -73,8 +73,8 @@ manifest 仍可贡献 features。当前检查只会提前拒绝冲突的 exact p
 项目可以自行管理 native 与 WASM 的 Cargo policy，但这不是 Vooya 当前保证
 的第三种 toolchain 模式。0.2 Alpha 提供可选 `@vooya/preset` 和
 `toolchain.mode`（`auto` / `system` / `managed`），从 0.2.0-alpha.0 起可用；它不消除宿主 SDK/linker
-前置要求。当前 `@beta` 用户继续使用上表的系统工具链方式。无需本地 Rust 的正式预编译
-consumer 产品仍未发布，详见[发布线说明](../project/release-lines.md)。
+前置要求。当前 `@beta` 用户继续使用上表的系统工具链方式。preset 只管理固定工具链；
+组件作者自行组织包入口和 npm 发布，详见[发布线说明](../project/release-lines.md)。
 
 ```sh
 npx vooya doctor

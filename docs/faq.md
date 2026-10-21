@@ -4,10 +4,13 @@
 
 Yes, for the published 0.1 beta source-authoring path. A local project compiling `.rs`
 files needs Cargo, a stable Rust toolchain, the `wasm32-unknown-unknown` target,
-and the pinned `wasm-bindgen-cli`. A future precompiled component product may
-remove that requirement for consumers; it is not published yet. The optional
+and the pinned `wasm-bindgen-cli`. The optional
 managed preset in the [0.2 source work](./project/next-release.md) prepares Rust
 tools; it does not turn a source build into a Rust-free build.
+
+The current development line has retired the dedicated component-package builder.
+Authors who distribute a component manage its JS/WASM entry points, assets,
+declarations and npm package metadata themselves.
 
 ## Do I need to install TypeScript?
 

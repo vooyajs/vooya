@@ -115,7 +115,7 @@ The first beta should make one path trustworthy:
 Electron, Tauri, SSR, hydration, and a general-purpose Rust renderer are not
 0.1 compatibility promises.
 
-### 0.2: Authoring and distribution hardening
+### 0.2: Authoring and toolchain hardening
 
 The next stage should reduce the cost of adopting the layer:
 
@@ -123,7 +123,6 @@ The next stage should reduce the cost of adopting the layer:
 - better `vooya doctor` output and failure recovery;
 - stable generated workspace and declaration conventions;
 - richer, versioned schema diagnostics without silently widening ABI v1;
-- a real precompiled artifact producer/consumer contract; and
 - starter projects and documentation that make the first successful build
   repeatable.
 
@@ -151,7 +150,7 @@ The stable release requires evidence rather than an expanded feature list:
 
 - a versioned ABI and compatibility policy;
 - named browser, framework, bundler, and host boundaries;
-- predictable source and precompiled consumer workflows;
+- predictable source-authoring and toolchain workflows;
 - documented failure and disposal behavior; and
 - a clear rule for what remains the responsibility of the host application.
 

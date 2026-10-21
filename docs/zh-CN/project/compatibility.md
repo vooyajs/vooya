@@ -95,8 +95,8 @@ props/event、独立 Store 和路由清理。服务端渲染的是宿主容器�
 ## 尚未支持或未验证
 
 Safari/WebKit、移动浏览器、Rollup、Turbopack 和未列出的
-bundler 没有当前兼容性声明。没有正式预编译组件产品；保留的 Vue fixture
-只是 build-contract 证据。当前开发线只接受普通 Rust 源码，
+bundler 没有当前兼容性声明。当前开发线已退役专用组件包 builder 和 Vue 消费 fixture，
+组件作者自行组织 JS/WASM 包与 npm 元数据。当前开发线只接受普通 Rust 源码，
 历史版本保持原状；见[迁移说明](./retired-authoring.md)。
 
 查看每项命令和完整边界请看[英文兼容性矩阵](../../project/compatibility.md)。

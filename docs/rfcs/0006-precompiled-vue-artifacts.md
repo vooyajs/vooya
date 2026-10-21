@@ -1,45 +1,33 @@
-# RFC 0006: Precompiled Vue artifacts
+# RFC 0006: Retired precompiled Vue package experiment
 
 ## Status
 
-The initial alpha validation specimen was published as
-`@vooya/artifact-vue-counter`. It was retired from the coordinated release unit:
-it proved a build contract, not a useful component product. The generic builder
-and a test-only consumer proof remain. Historical npm versions are not removed.
+Retired on the current development line. The experimental
+`buildPrecompiledVueArtifact` and `validatePrecompiledVueArtifactOutput` exports
+have been removed from `@vooya/vite/build`, along with the dedicated Vue
+consumer fixture and its test command. Previously published packages and
+historical changelogs retain their original behavior.
 
-## Artifact contents
+## Scope decision
 
-`buildPrecompiledVueArtifact` from `@vooya/vite-plugin/build` accepts one explicit
-artifact package root and one source `.voo` component. It validates the package
-root, non-empty package identity and version, source location, and exact
-Vue-adapter version. The source must remain under the package root and output
-is deliberately restricted to `packageRoot/dist`. It then produces `dist/manifest.json`,
-wasm-bindgen JavaScript and WASM under
-`dist/wasm`, a Vue component entry, and TypeScript declarations. The manifest
-records format, framework, component, artifact and ABI versions, binding names,
-and the WASM/type paths.
+Vooya focuses on Rust source authoring, typed framework integration, lifecycle
+and diagnostics. The optional `@vooya/preset` prepares a pinned native Rust/WASM
+toolchain; it does not package or publish components.
 
-The entry initializes the shipped binding, checks its WASM ABI against the
-manifest, and passes generated mount/update/dispose bindings to `@vooya/vue`.
+Authors who want to distribute a component can organize their own JavaScript
+wrapper, WASM, CSS, declarations, package exports and runtime dependencies, then
+use normal npm tooling. Vooya does not require a dedicated component-package
+manifest or provide a component publisher.
 
-## Compatibility
+The general `@vooya/vite/build` exports and shared Rust build APIs remain.
+Provider-owned loaders and asset collections are separate internal research;
+retiring this product-package experiment does not remove the assets needed by
+ordinary source builds or change the component ABI.
 
-This slice supports Vue only. React artifact consumption is not implemented.
-An ABI disagreement throws `Vooya artifact ABI mismatch for <component>:
-artifact expects <expected>, but WASM provides <actual>.` before mount.
+## Historical evidence
 
-## Consumer boundary
-
-The producer needs the existing Rust and wasm-bindgen build path. The retained
-clean fixture builds generated WASM with Rust tools absent from the consumer
-PATH and loads it in Chromium. It is not an installation API.
-
-Any future precompiled package must be named for a component product users
-actually adopt, carry its framework adapter transitively, and have a clean
-consumer contract. It must not use `artifact-*` or a demo name as its product
-identity.
-
-## Non-goals
-
-No npm publication, remote registry, React support, event/diagnostics ABI
-freezing, SSR, hydration, slots, or cross-island state are included.
+The initial alpha specimen was published as `@vooya/artifact-vue-counter` and
+later retired from the coordinated release unit because it demonstrated a build
+contract rather than a useful component product. A generic Vue producer and a
+test-only consumer fixture were retained temporarily. They are now removed
+instead of being expanded into a dedicated package-distribution workflow.

@@ -22,5 +22,5 @@
 当前 beta 的 source consumer 需要 Rust/Cargo、`wasm32-unknown-unknown` 和
 指定版本的 `wasm-bindgen-cli`。Vue、React 是当前 supported first-party adapter；
 Solid、Svelte 是 experimental first-party adapter，目前只声明 Vite 7 Rust-file 路径的
-证据。其他 host renderer 需要单独适配和证据。预编译消费者路线仍是未来产品，
-不要把测试 fixture 当成已经发布的组件库。
+证据。其他 host renderer 需要单独适配和证据。组件作者自行组织 JS/WASM 包并使用
+普通 npm 工具发布；Vooya 不提供专用组件包格式。

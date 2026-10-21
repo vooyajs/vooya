@@ -97,6 +97,6 @@ authoring route. The older non-Vite beta packages do not implement ordinary
 Rust source integration. Their Rust-file integration and other [0.2 additions](project/next-release.md)
 are available through the opt-in `0.2.0-alpha.0` package set. Beta remains the default
 quickstart. Source authors use system Rust/WASM tools or the optional alpha preset;
-host SDK/linker prerequisites still apply. A supported precompiled component product is
-not published yet. Read [Project status](project/status.md) for the evidence
+host SDK/linker prerequisites still apply. Component authors own their package
+entry points and npm publication. Read [Project status](project/status.md) for the evidence
 behind these statements.

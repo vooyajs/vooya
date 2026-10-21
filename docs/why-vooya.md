@@ -129,5 +129,5 @@ application; Vooya owns a bounded Rust capability island.
 Read the [layer mental model](concepts/component-boundary.md), run the
 [quickstart](guide/getting-started.md), and then check the
 [toolchain reference](reference/tooling.md) and [compatibility matrix](project/compatibility.md).
-The current Vite path is primary; Rspack and Webpack remain experimental, and
-precompiled artifacts are not yet a published consumer product.
+The current Vite path is primary; Rspack and Webpack remain experimental.
+Component authors manage their own package wrappers and npm publication.

@@ -108,5 +108,5 @@ adapter 已覆盖 Vue、React、Solid 和 Svelte；其他框架需要单独的 a
 
 先看[组件边界](concepts/component-boundary.md)，再跑[快速开始](guide/getting-started.md)，
 然后查[工具参考](reference/tooling.md)和[兼容性矩阵](project/compatibility.md)。
-当前 Vite 是主路径，Rspack/Webpack 仍是 experimental，预编译 artifacts 还
-不是已经发布的消费者产品。
+当前 Vite 是主路径，Rspack/Webpack 仍是 experimental。组件作者自行组织 JS/WASM
+包与 npm 发布，Vooya 不要求专用组件包格式。

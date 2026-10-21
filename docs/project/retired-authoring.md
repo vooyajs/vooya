@@ -2,8 +2,8 @@
 
 The current development line accepts ordinary Rust `.rs` Components and Stores.
 It removes the `.voo` parser, formatter, compiler branch, bundler loaders, and
-mirrored declarations. Examples and acceptance fixtures use Rust sources,
-including the precompiled Vue producer. Historical releases and changelogs
+mirrored declarations. Examples and acceptance fixtures use Rust sources.
+Historical releases and changelogs
 retain their original behavior; this change has not been published yet.
 
 ## Migrate an application
@@ -41,7 +41,7 @@ contracts. Webpack/Rspack Rust integration requires the documented opt-in
 symbols such as `voo_abi_version`, the schema section `__voo_schema`, and the
 Rust shorthand `use vooya as voo` remain valid; they are not a source format.
 
-The precompiled Vue build helper now takes one explicit `.rs` source and emits
-the native schema-backed component bridge. Its manifest records one atomic
-props update binding. Consumers still need only the generated JS/WASM and the
-Vue adapter; a supported precompiled component product remains separate work.
+The dedicated precompiled Vue package builder has also been retired from the
+current development line. Existing source-authoring applications keep using
+ordinary Rust imports. Component authors manage their own JS/WASM wrappers and
+npm package metadata; see the [packaging retirement record](../rfcs/0006-precompiled-vue-artifacts.md).

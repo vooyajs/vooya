@@ -77,33 +77,30 @@ business components.
 
 ### Toolchain modes
 
-The intended progression is:
+The toolchain choices are:
 
 - **Managed preset:** the default path for a new project. Vooya prepares a
   compatible Rust/WASM toolchain, target, and `wasm-bindgen` version so the
   first component can build without manual Rust setup.
 - **System toolchain:** an explicit escape hatch for experienced Rust users,
   CI images, and repositories that already control Cargo and `rustc`.
-- **Precompiled consumer:** a project that consumes a published artifact and
-  does not compile Rust at all.
 
 The current beta implements the source-authoring path and explicit system
-toolchain diagnostics. Managed installation and a complete precompiled consumer
-workflow are outside the published beta; managed installation now has
-[unreleased source evidence](./next-release.md#managed-rust-toolchain). They must remain configuration-compatible with the
-same `vooya()` entry point.
+toolchain diagnostics. Managed installation is outside the published beta and
+now has [development-line evidence](./next-release.md#managed-rust-toolchain).
+These toolchain choices share the same `vooya()` entry point.
 
-### Artifact boundary
+### npm package ownership
 
-Vooya should define a versioned artifact contract for WASM, JavaScript bindings,
-CSS, declarations, framework entries, and ABI metadata. That contract lets an
-ecosystem or an internal team publish packages such as a data grid or chart:
+Component authors may organize compiled WASM, JavaScript bindings, CSS,
+declarations, and framework entries into an ordinary npm package, for example:
 
 ```ts
 import DataGrid from "@vendor/vooya-data-grid/vue";
 ```
 
-Vooya itself does not need to publish business-component libraries. Those are
-second-level products built by vendors, teams, or the community. The artifact
-work therefore specifies interoperability and consumer validation, while
-component branding, domain APIs, and release cadence belong to the publisher.
+The publisher owns those entries, asset loading, compatibility checks, package
+metadata, and releases. The preset only supplies a compatible build toolchain;
+it does not organize component packages. The dedicated Vue package experiment
+has been removed from the development line; see the
+[retirement record](../rfcs/0006-precompiled-vue-artifacts.md).

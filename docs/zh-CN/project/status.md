@@ -1,5 +1,9 @@
 # 项目状态
 
+当前开发线已移除实验性的预编译 Vue 组件包 builder 和专用消费 fixture；普通 `.rs`
+构建、框架适配及固定工具链 preset 保留。组件作者自行组织 JS/WASM wrapper 和 npm
+元数据。源码变更不改变历史发布版本，详见[退役记录](../../rfcs/0006-precompiled-vue-artifacts.md)。
+
 ## 可选的 0.2 Alpha
 
 [0.2 Alpha 发布运行](https://github.com/vooyajs/vooya/actions/runs/37315595525)发布了八个 `0.2.0-alpha.0` 包：
@@ -64,8 +68,8 @@ Beta 发布 gate；见 [RFC 0011](../../rfcs/0011-lab-self-hosting-program.md) �
 ## 已发布 Beta 的限制
 
 source consumer 仍需要 Cargo、`wasm32-unknown-unknown` 和
-`wasm-bindgen-cli`。没有正式预编译 component product；不能宣传 WASM 自动
-更快。SSR、hydration、slots、standalone Rust renderer 和 prerelease ABI 稳定性
+`wasm-bindgen-cli`。不能宣传 WASM 自动更快。SSR、hydration、slots、standalone Rust
+renderer 和 prerelease ABI 稳定性
 都不在当前承诺内。Rspack/Webpack 仍需按[兼容性矩阵](./compatibility.md)
 逐版本看 evidence。
 
