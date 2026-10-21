@@ -1,0 +1,26 @@
+docs/rfcs/0006-precompiled-vue-artifacts.md
+  s_1b23af2f97f386::t_b8c10f85b3136b 24-25,27
+  s_1b23af2f97f386::t_c6943b0c4025b1 26
+.changeset/precompiled-artifact-contract.md
+  s_1b23af2f97f386::t_c6943b0c4025b1 9-10
+packages/vite/source/build-core.ts
+  s_1b23af2f97f386::t_c6943b0c4025b1 74,406
+packages/vite/src/artifact-build.test.js
+  s_1b23af2f97f386::t_c6943b0c4025b1 93-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "a12c0ec75994a7db4b64f5c9a324634f1cd7e677",
+  "prompts": {},
+  "sessions": {
+    "s_1b23af2f97f386": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15c7f-f419-7a62-9f05-79bae305e994",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "CoderSerio <79406469+CoderSerio@users.noreply.github.com>"
+    }
+  }
+}
