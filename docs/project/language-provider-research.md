@@ -22,9 +22,10 @@ There is no provider-to-build-core dependency. Workspace management, locking,
 errors, and the toolchain cache move with Rust because they currently share Rust
 schema and toolchain assumptions. The compatibility entry uses the same
 functions and classes, preserving error identity and cache clearing. Generated
-`.vooya` paths, metadata, and the precompiled Vue artifact format do not change.
-Bundler packages and application configuration continue to use their existing
-entry points.
+`.vooya` paths and metadata did not change during that extraction. Later
+precompiled Vue artifact-contract changes are recorded in RFC 0006. Bundler
+packages and application configuration continue to use their existing entry
+points.
 
 ## Proposed Split
 

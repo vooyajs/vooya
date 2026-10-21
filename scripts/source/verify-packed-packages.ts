@@ -269,8 +269,9 @@ function pack(name: string): PackedArchive {
   if (result.status !== 0) {
     throw new Error(`${name}: npm pack --dry-run failed:\n${result.stderr || result.stdout}`);
   }
-  const archives: unknown = JSON.parse(result.stdout);
-  assert(Array.isArray(archives) && archives.length === 1, name, "expected one archive in npm pack JSON");
+  const packed: unknown = JSON.parse(result.stdout);
+  const archives = Array.isArray(packed) ? packed : isRecord(packed) ? Object.values(packed) : [];
+  assert(archives.length === 1, name, "expected one archive in npm pack JSON");
   const archive: unknown = archives[0];
   assert(isRecord(archive) && typeof archive.filename === "string" && typeof archive.version === "string" && Array.isArray(archive.files), name, "invalid npm pack archive metadata");
   const files = archive.files.map((file: unknown) => {

@@ -97,8 +97,10 @@ See [the release guide](../maintainers/releases.md).
   self-hosting and evidence program; Lab findings that affect product contracts
   return here as focused issues and fixes.
 - Build packed npm artifacts from a project outside the repository checkout.
-- Verify a test-only precompiled Vue WASM consumer in a clean Vite project
-  without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin.
+- Verify a test-only packed precompiled Vue product in a clean Vite project
+  without Cargo, Rust, a Rust target, `wasm-bindgen`, or the Vite plugin;
+  resolve its public entry and transitive Vue adapter, then check WASM/CSS
+  loading, mount, update, dispose, and scoped styles.
 - Extract versioned Rust-file schema records from WASM, validate file groups,
   and generate central `.d.rs.ts` declarations for Vue, React, Solid, and Svelte
   consumers.

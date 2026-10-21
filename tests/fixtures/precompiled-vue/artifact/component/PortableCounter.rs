@@ -46,6 +46,7 @@ thread_local! {
 }
 
 #[vooya::component(update = "update_portable_counter")]
+#[vooya::style("./PortableCounter.css", scoped)]
 pub fn PortableCounter(
     view: &vooya::View,
     props: PortableCounterProps,

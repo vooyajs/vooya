@@ -79,7 +79,7 @@ Only the release evidence above establishes the npm beta boundary.
 | Vue TaskList | Reactive state, keyed rows, filtering, validation error state | `npm run test:e2e` (tasks target) |
 | Vue DataGrid | Filter, sort, virtual scroll, local measurement control | `npm run test:e2e` (benchmark target) |
 | Vue Canvas scatter | 150,000-point initial island, point-count update, zoom/reset, no page or console error | `npm run test:e2e:scatter` |
-| Vue precompiled build fixture | Generated WASM in a clean Vite consumer without Rust tooling; mount and prop update | `npm run test:precompiled-vue` |
+| Vue precompiled build fixture | Packed product installed in a clean Vite consumer without Rust tooling; public export and transitive Vue adapter, non-root asset loading, mount/update/dispose and scoped CSS | `npm run test:precompiled-vue` |
 
 ## Rust-file bundler additions
 

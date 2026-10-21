@@ -16,6 +16,7 @@ export async function assertBindingsRetry(source, { runtimeSpecifier, exports, r
   `);
   const adapterUrl = moduleUrl("export function defineVooyaComponent(bridge) { return bridge; }");
   const generated = await import(moduleUrl(source
+    .replace(/^import\s+["'][^"']+\.css["'];\r?\n/m, "")
     .replace(JSON.stringify(runtimeSpecifier), JSON.stringify(runtimeUrl))
     .replace('"@vooya/vue"', JSON.stringify(adapterUrl))
     .replace(JSON.stringify(runtimeHelpers ? "./runtime.js" : "@vooya/vite/runtime"), JSON.stringify(runtimeHelpers ?? new URL("../dist/runtime.js", import.meta.url).href))));
