@@ -2,7 +2,9 @@
 
 当前开发线统一使用普通 Rust `.rs` Component 和 Store，移除了 `.voo` parser、
 formatter、旧编译分支、bundler loader 和旧声明生成。示例和验收 fixture 使用 Rust
-源码。历史发布版本和 changelog 保持原状；本轮改动尚未发布。
+源码。历史发布版本和 changelog 保持原状；本轮退役已包含在
+[Alpha 更新](../../maintainers/releases/0.2-alpha-refresh.md)中，包括 `@vooya/vite@0.2.0-alpha.1`，
+请按发布记录中的精确版本图安装。
 
 ## 应用迁移
 

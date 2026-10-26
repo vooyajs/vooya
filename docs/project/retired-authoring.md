@@ -4,7 +4,9 @@ The current development line accepts ordinary Rust `.rs` Components and Stores.
 It removes the `.voo` parser, formatter, compiler branch, bundler loaders, and
 mirrored declarations. Examples and acceptance fixtures use Rust sources.
 Historical releases and changelogs
-retain their original behavior; this change has not been published yet.
+retain their original behavior. This retirement is included in the
+[alpha refresh](../maintainers/releases/0.2-alpha-refresh.md), including
+`@vooya/vite@0.2.0-alpha.1`; follow the exact package graph in that record.
 
 ## Migrate an application
 

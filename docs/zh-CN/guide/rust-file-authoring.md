@@ -219,8 +219,8 @@ action 当前不会把 Rust 的成功返回值暴露给生成的宿主 API。wra
 因此 generated action declaration 返回 `void`。支持 owned value 和 `Result<T, JsValue>`
 的受限 result ABI 由 [Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。
 
-已发布 alpha.0 中，无法表示字段的派生 struct 声明会退为 `Record<string, unknown>`。
-组件声明仍保留这一行为；当前尚未发布的源码会拒绝已解析 Store snapshot 中不受支持
+首次 Alpha 版本图中，无法表示字段的派生 struct 声明会退为 `Record<string, unknown>`。
+组件声明仍保留这一行为；`@vooya/provider-rust@0.2.0-alpha.1` 会拒绝已解析 Store snapshot 中不受支持
 的字段，详见 [Snapshot 诊断](../concepts/store.md)。缺少 schema
 时仍使用 `unknown`，不能据此区分合法手写转换与意外缺失的元数据。
 

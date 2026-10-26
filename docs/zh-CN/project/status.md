@@ -6,15 +6,19 @@
 
 ## 可选的 0.2 Alpha
 
-[0.2 Alpha 发布运行](https://github.com/vooyajs/vooya/actions/runs/37315595525)发布了八个 `0.2.0-alpha.0` 包：
-`@vooya/vite`、`@vooya/vue`、`@vooya/react`、`@vooya/build-core`、
-`@vooya/provider-rust`、`@vooya/preset`、`@vooya/rspack`、`@vooya/webpack`。
-`@vooya/core`、`@vooya/compiler` 保持 `0.1.0-beta.0`；Solid、Svelte adapter
-保持 `0.1.0-beta.2`，本次没有这两个 adapter 的 Alpha 包。不要强制所有包同版。
-Octane 仍是延期的私有实验。
+[2026-10-27 Alpha 发布](https://github.com/vooyajs/vooya/actions/runs/40387724087)更新了 11 个包：
 
-原发布工作流在发布完成后失败；独立 registry 恢复验收及 GitHub 预发布核对已完成。
-证据与限制见[发布记录](../../maintainers/releases/0.2.0-alpha.0.md)。
+| 版本 | 包（`@vooya/`） |
+| --- | --- |
+| `0.2.0-alpha.1` | build-core、provider-rust、react、rspack、vite、vue、webpack |
+| `0.2.0-alpha.0` | compiler、core、solid、svelte |
+| 保持 `0.2.0-alpha.0` | preset |
+
+按这个精确版本图安装，不要强制所有包同版。Solid/Svelte 已有 Alpha 包，支持级别
+仍为实验性；Octane 保持私有。完整发布门禁、registry 版本与依赖图检查、Vue/React
+干净 npm 消费验收均已通过，Beta 与 latest 标签保持不变。
+证据及迁移说明见[本次发布记录](../../maintainers/releases/0.2-alpha-refresh.md)；
+[首次 Alpha 恢复记录](../../maintainers/releases/0.2.0-alpha.0.md)保留为历史证据。
 
 默认快速开始继续使用 Beta。托管工具链、具名 Vite 8/Vite+ 与 Rust bundler 路径、
 SSR 安全客户端岛需要主动选择 Alpha，见 [Alpha 安装](./next-release.md)。

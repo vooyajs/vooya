@@ -1,14 +1,18 @@
 # 0.2 Alpha：可选安装与边界
 
-[0.2 Alpha 发布运行](https://github.com/vooyajs/vooya/actions/runs/37315595525)发布了八个 `0.2.0-alpha.0` 包：
-`@vooya/vite`、`@vooya/vue`、`@vooya/react`、`@vooya/build-core`、
-`@vooya/provider-rust`、`@vooya/preset`、`@vooya/rspack`、`@vooya/webpack`。
-`@vooya/core`、`@vooya/compiler` 保持 `0.1.0-beta.0`；Solid、Svelte adapter
-保持 `0.1.0-beta.2`，本次没有这两个 adapter 的 Alpha 包。不要强制所有包同版。
-Octane 仍是延期的私有实验。
+[2026-10-27 Alpha 发布](https://github.com/vooyajs/vooya/actions/runs/40387724087)更新了 11 个包：
 
-原发布工作流在发布完成后失败；独立 registry 恢复验收及 GitHub 预发布核对已完成。
-证据与限制见[发布记录](../../maintainers/releases/0.2.0-alpha.0.md)。
+| 版本 | 包（`@vooya/`） |
+| --- | --- |
+| `0.2.0-alpha.1` | build-core、provider-rust、react、rspack、vite、vue、webpack |
+| `0.2.0-alpha.0` | compiler、core、solid、svelte |
+| 保持 `0.2.0-alpha.0` | preset |
+
+按这个精确版本图安装，不要强制所有包同版。Solid/Svelte 已有 Alpha 包，支持级别
+仍为实验性；Octane 保持私有。完整发布门禁、registry 版本与依赖图检查、Vue/React
+干净 npm 消费验收均已通过，Beta 与 latest 标签保持不变。
+证据及迁移说明见[本次发布记录](../../maintainers/releases/0.2-alpha-refresh.md)；
+[首次 Alpha 恢复记录](../../maintainers/releases/0.2.0-alpha.0.md)保留为历史证据。
 
 默认快速开始继续使用 Beta。托管工具链、具名 Vite 8/Vite+ 与 Rust bundler 路径、
 SSR 安全客户端岛需要主动选择 Alpha，见[包状态](./status.md)。
@@ -19,11 +23,11 @@ SSR 安全客户端岛需要主动选择 Alpha，见[包状态](./status.md)。
 保留[快速开始](../guide/getting-started.md)的宿主框架插件和 Rust 示例，按框架选择一个 adapter。
 
 ```sh
-npm install -D @vooya/vite@0.2.0-alpha.0
+npm install -D @vooya/vite@0.2.0-alpha.1
 # Vue
-npm install @vooya/vue@0.2.0-alpha.0
+npm install @vooya/vue@0.2.0-alpha.1
 # 或 React
-npm install @vooya/react@0.2.0-alpha.0
+npm install @vooya/react@0.2.0-alpha.1
 # 可选：固定版本的托管 Rust/WASM 工具
 npm install -D @vooya/preset@0.2.0-alpha.0
 npx vooya doctor --json
@@ -32,8 +36,9 @@ npm run dev
 npm run build
 ```
 
-Solid/Svelte 应用保留 `0.1.0-beta.2` adapter，配合 `@vooya/vite@0.2.0-alpha.0`，不要安装不存在的
-adapter Alpha。`0.2.0-alpha.0` 是 Vooya 插件版本，宿主 bundler 是 Vite 7 或 8。Node 与框架插件版本仍以[兼容性矩阵](./compatibility.md)为准。
+Solid/Svelte 应用使用 `@vooya/solid@0.2.0-alpha.0` 或 `@vooya/svelte@0.2.0-alpha.0`，
+配合 `@vooya/vite@0.2.0-alpha.1`。`0.2.0-alpha.1` 是 Vooya 插件版本，宿主 bundler 是 Vite 7 或 8。
+Node 与框架插件版本仍以[兼容性矩阵](./compatibility.md)为准。
 未安装 preset 时继续准备系统 Rust target 与匹配的 wasm-bindgen CLI；安装 preset 后仍需宿主 SDK/linker。
 普通应用不需要直接依赖 provider-rust。
 
@@ -93,5 +98,5 @@ Alpha 发布或公共发布门禁。目前没有可安装的 `@vooya/octane` 发
 ## 复现源码证据
 
 仓库具名测试从已审查 checkout 构建匹配 tarball。报告时记录提交与命令；后续 main
-可能包含 alpha.0 尚无的改动。应用安装应使用上面的精确 registry 版本。
+可能包含已发布 Alpha 版本图尚无的改动。应用安装应使用上面的精确 registry 版本。
 发布与官网部署是独立步骤，文档合并本身不表示线上页面已经更新。

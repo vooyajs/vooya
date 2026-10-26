@@ -355,11 +355,11 @@ framework hook. The declaration remains framework-neutral; Vue wraps it in a
 `#[derive(FromJs)]` and `#[derive(ToJs)]` make named structs and ABI-v1 unit
 enums available both at runtime and in generated declarations. When a referenced
 named type has no schema record, declarations use `unknown` because a hand-written
-conversion may emit any JavaScript value. In published alpha.0, a derived struct
+conversion may emit any JavaScript value. In the first alpha package graph, a derived struct
 whose fields cannot be described falls back to `Record<string, unknown>` because
-its object shape is known. Component declarations retain that fallback. Current
-unreleased source instead rejects unsupported fields in resolved Store snapshot
-schemas; see [snapshot diagnostics](../concepts/store.md#snapshot-diagnostics-unreleased).
+its object shape is known. Component declarations retain that fallback.
+`@vooya/provider-rust@0.2.0-alpha.1` instead rejects unsupported fields in resolved
+Store snapshot schemas; see [snapshot diagnostics](../concepts/store.md#snapshot-diagnostics).
 Supported surrounding fields and containers remain precise. Snapshot types must remain
 owned, non-generic, and non-recursive. An unqualified named type resolves first
 within its component or store source group. Use a Rust-qualified reference such

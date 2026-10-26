@@ -1,6 +1,6 @@
 # SSR 与 0.2.0 计划
 
-SSR 安全岛与 Rust provider 抽离可通过 [0.2.0-alpha.0 版本图](./next-release.md)安装。
+SSR 安全岛与 Rust provider 抽离可通过 [当前 0.2 Alpha 版本图](./next-release.md)安装。
 Beta 支持范围不变。下方具名 Nuxt 版本与运行时约束定义 Alpha 边界，不代表通用 SSR 支持。
 
 ## 第一层：SSR 页面中的客户端 WASM 岛

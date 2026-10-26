@@ -98,14 +98,16 @@ and return values must use the shared owned ABI mapping. See the [API
 reference](../reference/api.md) for adapter options and the [Rust authoring
 guide](../guide/rust-file-authoring.md) for the complete role syntax.
 
-## Snapshot diagnostics (unreleased)
+## Snapshot diagnostics
 
 Current source rejects unrepresentable fields and recursive references in a
 resolved, named `ToJs` Store snapshot schema before replacing the last successful build
 output. The error identifies the snapshot field path and its Rust source location
 when supplied by the authoring macros. Older schema-v1 producers remain readable;
 without position metadata, the diagnostic reports the known source file and field
-path rather than inventing a line number. This change is not in alpha.0.
+path rather than inventing a line number. These diagnostics are published in
+`@vooya/provider-rust@0.2.0-alpha.1`, with source positions from
+`@vooya/core@0.2.0-alpha.0`; see the [release graph](../project/next-release.md).
 
 Use owned ABI-v1 values, such as `String` instead of `&str`, and keep snapshot
 schemas nonrecursive. Generic public derives continue to fail at the Rust macro.

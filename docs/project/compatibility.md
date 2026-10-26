@@ -98,7 +98,7 @@ SSR/Next.js and state-preserving HMR are not implied.
 | Managed preset | Pinned tools, isolated cache, checksums, locking and retries; three-platform packed consumers and [fresh-cache registry consumers](https://github.com/vooyajs/vooya/actions/runs/37583146228) | Physically Rust-free hosts and interrupted full-install recovery; native SDK/linker remains required; musl Linux and Windows arm64 are not managed targets |
 | Webpack / Rspack | Vue/React Rust Components/Stores, production assets and browser lifecycle; Vue watch error recovery, style edits and new modules | React development-server matrix, Solid/Svelte consumers, exact-registry browser matrix for the bundler combinations, and broader OS/browser coverage |
 
-The [alpha release record](../maintainers/releases/0.2.0-alpha.0.md#executed-registry-consumers)
+The [current alpha release record](../maintainers/releases/0.2-alpha-refresh.md#verification-and-evidence)
 separates source-tarball and exact-registry evidence. These are implemented
 features with bounded evidence. Removing the custom source
 format does not fill the unrelated acceptance gaps or change an old npm release.

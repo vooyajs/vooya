@@ -1,6 +1,16 @@
 # Release lines and the next feature batch
 
-## Published 0.2 alpha checkpoint
+## Current alpha refresh
+
+The [2026-10-27 release](https://github.com/vooyajs/vooya/actions/runs/40387724087) published eleven updated packages after the full
+prepublication gate. Exact Vue/React registry-consumer acceptance subsequently
+passed independently. Preset stays at
+`0.2.0-alpha.0`; beta and latest tags remain unchanged. The
+[release record](./releases/0.2-alpha-refresh.md) lists the mixed version graph,
+retired APIs and lifecycle/parser fixes. The first-alpha scope review below is
+historical and does not describe all changes in this refresh.
+
+## First 0.2 alpha checkpoint
 
 [Release run 37315595525](https://github.com/vooyajs/vooya/actions/runs/37315595525)
 passed the complete `verify:release` gate and published the eight-package

@@ -5,6 +5,13 @@
 
 以下是当前 1.0 之前开发周期的实践方案，先在这两条发布线上验证，再评估是否固化为长期规则。
 
+## 本次 Alpha 更新
+
+[2026-10-27 发布](https://github.com/vooyajs/vooya/actions/runs/40387724087)更新了 11 个包，preset 保持 `0.2.0-alpha.0`。
+完整发布门禁和 Vue/React npm 消费验收已通过，Beta 与 latest 标签保持不变。
+普通 Rust 源码统一、专用组件包 builder 退役、Store 生命周期与解析依赖修复见
+[发布记录](../../maintainers/releases/0.2-alpha-refresh.md)。下方首次 Alpha 的范围与恢复记录保留历史上下文。
+
 ## 0.1：维护已发布行为
 
 只从已发布基线挑选可复现缺陷及其回归测试。本轮两个修复已通过

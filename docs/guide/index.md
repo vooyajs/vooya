@@ -23,7 +23,7 @@ problem this layer is intended to solve.
 | --- | --- |
 | Run a first component | [Getting started](./getting-started.md) |
 | Understand the Rust source contract | [Rust-file authoring](./rust-file-authoring.md) |
-| Review unreleased features | [Next release](../project/next-release.md) |
+| Install the opt-in alpha | [Next release](../project/next-release.md) |
 | Choose a bundler | [Bundler guide](./bundlers.md) |
 | Add a canvas-heavy example | [Scatter plot](./scatter-plot.md) |
 | Use another bundler | [Tooling reference](../reference/tooling.md) and the [compatibility matrix](../project/compatibility.md) |

@@ -1,15 +1,20 @@
 # 0.2 alpha: opt-in installation and scope
 
-The [0.2 alpha release run](https://github.com/vooyajs/vooya/actions/runs/37315595525) publishes eight packages at
-`0.2.0-alpha.0`: `@vooya/vite`, `@vooya/vue`, `@vooya/react`, `@vooya/build-core`,
-`@vooya/provider-rust`, `@vooya/preset`, `@vooya/rspack`, and `@vooya/webpack`.
-`@vooya/core` and `@vooya/compiler` remain at `0.1.0-beta.0`; Solid and Svelte
-adapters remain at `0.1.0-beta.2`. Use this exact mixed version graph; there is no
-Solid/Svelte alpha package in this release. Octane remains private and deferred.
+The [2026-10-27 alpha release](https://github.com/vooyajs/vooya/actions/runs/40387724087) publishes eleven updated packages:
 
-The original publication workflow failed after publishing; independent registry
-recovery and GitHub prerelease reconciliation are complete. See the
-[release record](../maintainers/releases/0.2.0-alpha.0.md) for evidence and limits.
+| Version | Packages (`@vooya/`) |
+| --- | --- |
+| `0.2.0-alpha.1` | build-core, provider-rust, react, rspack, vite, vue, webpack |
+| `0.2.0-alpha.0` | compiler, core, solid, svelte |
+| Unchanged `0.2.0-alpha.0` | preset |
+
+Use this exact mixed version graph; packages are independently versioned. Solid
+and Svelte now have alpha packages and remain experimental. Octane remains private.
+The complete release gate, registry graph checks and clean Vue/React registry
+consumers passed. Beta and latest tags were preserved. See the
+[release record](../maintainers/releases/0.2-alpha-refresh.md) for evidence and
+migration notes; the [first alpha recovery record](../maintainers/releases/0.2.0-alpha.0.md)
+remains historical evidence for that earlier release.
 
 The default quickstart continues to use beta. Alpha is an explicit opt-in for the
 managed toolchain, bounded Vite 8/Vite+ and Rust bundler paths, and SSR-safe
@@ -23,11 +28,11 @@ Keep the host framework plugin and the Rust example from the [beta quickstart](.
 Select one adapter; do not install both unless the application actually uses both.
 
 ```sh
-npm install -D @vooya/vite@0.2.0-alpha.0
+npm install -D @vooya/vite@0.2.0-alpha.1
 # Vue
-npm install @vooya/vue@0.2.0-alpha.0
+npm install @vooya/vue@0.2.0-alpha.1
 # Or React
-npm install @vooya/react@0.2.0-alpha.0
+npm install @vooya/react@0.2.0-alpha.1
 # Optional: pinned managed Rust/WASM tools
 npm install -D @vooya/preset@0.2.0-alpha.0
 npx vooya doctor --json
@@ -36,10 +41,10 @@ npm run dev
 npm run build
 ```
 
-Solid/Svelte applications keep their adapter at `0.1.0-beta.2` and use
-`@vooya/vite@0.2.0-alpha.0`; do not request a nonexistent adapter alpha. Node and host-plugin
-requirements still follow the [compatibility matrix](./compatibility.md).
-`0.2.0-alpha.0` is the Vooya plugin version; the host bundler is Vite 7 or 8.
+Solid/Svelte applications use `@vooya/solid@0.2.0-alpha.0` or
+`@vooya/svelte@0.2.0-alpha.0` with `@vooya/vite@0.2.0-alpha.1`.
+Node and host-plugin requirements still follow the [compatibility matrix](./compatibility.md).
+`0.2.0-alpha.1` is the Vooya plugin version; the host bundler is Vite 7 or 8.
 The preset is optional. Without it, install the system Rust target and matching
 wasm-bindgen CLI as in the quickstart. With it, the host SDK/linker is still required.
 Application authors do not need a direct provider-rust dependency.
@@ -112,6 +117,6 @@ extraction is part of the published 0.1 beta.
 
 The named repository tests build matching tarballs from a reviewed checkout.
 Record the commit and command; a later main build may include changes absent from
-alpha.0. For installed applications, use the exact registry versions above.
+the published alpha graph. For installed applications, use the exact registry versions above.
 Publication and official-site deployment are separate operations; a merged docs
 change alone is not evidence that the public site serves it.

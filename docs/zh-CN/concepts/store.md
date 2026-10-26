@@ -178,12 +178,13 @@ schema。异步 action、borrowed value、任意 generic 和 zero-copy typed arr
 当前边界。详见 [Rust 编写指南](../guide/rust-file-authoring.md) 与
 [API 参考](../reference/api.md)。
 
-## Snapshot 诊断（尚未发布）
+## Snapshot 诊断
 
 当前源码会在替换上一次成功构建产物之前，拒绝已解析具名 `ToJs` Store snapshot 中无法
 表示的字段和递归引用。错误包含字段路径；作者宏提供位置元数据时，还会标出实际
 Rust 源码位置。旧 schema v1 仍可读取；没有位置元数据时只报告已知文件和字段路径，
-不编造行号。这项变化不在 alpha.0 中。
+不编造行号。诊断已随 `@vooya/provider-rust@0.2.0-alpha.1` 发布，源码位置由
+`@vooya/core@0.2.0-alpha.0` 提供；见[发布版本图](../project/next-release.md)。
 
 Snapshot 应使用 `String` 等 owned ABI-v1 值，避免借用字段和递归结构。泛型公开
 类型继续由 Rust 宏拒绝。快照身份、订阅、动作和释放语义不变。

@@ -100,7 +100,7 @@ documented installation path rather than assigning one version to every package.
 | --- | --- |
 | Authoring | Rust `.rs` Components and Stores; other language providers are research |
 | Frameworks | Vue and React supported; Solid and Svelte experimental |
-| Bundlers | Vite 7/8 is the primary path; Rspack and Webpack support Rust `.rs` Components and Stores in `0.2.0-alpha.0`, with Vue/React coverage |
+| Bundlers | Vite 7/8 is the primary path; Rspack and Webpack support Rust `.rs` Components and Stores in the [0.2 alpha graph](docs/project/next-release.md), with Vue/React coverage |
 | Toolchains | System Rust tools; optional managed `@vooya/preset` in alpha, with native SDK/linker prerequisites |
 | Development | Rust rebuilds reload the page; Rust state is not preserved |
 | Distribution | Authors organize and publish ordinary JS/WASM packages; Vooya has no dedicated component-package format |

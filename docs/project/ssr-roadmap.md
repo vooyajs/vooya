@@ -1,7 +1,7 @@
 # SSR and the 0.2 provider boundary
 
 SSR-safe islands and Rust provider extraction are available in the opt-in
-[0.2.0-alpha.0 package graph](./next-release.md). Beta scope is unchanged.
+[current 0.2 alpha package graph](./next-release.md). Beta scope is unchanged.
 The named fixture below defines the Nuxt boundary; it is not universal SSR support.
 
 ## First target: SSR pages with client-mounted WASM islands

@@ -75,7 +75,7 @@ Store state 是 Svelte `Readable`，模板通过 `$state` 读取；callback even
 ## Vite+
 
 ::: warning 可选的 0.2 Alpha 配置
-使用 `@vooya/vite@0.2.0-alpha.0`，配合 Vue/React alpha.0 或 Solid/Svelte beta.2。
+使用 `@vooya/vite@0.2.0-alpha.1`，配合 Vue/React alpha.1 或 Solid/Svelte alpha.0。
 精确安装图见 [Alpha 安装](../project/next-release.md)。具名 tarball 测试说明源码覆盖，
 不表示后续 main 或任意 Vite+ 版本已经发布或兼容。
 :::

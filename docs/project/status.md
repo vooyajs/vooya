@@ -9,16 +9,21 @@ source change does not alter previously published packages; see the
 
 ## Opt-in 0.2 alpha
 
-The [0.2 alpha release run](https://github.com/vooyajs/vooya/actions/runs/37315595525) publishes eight packages at
-`0.2.0-alpha.0`: `@vooya/vite`, `@vooya/vue`, `@vooya/react`, `@vooya/build-core`,
-`@vooya/provider-rust`, `@vooya/preset`, `@vooya/rspack`, and `@vooya/webpack`.
-`@vooya/core` and `@vooya/compiler` remain at `0.1.0-beta.0`; Solid and Svelte
-adapters remain at `0.1.0-beta.2`. Use this exact mixed version graph; there is no
-Solid/Svelte alpha package in this release. Octane remains private and deferred.
+The [2026-10-27 alpha release](https://github.com/vooyajs/vooya/actions/runs/40387724087) publishes eleven updated packages:
 
-The original publication workflow failed after publishing; independent registry
-recovery and GitHub prerelease reconciliation are complete. See the
-[release record](../maintainers/releases/0.2.0-alpha.0.md) for evidence and limits.
+| Version | Packages (`@vooya/`) |
+| --- | --- |
+| `0.2.0-alpha.1` | build-core, provider-rust, react, rspack, vite, vue, webpack |
+| `0.2.0-alpha.0` | compiler, core, solid, svelte |
+| Unchanged `0.2.0-alpha.0` | preset |
+
+Use this exact mixed version graph; packages are independently versioned. Solid
+and Svelte now have alpha packages and remain experimental. Octane remains private.
+The complete release gate, registry graph checks and clean Vue/React registry
+consumers passed. Beta and latest tags were preserved. See the
+[release record](../maintainers/releases/0.2-alpha-refresh.md) for evidence and
+migration notes; the [first alpha recovery record](../maintainers/releases/0.2.0-alpha.0.md)
+remains historical evidence for that earlier release.
 
 The default quickstart continues to use beta. Alpha is an explicit opt-in for the
 managed toolchain, bounded Vite 8/Vite+ and Rust bundler paths, and SSR-safe

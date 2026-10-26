@@ -69,7 +69,7 @@ SvelteKit、SSR/hydration、Rspack/Webpack 或其他浏览器已经兼容。fixt
 
 `test:rust-bundlers` 从当前源码打包，在干净项目中验证 Webpack 5.109.2、
 Rspack 2.1.10 与 Vue/React 的 `.rs` Component、Store、props/event、scoped CSS、
-卸载重建，以及应用根目录 `rust.sourceRoot: "."`。这是下一版代码的验证，
+卸载重建，以及应用根目录 `rust.sourceRoot: "."`。这是 Alpha 对应源码的验证，
 不代表已发布 Beta 包具备此能力。Vue 的 Rust-file watch 还覆盖错误恢复、
 CSS 更新、新增 `.rs` 和产物不会造成循环重建。Next.js/SSR、Webpack/Rspack
 下的 Solid/Svelte 尚未完成验收。
@@ -81,7 +81,7 @@ CSS 更新、新增 `.rs` 和产物不会造成循环重建。Next.js/SSR、Webp
 | Managed preset | 固定工具版本、独立缓存、校验和、锁与重试；三平台源码打包消费者和[全新缓存 registry 消费者](https://github.com/vooyajs/vooya/actions/runs/37583146228) | 物理上未安装 Rust 的宿主、完整安装中断恢复；仍需要宿主 SDK/linker；musl Linux、Windows arm64 不在 managed 目标内 |
 | Webpack / Rspack | Vue/React Rust Component/Store、生产资源与浏览器生命周期；Vue watch 的编译错误恢复、样式修改与新增模块 | React 开发服务器矩阵、Solid/Svelte 消费者、精确 registry 包组合的浏览器验收，以及更多操作系统与浏览器 |
 
-[Alpha 发布记录](../../maintainers/releases/0.2.0-alpha.0.md#executed-registry-consumers)
+[本次 Alpha 发布记录](../../maintainers/releases/0.2-alpha-refresh.md#verification-and-evidence)
 区分了源码 tarball 与精确 registry 版本的证据。移除旧源码格式不会自动补齐这些验收，
 也不会改变历史 npm 发布版本。
 
