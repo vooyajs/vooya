@@ -113,15 +113,14 @@ Use owned ABI-v1 values, such as `String` instead of `&str`, and keep snapshot
 schemas nonrecursive. Generic public derives continue to fail at the Rust macro.
 These checks do not change snapshot identity, subscriptions, actions or disposal.
 
-A missing schema still produces `unknown` with an explanatory declaration comment.
-Schema v1 cannot distinguish an intentional hand-written `ToJs` value from
-accidentally missing metadata, so this is not a guarantee that the value has a
-supported precise shape. Full Rust module/alias resolution remains separate work;
-an unresolved name is not automatically classified as an unsupported value.
-An input-only `FromJs` schema does not trigger these output diagnostics: a manual
-`ToJs` implementation may return a different shape. The existing shared input/output
-declaration resolver can still reflect that input shape; this change does not
-establish accurate snapshot types for that combination.
+In schema v2, a manual conversion explicitly defaults to opaque metadata and
+produces `unknown` with an explanatory comment. A missing record for an explicit
+named reference is a build error. The legacy v1 reader still uses `unknown` for
+missing metadata because that format cannot distinguish the two cases.
+
+Input-only `FromJs` metadata never supplies a manual `ToJs` output shape. The
+snapshot stays `unknown` unless the output conversion supplies metadata. See the
+[Rust schema design](../contribute/rust-schema.md) for the directional graph.
 
 ## Contract
 

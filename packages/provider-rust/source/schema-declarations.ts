@@ -1,5 +1,6 @@
+import { generateResolvedTypes, requiredAbi } from "./schema-graph.js";
 import { VooyaUserError } from "./errors.js";
-import type { RustComponentContract, RustEventsSchema, RustPropsSchema, RustSchemaParameter, RustStoreSchema, RustTypeSchema, RustSchemaSource } from "./schema.js";
+import type { RustComponentContract, RustEventsSchema, RustPropsSchema, RustSchemaParameter, RustStoreSchema, RustTypeSchema, RustSchemaSource, RustAbiType } from "./schema.js";
 
 /** A source-addressable failure in a Store's declared snapshot schema. */
 export class RustSnapshotSchemaError extends VooyaUserError {
@@ -26,7 +27,10 @@ export function generateRustSchemaDeclaration({ contract, framework, types = [] 
   const props = contract.props;
   const events = contract.events;
   const ownerGroup = props?.group ?? events?.group ?? component.group;
-  const { code: typeCode, names } = generateTypes(types, referencedTypeNames(contract), component.id, ownerGroup);
+  const graph = component.version === 2 ? generateResolvedTypes(types, [
+    ...(props?.fields ?? []), ...(events?.methods.flatMap(method => method.params) ?? []),
+  ].map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })), undefined, [`${component.name}Props`, `${component.name}Events`]) : undefined;
+  const { code: typeCode, names } = graph ? { code: graph.code, names: graphNames(graph) } : generateTypes(types, referencedTypeNames(contract), component.id, ownerGroup);
   const propsCode = props ? generateProps(props, component.name, names.forGroup(props.group ?? component.group)) : `interface ${component.name}Props {}`;
   const eventsCode = events ? generateEvents(events, component.name, names.forGroup(events.group ?? component.group)) : `type ${component.name}Events = ["error"];`;
   if (framework === "vue") {
@@ -49,9 +53,15 @@ export function generateRustSchemaDeclaration({ contract, framework, types = [] 
 }
 
 interface TypeNames {
+  abi?(type: RustAbiType): string;
   get(reference: string): string | undefined;
   has(name: string): boolean;
   forGroup(group: string | null | undefined): TypeNames;
+}
+
+function graphNames(graph: ReturnType<typeof generateResolvedTypes>): TypeNames {
+  const names: TypeNames = { get: () => undefined, has: graph.has, abi: graph.render, forGroup: () => names };
+  return names;
 }
 
 interface TypeReference {
@@ -281,10 +291,19 @@ export function generateRustStoreDeclaration(
   for (const type of [store.snapshot, ...store.actions.flatMap((action) => action.params.map((parameter) => parameter.type))]) {
     if (type) for (const referenced of referencedTypeNamesFromType(type)) required.add(referenced);
   }
-  const { code: typeCode, names, opaqueSnapshot } = generateTypes(types, [...required].map((reference) => ({ reference, group: store.group })), store.id, store.group, store);
+  const snapshotAbi = store.version === 2 ? store.snapshot ? requiredAbi(store.snapshotAbi) : { kind: "opaque" } as const : undefined;
+  const graph = snapshotAbi ? generateResolvedTypes(types, [
+    { abi: snapshotAbi, path: store.snapshot ?? store.name, source: store.snapshotSource },
+    ...store.actions.flatMap(action => action.params).map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })),
+  ], { abi: snapshotAbi, path: store.snapshot ?? store.name, source: store.snapshotSource,
+    error: (path, reason, source) => new RustSnapshotSchemaError(store.id, path, reason, source),
+  }) : undefined;
+  const { code: typeCode, names, opaqueSnapshot } = graph
+    ? { code: graph.code, names: graphNames(graph), opaqueSnapshot: graph.opaqueSnapshot }
+    : generateTypes(types, [...required].map((reference) => ({ reference, group: store.group })), store.id, store.group, store);
   // A hand-written ToJs implementation may emit any JavaScript value, so a
   // missing schema cannot justify an object-shaped fallback.
-  const snapshot = store.snapshot ? declarationType(store.snapshot, names) : "unknown";
+  const snapshot = graph && snapshotAbi ? graph.render(snapshotAbi) : store.snapshot ? declarationType(store.snapshot, names) : "unknown";
   if (names.has(`${name}Snapshot`) && snapshot !== `${name}Snapshot`) {
     throw new Error(`Rust type "${name}Snapshot" conflicts with the generated snapshot alias for ${store.id}.`);
   }
@@ -310,7 +329,7 @@ export function generateRustStoreDeclaration(
         : `${name}Snapshot | undefined`;
   const generatedHook = `\nexport declare function use${name}(options?: VooyaStoreOptions): {\n  state: ${name}Snapshot | undefined;\n${hookActions}\n};\n`;
   const typedGeneratedHook = generatedHook.replace(`state: ${name}Snapshot | undefined;`, `state: ${stateType};`);
-  const snapshotNote = opaqueSnapshot ? "/** Snapshot schema metadata is missing for one or more values. Those values remain opaque (unknown); no precise ABI shape is asserted. */\n" : "";
+  const snapshotNote = opaqueSnapshot ? `/** ${graph ? "Snapshot conversion metadata is opaque" : "Snapshot schema metadata is missing"} for one or more values. Those values remain opaque (unknown); no precise ABI shape is asserted. */\n` : "";
   const snapshotAlias = snapshot === `${name}Snapshot` ? "" : `export type ${name}Snapshot = ${snapshot};\n\n`;
   return `// Generated by @vooya/build-core. Do not edit.\n${adapterImport}${typeCode}${snapshotNote}${snapshotAlias}export interface ${name}Store {\n  getSnapshot(): ${name}Snapshot;\n  subscribe(listener: () => void): () => void;\n${actions}\n  dispose(): void;\n}\n\nexport declare function create${name}Store(): Promise<${name}Store>;\nexport default create${name}Store;\n${typedGeneratedHook}`;
 }
@@ -341,7 +360,7 @@ function declarationType(type: string, names: TypeNames): string {
 }
 
 function generateProps(props: RustPropsSchema, componentName: string, names: TypeNames): string {
-  return `interface ${componentName}Props {\n${props.fields.map((field) => `  ${propertyName(field.name)}${isOptional(field.type) ? "?" : ""}: ${parameterType(field, names)};`).join("\n")}\n}`;
+  return `interface ${componentName}Props {\n${props.fields.map((field) => `  ${propertyName(field.name)}${(field.abi ? field.abi.kind === "option" : isOptional(field.type)) ? "?" : ""}: ${parameterType(field, names)};`).join("\n")}\n}`;
 }
 
 function generateEvents(events: RustEventsSchema, componentName: string, names: TypeNames): string {
@@ -350,7 +369,7 @@ function generateEvents(events: RustEventsSchema, componentName: string, names: 
 }
 
 function parameterType(parameter: RustSchemaParameter, names: TypeNames): string {
-  return declarationType(parameter.type, names);
+  return names.abi ? names.abi(requiredAbi(parameter.abi)) : declarationType(parameter.type, names);
 }
 
 function namedParameterType(parameter: RustSchemaParameter, names: TypeNames): string {

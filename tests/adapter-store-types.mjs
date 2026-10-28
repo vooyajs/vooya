@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const generatorDir = mkdtempSync(join(root, ".store-types-generator-"));
 let generateRustStoreDeclaration;
 try {
-  for (const name of ["errors", "schema-declarations"]) {
+  for (const name of ["errors", "schema", "schema-graph", "schema-declarations"]) {
     const compiled = ts.transpileModule(
       readFileSync(resolve(root, `packages/provider-rust/source/${name}.ts`), "utf8"),
       { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } },

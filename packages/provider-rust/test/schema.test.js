@@ -105,8 +105,8 @@ test("rejects duplicate records and mismatched versions", () => {
     (error) => error instanceof RustSchemaError && /duplicate schema record store:cart::Store/.test(error.message),
   );
   assert.throws(
-    () => readVooyaSchema(wasm(customSection("__voo_schema", { ...record, version: 2 }))),
-    (error) => error instanceof RustSchemaError && /uses version 2; expected 1/.test(error.message),
+    () => readVooyaSchema(wasm(customSection("__voo_schema", { ...record, version: 3 }))),
+    (error) => error instanceof RustSchemaError && /uses version 3; expected 1 or 2/.test(error.message),
   );
 });
 
