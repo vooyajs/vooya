@@ -4,6 +4,7 @@ import { rustProvider } from "./rust-provider.js";
 import type { BuildApplicationOptions, BuildApplicationResult } from "./rust-provider.js";
 
 export * from "./errors.js";
+export * from "./artifact-build.js";
 export * from "./cargo-manifest.js";
 export * from "./schema.js";
 export * from "./rust-modules.js";

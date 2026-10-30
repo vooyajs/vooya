@@ -118,3 +118,8 @@ fixture 覆盖 5.101.0 和 5.109.2。普通 Rust 接入需要可选的 0.2 alpha
 SSR、hydration、Module Federation 和 state-preserving HMR 不在当前承诺内。
 
 完整英文参数说明见[Tooling Reference](../../reference/tooling.md)。
+
+## 独立产物（尚未发布）
+
+Vite 可以通过 `rust.artifacts` 配置独立 Cargo/WASM 构建单元，宿主动态导入时只加载所属产物。
+配置、类型隔离、缓存与生命周期见[独立产物指南](../guide/isolated-artifacts.md)。其他 bundler 暂不接受此选项。

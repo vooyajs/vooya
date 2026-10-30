@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   buildApplication,
+  createRustArtifactBuilder,
   clearToolchainCache,
   formatResolvedToolchain,
   isVooyaUserError,
@@ -19,7 +20,7 @@ import {
   renderRustComponentModule,
   renderRustStoreModule,
 } from "@vooya/build-core";
-import type { RustBuildOptions } from "@vooya/build-core";
+import type { RustBuildOptions, BuiltRustArtifact, RustDeclarationArtifact } from "@vooya/build-core";
 import { createBuildScheduler } from "./build-scheduler.js";
 import { inspectGeneratedTypesConfiguration } from "./typescript-config.js";
 import {
@@ -57,6 +58,12 @@ export function vooya({
   let applicationRoot: string;
   let buildScheduler: ReturnType<typeof createBuildScheduler> | undefined;
   let runtimeModule: string | undefined;
+  let artifactBuilder: ReturnType<typeof createRustArtifactBuilder> | undefined;
+  let artifactProgress: ReturnType<typeof createRustBuildProgress> | undefined;
+  let builtArtifacts: BuiltRustArtifact[] = [];
+  let runtimeBySource = new Map<string, string>();
+  const changedRustFiles = new Set<string>();
+  let updateWatchRoots: ((roots: string[]) => void) | undefined;
   let toolchain: ResolvedToolchain | undefined;
   let rustContracts: RustComponentContract[] = [];
   let rustStores: RustStoreSchema[] = [];
@@ -69,6 +76,7 @@ export function vooya({
 
   const handleVooyaHotUpdate = ({ file }: { file: string }) => {
     if (!isVooyaSourceChange(file, generatedWorkspaceRoot, watchedRustRoots)) return;
+    changedRustFiles.add(file);
     buildScheduler?.schedule();
     // The generated WASM module owns live component handles. Letting the
     // framework hot-replace a Rust importer first would run cleanup against a
@@ -90,34 +98,69 @@ export function vooya({
           logger?.warn(`Vooya: WARNING: ${toolchain.cargoPathWarning} This may differ from the toolchain you intended to use.`);
         }
       }
-      const buildResult = buildApplication({
-        applicationRoot,
-        rust,
-        framework,
-        workspaceRoot: generatedWorkspaceRoot,
-        toolchain,
-        onRustBuildStart: progress.start,
-      });
-      runtimeModule = buildResult.runtimeModule;
-      const schemaIndex = indexVooyaSchema(buildResult.schema);
-      rustContracts = buildRustComponentContracts(schemaIndex);
-      rustStores = schemaIndex.stores;
-      rustContractsByFile = new Map();
-      rustStoresByFile = new Map();
-      rustContractsByFile = indexRustRecordsByFile(applicationRoot, rustContracts, (contract: RustComponentContract) => contract.component.group);
-      rustStoresByFile = indexRustRecordsByFile(applicationRoot, rustStores, (store) => store.group);
-      writeRustSchemaDeclarations({
-        applicationRoot,
-        contracts: rustContracts,
-        stores: schemaIndex.stores,
-        types: schemaIndex.types,
-        framework,
-        workspaceRoot: workspaceOptions.root,
-      });
+      if (rust.artifacts) {
+        artifactProgress = progress;
+        artifactBuilder ??= createRustArtifactBuilder({ applicationRoot, rust, framework,
+          workspaceRoot: generatedWorkspaceRoot, toolchain,
+          onRustBuildStart: () => artifactProgress?.start() });
+        const changes = [...changedRustFiles];
+        changedRustFiles.clear();
+        builtArtifacts = artifactBuilder.build(hasInitialBuild ? changes : undefined);
+        const nextContracts = new Map<string, RustComponentContract>();
+        const nextStores = new Map<string, RustStoreSchema>();
+        const nextRuntimes = new Map<string, string>();
+        const declarations: RustDeclarationArtifact[] = [];
+        for (const artifact of builtArtifacts) {
+          const index = indexVooyaSchema(artifact.result.schema);
+          const contracts = buildRustComponentContracts(index);
+          const components = indexRustRecordsByFile(applicationRoot, contracts, contract => contract.component.group);
+          const stores = indexRustRecordsByFile(applicationRoot, index.stores, store => store.group);
+          for (const source of [...components.keys(), ...stores.keys()]) {
+            if (nextRuntimes.has(source)) throw new Error(`Rust source ${source} is exposed by multiple artifacts.`);
+            nextRuntimes.set(source, artifact.result.runtimeModule.replaceAll("\\", "/"));
+          }
+          for (const [source, contract] of components) nextContracts.set(source, contract);
+          for (const [source, store] of stores) nextStores.set(source, store);
+          declarations.push({ contracts, stores: index.stores, types: index.types });
+        }
+        writeRustSchemaDeclarations({ applicationRoot, contracts: [], artifacts: declarations,
+          framework, workspaceRoot: workspaceOptions.root });
+        rustContractsByFile = nextContracts;
+        rustStoresByFile = nextStores;
+        runtimeBySource = nextRuntimes;
+        watchedRustRoots = artifactBuilder.watchedFiles();
+        updateWatchRoots?.(watchedRustRoots);
+      } else {
+        const buildResult = buildApplication({
+          applicationRoot,
+          rust,
+          framework,
+          workspaceRoot: generatedWorkspaceRoot,
+          toolchain,
+          onRustBuildStart: progress.start,
+        });
+        runtimeModule = buildResult.runtimeModule;
+        const schemaIndex = indexVooyaSchema(buildResult.schema);
+        rustContracts = buildRustComponentContracts(schemaIndex);
+        rustStores = schemaIndex.stores;
+        rustContractsByFile = new Map();
+        rustStoresByFile = new Map();
+        rustContractsByFile = indexRustRecordsByFile(applicationRoot, rustContracts, (contract: RustComponentContract) => contract.component.group);
+        rustStoresByFile = indexRustRecordsByFile(applicationRoot, rustStores, (store) => store.group);
+        writeRustSchemaDeclarations({
+          applicationRoot,
+          contracts: rustContracts,
+          stores: schemaIndex.stores,
+          types: schemaIndex.types,
+          framework,
+          workspaceRoot: workspaceOptions.root,
+        });
+      }
       progress.complete();
     } catch (error) {
       if (isToolchainExecutionError(error)) {
         toolchain = undefined;
+        artifactBuilder = undefined;
         clearToolchainCache();
       }
       // Cargo has already rendered source-mapped Rust diagnostics. Keep this
@@ -128,7 +171,7 @@ export function vooya({
   };
 
   const ensureCompiled = () => {
-    if (hasInitialBuild && runtimeModule) return;
+    if (hasInitialBuild && (runtimeModule || artifactBuilder)) return;
     compile();
     hasInitialBuild = true;
   };
@@ -187,23 +230,31 @@ export function vooya({
         ensureCompiled();
         const contract = rustContractsByFile.get(resolve(cleanId));
         if (contract) {
-          return generateRustComponentModule(contract, framework, cleanId);
+          return generateRustComponentModule(contract, framework, cleanId, runtimeBySource.get(resolve(cleanId)));
         }
         const store = rustStoresByFile.get(resolve(cleanId));
         if (store) {
-          return generateRustStoreModule(store, framework);
+          return generateRustStoreModule(store, framework, runtimeBySource.get(resolve(cleanId)));
         }
-        this.error(unresolvedRustImportMessage(cleanId, applicationRoot, rust));
+        const sourceOptions = artifactBuilder?.units.find(unit => isPathInside(resolve(cleanId), unit.sourceRoot))?.rust ?? rust;
+        this.error(unresolvedRustImportMessage(cleanId, applicationRoot, sourceOptions));
       }
       return null;
     },
     configureServer(server) {
-      const resolvedRust = resolveRustBuildOptions(applicationRoot, rust);
-      watchedRustRoots = [
-        resolve(resolveRuntimeCrateRoot(), "src"),
-        ...(resolvedRust.manifestPath ? [resolvedRust.manifestPath] : []),
-        ...resolveRustDependencyRoots(resolvedRust.rust, applicationRoot),
-      ];
+      updateWatchRoots = roots => server.watcher.add(roots);
+      if (rust.artifacts) {
+        // Build initializes the shared provider session and discovers unit manifests.
+        ensureCompiled();
+        watchedRustRoots = artifactBuilder!.watchedFiles();
+      } else {
+        const resolvedRust = resolveRustBuildOptions(applicationRoot, rust);
+        watchedRustRoots = [
+          resolve(resolveRuntimeCrateRoot(), "src"),
+          ...(resolvedRust.manifestPath ? [resolvedRust.manifestPath] : []),
+          ...resolveRustDependencyRoots(resolvedRust.rust, applicationRoot),
+        ];
+      }
       server.watcher.add(watchedRustRoots);
       buildScheduler = createBuildScheduler({
         build: compile,
@@ -221,6 +272,20 @@ export function vooya({
         },
       });
       server.httpServer?.once("close", () => buildScheduler?.dispose());
+    },
+    generateBundle(_options, bundle) {
+      if (!rust.artifacts) return;
+      const chunks = Object.values(bundle).filter(output => output.type === "chunk");
+      const artifacts = builtArtifacts.map(artifact => ({
+        id: artifact.id,
+        wasmBytes: artifact.result.wasm.bytes.byteLength,
+        wasm: Object.values(bundle).filter(output => output.type === "asset" && output.fileName.endsWith(".wasm") && Buffer.from(output.source).equals(Buffer.from(artifact.result.wasm.bytes))).map(output => output.fileName),
+        chunks: chunks.filter(chunk => Object.keys(chunk.modules).some(id => modulePath(id) === artifact.result.runtimeModule.replaceAll("\\", "/"))).map(chunk => chunk.fileName),
+      }));
+      this.emitFile({ type: "asset", fileName: "vooya-artifacts.json", source: JSON.stringify({
+        version: 1, artifacts,
+        chunks: chunks.map(chunk => ({ file: chunk.fileName, entry: chunk.isEntry, imports: chunk.imports, dynamicImports: chunk.dynamicImports })),
+      }, null, 2) });
     },
     hotUpdate: handleVooyaHotUpdate,
   };
@@ -254,21 +319,21 @@ function isToolchainExecutionError(error: unknown) {
   );
 }
 
-export function generateRustComponentModule(contract: RustComponentContract, framework: VooyaFramework = "vue", componentId = contract.component.group ?? contract.component.name) {
+export function generateRustComponentModule(contract: RustComponentContract, framework: VooyaFramework = "vue", componentId = contract.component.group ?? contract.component.name, artifactRuntime = runtimeId) {
   const styles = contract.component.styles ?? [];
   const styleModule = styles.length
     ? `${rustStylePrefix}${Buffer.from(JSON.stringify({ componentId, name: contract.component.name, styles })).toString("base64url")}.css`
     : undefined;
   return renderRustComponentModule(contract, framework, componentId, {
-    runtimeModule: runtimeId,
+    runtimeModule: artifactRuntime,
     runtimeHelpers: "@vooya/vite/runtime",
     styleModule,
   });
 }
 
-export function generateRustStoreModule(store: RustStoreSchema, framework: VooyaFramework = "vue") {
+export function generateRustStoreModule(store: RustStoreSchema, framework: VooyaFramework = "vue", artifactRuntime = runtimeId) {
   return renderRustStoreModule(store, framework, {
-    runtimeModule: runtimeId,
+    runtimeModule: artifactRuntime,
     runtimeHelpers: "@vooya/vite/runtime",
   });
 }

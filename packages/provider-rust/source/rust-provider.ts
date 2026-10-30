@@ -271,6 +271,7 @@ export function resolveRustDependencyRoots(
  * Callers retain all bundler-specific IO.
  */
 export function buildApplication(options: BuildApplicationOptions): BuildApplicationResult {
+  if (options.rust?.artifacts) throw new VooyaUserError("Multiple Rust artifacts require createRustArtifactBuilder; this integration only supports one artifact.", { kind: "artifact-config" });
   if (!options.applicationRoot) throw new Error("Vooya build requires applicationRoot.");
   const workspace = resolveVooyaWorkspace(options.applicationRoot, options.workspaceRoot);
   const release = acquireBuildLock(workspace.root);

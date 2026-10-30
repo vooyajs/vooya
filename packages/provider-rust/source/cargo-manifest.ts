@@ -20,6 +20,8 @@ export type RustDependency =
     };
 
 export interface RustBuildOptions {
+  /** Opt-in independently compiled capability roots. */
+  artifacts?: Record<string, Omit<RustBuildOptions, "artifacts">>;
   dependencies?: Record<string, RustDependency>;
   webSysFeatures?: string[];
   /** Optional authored crate entry relative to applicationRoot. */
