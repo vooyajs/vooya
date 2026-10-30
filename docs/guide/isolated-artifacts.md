@@ -67,7 +67,8 @@ choose capability-sized units rather than one artifact per component.
 
 ## Development and measurement
 
-Generated builds live under `.vooya/artifacts/<name>/`. Editing an authored
+Generated builds live under `.vooya/artifacts/<name>/` by default, or
+`<workspace.root>/artifacts/<name>/` when a workspace root is configured. Editing an authored
 source rebuilds its unit. Editing a shared Cargo dependency or inherited manifest
 can rebuild multiple units. Failed units retain their last successful WASM and
 are retried after subsequent edits; source diagnostics point to authored files.

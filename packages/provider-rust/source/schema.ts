@@ -243,6 +243,11 @@ export function buildRustComponentContracts(index: RustSchemaIndex): RustCompone
     if (eventReferences.length > 1) {
       throw new RustSchemaError(`component ${component.id} references multiple events schemas.`);
     }
+    for (const role of [...propReferences, ...eventReferences]) {
+      if (component.version === 2 && role.version !== 2) {
+        throw new RustSchemaError(`component ${component.id} is version 2 but ${role.kind} ${role.id} is version ${role.version}.`);
+      }
+    }
     return {
       component,
       ...(propReferences[0] ? { props: propReferences[0] } : {}),

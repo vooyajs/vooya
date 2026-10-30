@@ -173,7 +173,7 @@ test("reader rejects malformed action result metadata while reading legacy void 
 });
 
 test("resolved payload names cannot merge with Store interfaces or shadow declaration helpers", () => {
-  const names = ["ReplayStore", "Ref", "Accessor", "Readable", "VooyaStoreOptions", "Array", "Record", "Promise"];
+  const names = ["ReplayStore", "ReplaySnapshot", "Readonly", "Ref", "Accessor", "Readable", "VooyaStoreOptions", "Array", "Record", "Promise"];
   const types = names.map(name => type(`app::${name}`, [field("values", { kind: "vec", value: scalar("u32") })], "to"));
   const input = store(scalar("u32"));
   input.actions = names.map((name, index) => ({ name: `result${index}`, params: [], result: name, resultAbi: named(`app::${name}`, "to") }));
@@ -192,5 +192,16 @@ test("resolved payload names cannot merge with Store interfaces or shadow declar
       assert.match(code, /value: App/);
       assert.doesNotMatch(code, new RegExp(`export interface ${name} `));
     }
+  }
+});
+
+test("output-only Option fields are present while input fields may be omitted", () => {
+  const optional = field("value", { kind: "option", value: scalar("String") });
+  for (const framework of frameworks) {
+    const output = generateRustStoreDeclaration(store(named("app::Value", "to")), framework, [type("app::Value", [optional], "to")]);
+    assert.match(output, /value: string \| null/);
+    assert.doesNotMatch(output, /value\?:/);
+    const input = generateRustSchemaDeclaration({ contract: contract([field("data", named("app::Value"))]), framework, types: [type("app::Value", [optional])] });
+    assert.match(input, /value\?: string \| null/);
   }
 });

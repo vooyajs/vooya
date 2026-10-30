@@ -298,7 +298,7 @@ These are the supported path spellings for this result shape; this does not
 promise resolution of arbitrary type aliases.
 
 The generated host action throws when it receives `Err`, but the mutation made
-before the error remains observable. Successful action values are still `void`:
+before the error remains observable. This unit-returning action exposes `void`:
 
 ```js
 import createCartStore from "./Store.rs";
@@ -329,8 +329,7 @@ store.dispose();
 
 Subscribers are notified when the snapshot changes, even if the action then
 returns `Err`. An error by itself does not notify subscribers when the snapshot
-is unchanged. Successful action values remain `void` today; richer result
-values are tracked in [Issue #152](https://github.com/vooyajs/vooya/issues/152).
+is unchanged.
 
 `#[voo::events]` currently declares Component callbacks. A Store cannot yet
 attach that trait to generated Rust-to-host notifications, and `useCart()` does
@@ -339,10 +338,13 @@ listener helpers are not a public Store event API. Typed Store notifications,
 including payload schema, subscription cleanup, and generated host callbacks,
 are tracked in [Issue #153](https://github.com/vooyajs/vooya/issues/153).
 
-Actions do not yet expose a successful Rust return value to the generated host
-API. The current wrapper discards non-unit success values, so generated action
-declarations return `void`. A bounded result ABI for supported owned values,
-including `Result<T, JsValue>`, is tracked in [Issue #152](https://github.com/vooyajs/vooya/issues/152).
+In the unreleased source batch, synchronous actions expose supported owned
+return values through `ToJs` and generated TypeScript result types. For
+`Result<T, JsValue>`, `Ok(value)` returns the converted value and `Err(error)`
+throws; unit success still returns `void`/`undefined`. The standard qualified
+`Result` paths above also support non-unit `T`. Aliases of `T` are resolved by
+Rust, while aliases of the whole `Result` are outside this contract. See the
+[Store action contract](../concepts/store.md) for framework readiness behavior.
 
 The generated `.d.rs.ts` declaration mirrors both sides of the module. It
 includes the factory, default export, snapshot/store types, and the generated

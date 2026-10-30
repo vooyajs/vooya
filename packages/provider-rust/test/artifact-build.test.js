@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { basename, dirname, resolve } from "node:path";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRustArtifactBuilder, planRustArtifacts } from "../dist/artifact-build.js";
 import { buildApplication } from "../dist/index.js";
@@ -78,13 +78,16 @@ test("artifact sessions rebuild shared dependencies and retry all dirty units af
     const changed = builder.build([resolve(applicationRoot, "src/a/Store.rs")]);
     assert.deepEqual(calls.splice(0), ["a"]);
     assert.equal(changed[1], initial[1], "unaffected artifact should retain its cached result");
-    fail = "a";
+    fail = "b";
     revision = "updated";
     assert.throws(() => builder.build([resolve(applicationRoot, "shared/src/lib.rs")]), /Cargo build failed/);
-    assert.deepEqual(calls.splice(0), ["a"]);
+    assert.deepEqual(calls.splice(0), ["a", "b"]);
     for (const artifact of initial) assert.equal(readFileSync(artifact.result.wasm.path, "utf8"), "initial");
+    for (const artifact of initial) {
+      assert.ok(!readdirSync(artifact.workspaceRoot).some(name => name.includes(".staging-")));
+    }
     fail = undefined;
-    // The new edit only touches a; b still needs the failed shared-dependency update.
+    // Even a successfully compiled unit must retry after the batch was discarded.
     const recovered = builder.build([resolve(applicationRoot, "src/a/Store.rs")]);
     assert.deepEqual(calls.splice(0), ["a", "b"]);
     for (const artifact of recovered) assert.equal(readFileSync(artifact.result.wasm.path, "utf8"), "updated");
@@ -92,5 +95,31 @@ test("artifact sessions rebuild shared dependencies and retry all dirty units af
     assert.deepEqual(calls.splice(0), ["a", "b"]);
   } finally {
     rmSync(applicationRoot, { recursive: true, force: true });
+  }
+});
+
+test("artifact ownership follows symlinked roots and missing workspace ancestors", () => {
+  const applicationRoot = mkdtempSync(resolve(tmpdir(), "vooya-artifact-links-"));
+  const outside = mkdtempSync(resolve(tmpdir(), "vooya-artifact-outside-"));
+  const plan = (artifacts, workspaceRoot) => planRustArtifacts({ applicationRoot, workspaceRoot, rust: { artifacts } });
+  try {
+    mkdirSync(resolve(applicationRoot, "src/real/nested"), { recursive: true });
+    mkdirSync(resolve(applicationRoot, ".vooya"));
+    const link = (target, path) => symlinkSync(target, resolve(applicationRoot, path), "junction");
+    link(outside, "src/outside");
+    link(resolve(applicationRoot, ".vooya"), "src/generated");
+    link(resolve(applicationRoot, "src/real"), "src/alias");
+    link(resolve(applicationRoot, "src/real"), "workspace-link");
+    for (const artifacts of [
+      { a: { sourceRoot: "src/outside" } },
+      { a: { sourceRoot: "src/generated" } },
+      { a: { sourceRoot: "src/real" }, b: { sourceRoot: "src/alias" } },
+      { a: { sourceRoot: "src/real" }, b: { sourceRoot: "src/alias/nested" } },
+    ]) assert.throws(() => plan(artifacts), error => error.kind === "artifact-config");
+    assert.throws(() => plan({ a: { sourceRoot: "src/real" } }, "workspace-link/missing/generated"), /outside its generated workspace/);
+    assert.equal(plan({ a: { sourceRoot: "src/alias" } })[0].sourceRoot, resolve(applicationRoot, "src/alias"));
+  } finally {
+    rmSync(applicationRoot, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 });

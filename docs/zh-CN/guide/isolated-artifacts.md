@@ -50,7 +50,8 @@ async function openSimulation() {
 创建新 Store；离开时销毁旧实例及其订阅。销毁 Store 不代表卸载浏览器缓存的 WASM。
 公共 Rust 依赖和 runtime 代码可能在不同产物中重复，应按能力分组而非每个组件一组。
 
-生成目录为 `.vooya/artifacts/<name>/`。修改组内 Rust 仅重建所属组；修改共同依赖或
+默认生成目录为 `.vooya/artifacts/<name>/`；配置 `workspace.root` 时，目录为
+`<workspace.root>/artifacts/<name>/`。修改组内 Rust 仅重建所属组；修改共同依赖或
 继承 manifest 可能影响多组。编译失败保留上次成功 WASM，并在后续修改时重试，诊断映射
 到作者源码。开发更新仍整页刷新，不保留 Rust 状态；配置变更沿用 Vite 重启流程。
 

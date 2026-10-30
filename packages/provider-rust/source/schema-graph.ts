@@ -131,7 +131,7 @@ export function generateResolvedTypes(types: RustTypeSchema[], roots: GraphRoot[
     const fields = type.shape.fields.map(field => {
       const abi = requiredAbi(field.abi);
       const name = /^[A-Za-z_$][\w$]*$/.test(field.name) ? field.name : JSON.stringify(field.name);
-      return `  ${name}${abi.kind === "option" ? "?" : ""}: ${render(abi)};`;
+      return `  ${name}${type.direction === "from" && abi.kind === "option" ? "?" : ""}: ${render(abi)};`;
     }).join("\n");
     return `export interface ${alias} {\n${fields}\n}\n\n`;
   }).join("");

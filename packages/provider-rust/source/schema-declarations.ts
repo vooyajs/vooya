@@ -26,7 +26,7 @@ const ERROR_STAGE_UNION = '"load" | "mount" | "update" | "dispose"';
 
 // Generated imports and container helpers must not be shadowed by authored types.
 const DECLARATION_HELPERS = [
-  "Array", "Record", "Promise", "Ref", "Accessor", "Readable", "VooyaStoreOptions",
+  "Array", "Record", "Readonly", "Promise", "Ref", "Accessor", "Readable", "VooyaStoreOptions",
   "Component", "ComponentType", "DefineComponent", "ComponentOptionsMixin",
 ];
 
@@ -312,7 +312,7 @@ export function generateRustStoreDeclaration(
     ...store.actions.flatMap(action => action.params).map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })),
   ], { abi: snapshotAbi, path: store.snapshot ?? store.name, source: store.snapshotSource,
     error: (path, reason, source) => new RustSnapshotSchemaError(store.id, path, reason, source),
-  }, [...DECLARATION_HELPERS, `${name}Store`], store.actions.filter(action => action.result).map(action => ({
+  }, [...DECLARATION_HELPERS, `${name}Store`, `${name}Snapshot`], store.actions.filter(action => action.result).map(action => ({
     abi: requiredAbi(action.resultAbi ?? undefined), path: action.name, source: action.resultSource,
     error: (path, reason, source) => new RustActionResultSchemaError(store.id, path, reason, source),
   }))) : undefined;

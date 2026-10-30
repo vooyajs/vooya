@@ -282,6 +282,24 @@ export function buildApplication(options: BuildApplicationOptions): BuildApplica
   }
 }
 
+/** Internal multi-artifact transaction: keep every served output until the batch succeeds. */
+export function buildApplicationBatch(options: BuildApplicationOptions[]): BuildApplicationResult[] {
+  const staged: Array<{ staging: string; destination: string }> = [];
+  const releases: Array<() => void> = [];
+  try {
+    for (const option of options) {
+      const workspace = resolveVooyaWorkspace(option.applicationRoot, option.workspaceRoot);
+      releases.push(acquireBuildLock(workspace.root));
+    }
+    const results = options.map(option => buildApplicationUnlocked(option, staged));
+    commitStagedArtifacts(staged);
+    return results;
+  } finally {
+    for (const entry of staged) discardStaging(entry.staging);
+    for (const release of releases.reverse()) release();
+  }
+}
+
 function buildApplicationUnlocked({
   applicationRoot,
   rust = {},
@@ -295,7 +313,7 @@ function buildApplicationUnlocked({
   toolchain = resolveToolchain({ cwd: applicationRoot }),
   spawn = spawnSync,
   exec = execFileSync,
-}: BuildApplicationOptions): BuildApplicationResult {
+}: BuildApplicationOptions, batch?: Array<{ staging: string; destination: string }>): BuildApplicationResult {
   const resolvedRust = resolveRustBuildOptions(applicationRoot, rust);
   rust = resolvedRust.rust;
   const workspace = resolveVooyaWorkspace(applicationRoot, workspaceRoot);
@@ -472,10 +490,12 @@ function buildApplicationUnlocked({
         wasmBindgen: toolchain.wasmBindgen.version,
       },
     });
-    commitStagedArtifacts([
+    const staged = [
       { staging: stagingOutputDir, destination: outputDir },
       { staging: stagingMetadata, destination: workspace.metadata },
-    ]);
+    ];
+    if (batch) batch.push(...staged);
+    else commitStagedArtifacts(staged);
     return result;
   } catch (cause) {
     discardStaging(stagingOutputDir);

@@ -115,7 +115,7 @@ export function vooya({
           const contracts = buildRustComponentContracts(index);
           const components = indexRustRecordsByFile(applicationRoot, contracts, contract => contract.component.group);
           const stores = indexRustRecordsByFile(applicationRoot, index.stores, store => store.group);
-          for (const source of [...components.keys(), ...stores.keys()]) {
+          for (const source of new Set([...components.keys(), ...stores.keys()])) {
             if (nextRuntimes.has(source)) throw new Error(`Rust source ${source} is exposed by multiple artifacts.`);
             nextRuntimes.set(source, artifact.result.runtimeModule.replaceAll("\\", "/"));
           }
