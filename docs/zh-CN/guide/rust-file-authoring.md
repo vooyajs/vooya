@@ -173,7 +173,7 @@ action 边界也接受完整限定形式
 这些是该 result 形状支持的路径写法；这不表示系统会解析任意类型别名。
 
 生成的宿主 action 收到 `Err` 时会抛出错误，但错误之前的状态变更仍然可见。
-成功的 action 返回值目前仍是 `void`：
+这个返回 unit 的 action 成功时返回 `void`：
 
 ```js
 import createCartStore from "./Store.rs";
@@ -203,8 +203,7 @@ store.dispose();
 ```
 
 只有 snapshot 发生变化时才会通知 subscriber，即使 action 随后返回 `Err` 也是如此。
-如果 snapshot 没有变化，单独的错误不会产生通知。成功 action 的返回值目前仍为 `void`；
-更丰富的 result 值由 [Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。
+如果 snapshot 没有变化，单独的错误不会产生通知。
 
 ABI v1 支持有限数字、`bigint`、布尔、owned string、vector、tuple 和 string-key
 map；递归 public type、borrowed value、任意 generic 和 TypedArray zero-copy
@@ -215,25 +214,28 @@ Rust 到宿主 notification，`useCart()` 也不接受生成的 `onEventName` ca
 内部 domain listener 并不是公开 Store event API；类型化 payload、订阅 cleanup 和生成的
 host callback 由 [Issue #153](https://github.com/vooyajs/vooya/issues/153) 跟踪。
 
-action 当前不会把 Rust 的成功返回值暴露给生成的宿主 API。wrapper 会丢弃非 unit 成功值，
-因此 generated action declaration 返回 `void`。支持 owned value 和 `Result<T, JsValue>`
-的受限 result ABI 由 [Issue #152](https://github.com/vooyajs/vooya/issues/152) 跟踪。
+尚未发布的源码批次支持同步 action 通过 `ToJs` 返回受支持的 owned value，
+并生成对应的 TypeScript 返回类型。`Result<T, JsValue>` 的 `Ok(value)` 返回转换后的值，
+`Err(error)` 抛出错误；unit 成功值仍返回 `void`/`undefined`。上述标准限定 `Result`
+路径同样支持非 unit 的 `T`。Rust 会解析 `T` 的别名，整个 `Result` 的别名不在当前契约内。
+框架就绪前的行为见 [Store action 契约](../concepts/store.md)。
 
-首次 Alpha 版本图中，无法表示字段的派生 struct 声明会退为 `Record<string, unknown>`。
-组件声明仍保留这一行为；`@vooya/provider-rust@0.2.0-alpha.1` 会拒绝已解析 Store snapshot 中不受支持
-的字段，详见 [Snapshot 诊断](../concepts/store.md)。缺少 schema
-时仍使用 `unknown`，不能据此区分合法手写转换与意外缺失的元数据。
+Schema v2 通过实际的 `FromJs` / `ToJs` 转换类型，让 Rust 编译器解析 ABI 字段、
+event 参数、action 参数和 snapshot。`use` alias、type alias、inline module 与
+`#[path]` 布局都保留实际的 Rust 类型身份，不再用源码文件名或短名称猜测类型。
 
-未限定的命名类型会优先在所属 Component 或 Store 的 source group 中解析。引用其他
-模块的类型时使用 Rust 限定路径，例如 `models::Selection`。同一声明中如果两个已解析
-类型短名相同，生成的 TypeScript 会保留模块前缀：`models::Selection` 与
-`filters::Selection` 分别成为 `ModelsSelection` 和 `FiltersSelection`；嵌套字段、props、
-events 与 Store signature 都使用同一别名。唯一短名保持不变。限定路径找不到匹配的
-schema 时生成 `unknown`，不会选用其他模块的同名类型。未限定名称在所属 source group
-中无匹配时，当前仍会回退到全局同名候选：唯一候选会被采用，多个候选会报歧义错误。
-跨模块引用应使用限定路径，避免把这种回退当作精确的 Rust 类型解析。
+每份声明只生成可达类型。同名类型使用模块前缀区分，例如 `ModelsSelection` 与
+`FiltersSelection`；命名不依赖 schema 记录顺序。同一个 Rust 类型只有在输入、输出的
+整个可达形状一致时才合并声明，否则分别生成 `Input` / `Output` 名称。
 
-当前路径解析只覆盖常规 `.rs` / `mod.rs` source group，以及 `self::`、`super::` 和
-`crate::` 路径（`crate::` 需要 `src/` root）。它不是完整 Rust name resolution：`use`
-alias、inline module 与 `#[path]` override 仍需要更丰富的 schema metadata；见
-[Issue #119](https://github.com/vooyajs/vooya/issues/119)。
+手写转换默认提供 opaque 元数据，对应位置生成 `unknown`，外围容器仍保留类型。
+输入 derive 不会被当成手写输出的形状。明确的类型引用如果缺失记录，会报错，不会采用
+其他同名类型。Store snapshot 中不支持的字段和递归仍报告 Rust 源码位置，并保留上次
+成功输出，详见 [Snapshot 诊断](../concepts/store.md)。ABI v1 的 owned、非泛型边界不变。
+
+**0.2 alpha 迁移：** 一起更新 `@vooya/core` 与 `@vooya/provider-rust`，重新构建产物。
+新 provider 兼容读取旧 schema v1；旧 provider 会拒绝 v2。运行时 ABI 版本仍为 1。
+`ToJs` 新增默认元数据关联常量，因此不再支持 `dyn ToJs`；已有具体类型的手写实现不需要
+补成员。将 trait object 边界改成 `T: ToJs` 泛型，或应用自己的 object-safe 转换接口。
+Component 的同文件 props/events 归属规则不变。本次解决 ABI 值类型解析，不扩展注册机制。
+更多细节见[英文 schema v2 设计](../../contribute/rust-schema.md)。

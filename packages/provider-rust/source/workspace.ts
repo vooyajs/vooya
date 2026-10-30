@@ -44,11 +44,19 @@ export interface WrittenRustDeclarations {
   files: string[];
 }
 
+export interface RustDeclarationArtifact {
+  contracts: RustComponentContract[];
+  stores?: RustStoreSchema[];
+  types?: RustTypeSchema[];
+}
+
 export interface WriteRustSchemaDeclarationsOptions {
   applicationRoot: string;
   contracts: RustComponentContract[];
   stores?: RustStoreSchema[];
   types?: RustTypeSchema[];
+  /** Separate type graphs for independently compiled artifacts. */
+  artifacts?: RustDeclarationArtifact[];
   framework: "vue" | "react" | "solid" | "svelte" | "octane";
   workspaceRoot?: string;
 }
@@ -131,44 +139,50 @@ export function writeRustSchemaDeclarations({
   stores,
   types,
   framework,
+  artifacts,
   workspaceRoot,
 }: WriteRustSchemaDeclarationsOptions): WrittenRustDeclarations {
   const application = resolve(applicationRoot);
   const paths = resolveVooyaWorkspace(application, workspaceRoot);
   ensureVooyaWorkspace(paths);
-  const expected = new Set<string>();
-  for (const contract of contracts) {
-    const group = contract.component.group;
-    if (!group) throw new Error(`Rust component ${contract.component.name} is missing its source group.`);
-    const sourcePath = resolveRustSchemaGroup(application, group);
-    const sourceRelativePath = relative(application, sourcePath);
-    if (isAbsolute(sourceRelativePath) || sourceRelativePath === ".." || sourceRelativePath.startsWith("../") || sourceRelativePath.startsWith("..\\")) {
-      throw new Error(`Rust component ${contract.component.name} is outside application root ${application}.`);
+  const expected = new Map<string, string>();
+  for (const artifact of artifacts ?? [{ contracts, stores, types }]) {
+    const { contracts, stores, types } = artifact;
+    for (const contract of contracts) {
+      const group = contract.component.group;
+      if (!group) throw new Error(`Rust component ${contract.component.name} is missing its source group.`);
+      const sourcePath = resolveRustSchemaGroup(application, group);
+      const sourceRelativePath = relative(application, sourcePath);
+      if (isAbsolute(sourceRelativePath) || sourceRelativePath === ".." || sourceRelativePath.startsWith("../") || sourceRelativePath.startsWith("..\\")) {
+        throw new Error(`Rust component ${contract.component.name} is outside application root ${application}.`);
+      }
+      if (!sourceRelativePath.endsWith(".rs")) throw new Error(`Rust component ${contract.component.name} group must point to an .rs file.`);
+      const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
+      assertPathInside(declarationPath, paths.types);
+      if (expected.has(declarationPath)) throw new Error(`Multiple Rust exports own declaration ${declarationPath}.`);
+      expected.set(declarationPath, generateRustSchemaDeclaration({ contract, framework, types }));
     }
-    if (!sourceRelativePath.endsWith(".rs")) throw new Error(`Rust component ${contract.component.name} group must point to an .rs file.`);
-    const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
-    assertPathInside(declarationPath, paths.types);
-    expected.add(declarationPath);
-    writeIfChanged(declarationPath, generateRustSchemaDeclaration({ contract, framework, types }));
-  }
-  for (const store of stores ?? []) {
-    if (!store.group) throw new Error(`Rust store ${store.name} is missing its source group.`);
-    const sourcePath = resolveRustSchemaGroup(application, store.group);
-    const sourceRelativePath = relative(application, sourcePath);
-    if (isAbsolute(sourceRelativePath) || sourceRelativePath === ".." || sourceRelativePath.startsWith("../") || sourceRelativePath.startsWith("..\\")) {
-      throw new Error(`Rust store ${store.name} is outside application root ${application}.`);
+    for (const store of stores ?? []) {
+      if (!store.group) throw new Error(`Rust store ${store.name} is missing its source group.`);
+      const sourcePath = resolveRustSchemaGroup(application, store.group);
+      const sourceRelativePath = relative(application, sourcePath);
+      if (isAbsolute(sourceRelativePath) || sourceRelativePath === ".." || sourceRelativePath.startsWith("../") || sourceRelativePath.startsWith("..\\")) {
+        throw new Error(`Rust store ${store.name} is outside application root ${application}.`);
+      }
+      if (!sourceRelativePath.endsWith(".rs")) throw new Error(`Rust store ${store.name} group must point to an .rs file.`);
+      const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
+      assertPathInside(declarationPath, paths.types);
+      if (expected.has(declarationPath)) throw new Error(`Multiple Rust exports own declaration ${declarationPath}.`);
+      expected.set(declarationPath, generateRustStoreDeclaration(store, framework, types));
     }
-    if (!sourceRelativePath.endsWith(".rs")) throw new Error(`Rust store ${store.name} group must point to an .rs file.`);
-    const declarationPath = resolve(paths.types, sourceRelativePath.replace(/\.rs$/, ".d.rs.ts"));
-    assertPathInside(declarationPath, paths.types);
-    expected.add(declarationPath);
-    writeIfChanged(declarationPath, generateRustStoreDeclaration(store, framework, types));
   }
+  // Resolve every graph before replacing any declaration from the last good build.
+  for (const [path, code] of expected) writeIfChanged(path, code);
   for (const existing of readGeneratedDeclarations(paths.types, ".d.rs.ts")) {
     if (!expected.has(existing)) rmSync(existing, { force: true });
   }
   removeEmptyDirectories(paths.types, paths.types);
-  return { typesRoot: paths.types, files: [...expected].sort() };
+  return { typesRoot: paths.types, files: [...expected.keys()].sort() };
 }
 
 export function resolveRustSchemaGroup(application: string, group: string): string {

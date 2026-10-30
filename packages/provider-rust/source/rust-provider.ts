@@ -19,7 +19,7 @@ import {
   writeWorkspaceMetadata,
 } from "./workspace.js";
 import { buildRustComponentContracts, indexVooyaSchema, readVooyaSchema, validateVooyaSchemaGroups } from "./schema.js";
-import { generateRustSchemaDeclaration, generateRustStoreDeclaration, RustSnapshotSchemaError } from "./schema-declarations.js";
+import { generateRustSchemaDeclaration, generateRustStoreDeclaration, RustSnapshotSchemaError, RustActionResultSchemaError } from "./schema-declarations.js";
 import type { RustSchemaDocument } from "./schema.js";
 
 import type { BuildProvider, BuildArtifact, MappedDiagnostic, GeneratedCss, GeneratedDeclaration } from "./provider.js";
@@ -271,6 +271,7 @@ export function resolveRustDependencyRoots(
  * Callers retain all bundler-specific IO.
  */
 export function buildApplication(options: BuildApplicationOptions): BuildApplicationResult {
+  if (options.rust?.artifacts) throw new VooyaUserError("Multiple Rust artifacts require createRustArtifactBuilder; this integration only supports one artifact.", { kind: "artifact-config" });
   if (!options.applicationRoot) throw new Error("Vooya build requires applicationRoot.");
   const workspace = resolveVooyaWorkspace(options.applicationRoot, options.workspaceRoot);
   const release = acquireBuildLock(workspace.root);
@@ -278,6 +279,24 @@ export function buildApplication(options: BuildApplicationOptions): BuildApplica
     return buildApplicationUnlocked(options);
   } finally {
     release();
+  }
+}
+
+/** Internal multi-artifact transaction: keep every served output until the batch succeeds. */
+export function buildApplicationBatch(options: BuildApplicationOptions[]): BuildApplicationResult[] {
+  const staged: Array<{ staging: string; destination: string }> = [];
+  const releases: Array<() => void> = [];
+  try {
+    for (const option of options) {
+      const workspace = resolveVooyaWorkspace(option.applicationRoot, option.workspaceRoot);
+      releases.push(acquireBuildLock(workspace.root));
+    }
+    const results = options.map(option => buildApplicationUnlocked(option, staged));
+    commitStagedArtifacts(staged);
+    return results;
+  } finally {
+    for (const entry of staged) discardStaging(entry.staging);
+    for (const release of releases.reverse()) release();
   }
 }
 
@@ -294,7 +313,7 @@ function buildApplicationUnlocked({
   toolchain = resolveToolchain({ cwd: applicationRoot }),
   spawn = spawnSync,
   exec = execFileSync,
-}: BuildApplicationOptions): BuildApplicationResult {
+}: BuildApplicationOptions, batch?: Array<{ staging: string; destination: string }>): BuildApplicationResult {
   const resolvedRust = resolveRustBuildOptions(applicationRoot, rust);
   rust = resolvedRust.rust;
   const workspace = resolveVooyaWorkspace(applicationRoot, workspaceRoot);
@@ -471,19 +490,22 @@ function buildApplicationUnlocked({
         wasmBindgen: toolchain.wasmBindgen.version,
       },
     });
-    commitStagedArtifacts([
+    const staged = [
       { staging: stagingOutputDir, destination: outputDir },
       { staging: stagingMetadata, destination: workspace.metadata },
-    ]);
+    ];
+    if (batch) batch.push(...staged);
+    else commitStagedArtifacts(staged);
     return result;
   } catch (cause) {
     discardStaging(stagingOutputDir);
     discardStaging(stagingMetadata);
-    if (cause instanceof RustSnapshotSchemaError && cause.source) {
+    if ((cause instanceof RustSnapshotSchemaError || cause instanceof RustActionResultSchemaError) && cause.source) {
       const source = cause.source;
       const mapping = diagnosticMappings.get(resolve(workspacePath, source.file)) ?? diagnosticMappings.get(resolve(source.file));
       if (mapping) {
-        throw new RustSnapshotSchemaError(cause.storeId, cause.fieldPath, cause.reason, { ...source, file: mapping.id });
+        const SchemaError = cause instanceof RustActionResultSchemaError ? RustActionResultSchemaError : RustSnapshotSchemaError;
+        throw new SchemaError(cause.storeId, cause.fieldPath, cause.reason, { ...source, file: mapping.id });
       }
     }
     throw cause;

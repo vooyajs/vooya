@@ -1,5 +1,7 @@
 //! The owned, JSON-like portion of Vooya's public WASM ABI.
 
+use crate::schema::AbiType;
+
 use std::collections::{BTreeMap, HashMap};
 
 use js_sys::{Array, BigInt, Object, Reflect};
@@ -7,11 +9,17 @@ use wasm_bindgen::{JsCast, JsValue};
 
 /// Decodes one owned Rust value from the public JavaScript ABI.
 pub trait FromJs: Sized {
+    /// Build-time conversion metadata. Manual implementations are opaque by default.
+    #[doc(hidden)]
+    const __VOO_SCHEMA: AbiType = AbiType::Opaque;
     fn from_js(value: &JsValue) -> Result<Self, JsValue>;
 }
 
 /// Encodes one owned Rust value for the public JavaScript ABI.
 pub trait ToJs {
+    /// Build-time conversion metadata. Manual implementations are opaque by default.
+    #[doc(hidden)]
+    const __VOO_SCHEMA: AbiType = AbiType::Opaque;
     fn to_js(&self) -> Result<JsValue, JsValue>;
 }
 
@@ -21,18 +29,21 @@ pub fn abi_error(message: impl AsRef<str>) -> JsValue {
 }
 
 impl FromJs for bool {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("bool");
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         value.as_bool().ok_or_else(|| abi_error("expected boolean"))
     }
 }
 
 impl ToJs for bool {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("bool");
     fn to_js(&self) -> Result<JsValue, JsValue> {
         Ok(JsValue::from_bool(*self))
     }
 }
 
 impl FromJs for String {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("String");
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         value
             .as_string()
@@ -41,18 +52,21 @@ impl FromJs for String {
 }
 
 impl ToJs for String {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("String");
     fn to_js(&self) -> Result<JsValue, JsValue> {
         Ok(JsValue::from_str(self))
     }
 }
 
 impl ToJs for &str {
+    const __VOO_SCHEMA: AbiType = AbiType::Unsupported("&str");
     fn to_js(&self) -> Result<JsValue, JsValue> {
         Ok(JsValue::from_str(self))
     }
 }
 
 impl FromJs for f64 {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("f64");
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         let number = value.as_f64().ok_or_else(|| abi_error("expected number"))?;
         if !number.is_finite() {
@@ -63,12 +77,14 @@ impl FromJs for f64 {
 }
 
 impl ToJs for f64 {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("f64");
     fn to_js(&self) -> Result<JsValue, JsValue> {
         Ok(JsValue::from_f64(*self))
     }
 }
 
 impl FromJs for f32 {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("f32");
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         let number = f64::from_js(value)?;
         if number < f32::MIN as f64 || number > f32::MAX as f64 {
@@ -79,6 +95,7 @@ impl FromJs for f32 {
 }
 
 impl ToJs for f32 {
+    const __VOO_SCHEMA: AbiType = AbiType::Scalar("f32");
     fn to_js(&self) -> Result<JsValue, JsValue> {
         Ok(JsValue::from_f64(*self as f64))
     }
@@ -87,6 +104,7 @@ impl ToJs for f32 {
 macro_rules! number_integer {
     ($($type:ty),+ $(,)?) => {$(
         impl FromJs for $type {
+            const __VOO_SCHEMA: AbiType = AbiType::Scalar(stringify!($type));
             fn from_js(value: &JsValue) -> Result<Self, JsValue> {
                 let number = value.as_f64().ok_or_else(|| abi_error("expected number"))?;
                 if !number.is_finite() || number.fract() != 0.0 {
@@ -100,6 +118,7 @@ macro_rules! number_integer {
         }
 
         impl ToJs for $type {
+            const __VOO_SCHEMA: AbiType = AbiType::Scalar(stringify!($type));
             fn to_js(&self) -> Result<JsValue, JsValue> {
                 Ok(JsValue::from_f64(*self as f64))
             }
@@ -112,6 +131,7 @@ number_integer!(i8, u8, i16, u16, i32, u32, isize, usize);
 macro_rules! bigint_integer {
     ($($type:ty),+ $(,)?) => {$(
         impl FromJs for $type {
+            const __VOO_SCHEMA: AbiType = AbiType::Scalar(stringify!($type));
             fn from_js(value: &JsValue) -> Result<Self, JsValue> {
                 if !value.is_bigint() {
                     return Err(abi_error(concat!("expected bigint for ", stringify!($type))));
@@ -128,6 +148,7 @@ macro_rules! bigint_integer {
         }
 
         impl ToJs for $type {
+            const __VOO_SCHEMA: AbiType = AbiType::Scalar(stringify!($type));
             fn to_js(&self) -> Result<JsValue, JsValue> {
                 BigInt::new(&JsValue::from_str(&self.to_string()))
                     .map(JsValue::from)
@@ -140,6 +161,7 @@ macro_rules! bigint_integer {
 bigint_integer!(i64, u64, i128, u128);
 
 impl<T: FromJs> FromJs for Option<T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Option(&T::__VOO_SCHEMA);
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         if value.is_null_or_undefined() {
             Ok(None)
@@ -150,12 +172,14 @@ impl<T: FromJs> FromJs for Option<T> {
 }
 
 impl<T: ToJs> ToJs for Option<T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Option(&T::__VOO_SCHEMA);
     fn to_js(&self) -> Result<JsValue, JsValue> {
         self.as_ref().map_or(Ok(JsValue::NULL), ToJs::to_js)
     }
 }
 
 impl<T: FromJs> FromJs for Vec<T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Vec(&T::__VOO_SCHEMA);
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         if !Array::is_array(value) {
             return Err(abi_error("expected array"));
@@ -171,6 +195,7 @@ impl<T: FromJs> FromJs for Vec<T> {
 }
 
 impl<T: ToJs> ToJs for Vec<T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Vec(&T::__VOO_SCHEMA);
     fn to_js(&self) -> Result<JsValue, JsValue> {
         let array = Array::new();
         for item in self {
@@ -181,6 +206,7 @@ impl<T: ToJs> ToJs for Vec<T> {
 }
 
 impl<T: FromJs> FromJs for BTreeMap<String, T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Map(&T::__VOO_SCHEMA);
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         object_entries(value)?
             .into_iter()
@@ -190,12 +216,14 @@ impl<T: FromJs> FromJs for BTreeMap<String, T> {
 }
 
 impl<T: ToJs> ToJs for BTreeMap<String, T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Map(&T::__VOO_SCHEMA);
     fn to_js(&self) -> Result<JsValue, JsValue> {
         encode_map(self.iter().map(|(key, value)| (key.as_str(), value)))
     }
 }
 
 impl<T: FromJs> FromJs for HashMap<String, T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Map(&T::__VOO_SCHEMA);
     fn from_js(value: &JsValue) -> Result<Self, JsValue> {
         object_entries(value)?
             .into_iter()
@@ -205,6 +233,7 @@ impl<T: FromJs> FromJs for HashMap<String, T> {
 }
 
 impl<T: ToJs> ToJs for HashMap<String, T> {
+    const __VOO_SCHEMA: AbiType = AbiType::Map(&T::__VOO_SCHEMA);
     fn to_js(&self) -> Result<JsValue, JsValue> {
         encode_map(self.iter().map(|(key, value)| (key.as_str(), value)))
     }
@@ -242,6 +271,7 @@ fn encode_map<'a, T: ToJs + 'a>(
 macro_rules! tuple {
     ($($name:ident : $index:tt),+ $(,)?) => {
         impl<$($name: FromJs),+> FromJs for ($($name,)+) {
+            const __VOO_SCHEMA: AbiType = AbiType::Tuple(&[$($name::__VOO_SCHEMA),+]);
             fn from_js(value: &JsValue) -> Result<Self, JsValue> {
                 if !Array::is_array(value) { return Err(abi_error("expected tuple array")); }
                 let array = Array::from(value);
@@ -250,6 +280,7 @@ macro_rules! tuple {
             }
         }
         impl<$($name: ToJs),+> ToJs for ($($name,)+) {
+            const __VOO_SCHEMA: AbiType = AbiType::Tuple(&[$($name::__VOO_SCHEMA),+]);
             fn to_js(&self) -> Result<JsValue, JsValue> {
                 let array = Array::new();
                 $(array.push(&self.$index.to_js()?);)+

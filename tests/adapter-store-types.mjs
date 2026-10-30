@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const generatorDir = mkdtempSync(join(root, ".store-types-generator-"));
 let generateRustStoreDeclaration;
 try {
-  for (const name of ["errors", "schema-declarations"]) {
+  for (const name of ["errors", "schema", "schema-graph", "schema-declarations"]) {
     const compiled = ts.transpileModule(
       readFileSync(resolve(root, `packages/provider-rust/source/${name}.ts`), "utf8"),
       { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } },
@@ -28,12 +28,16 @@ export function checkGeneratedStoreTypes(framework) {
   try {
     const declaration = generateRustStoreDeclaration(
       {
-        version: 1,
+        version: 2,
         kind: "store",
         id: "counter",
         name: "Counter",
         snapshot: "i32",
-        actions: [{ name: "add", params: [{ name: "amount", type: "i32" }] }],
+        snapshotAbi: { kind: "scalar", name: "i32" },
+        actions: [
+          { name: "add", params: [{ name: "amount", type: "i32", abi: { kind: "scalar", name: "i32" } }] },
+          { name: "total", params: [], result: "u64", resultAbi: { kind: "scalar", name: "u64" } },
+        ],
       },
       framework,
     );
@@ -65,6 +69,11 @@ const snapshot: number | undefined = ${state};
 const wrongSnapshot: string = ${state};
 const generated = useCounter();
 generated.add(1);
+const hookTotal: ${framework === "react" || framework === "solid" ? "bigint | undefined" : "bigint"} = generated.total();
+const directTotal: bigint = direct.total();
+// @ts-expect-error action results must not be widened to any
+const wrongResult: string = direct.total();
+void hookTotal; void directTotal; void wrongResult;
 // @ts-expect-error generated actions retain their argument types
 generated.add("wrong");
 createCounterStore().then(store => {

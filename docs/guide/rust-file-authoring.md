@@ -298,7 +298,7 @@ These are the supported path spellings for this result shape; this does not
 promise resolution of arbitrary type aliases.
 
 The generated host action throws when it receives `Err`, but the mutation made
-before the error remains observable. Successful action values are still `void`:
+before the error remains observable. This unit-returning action exposes `void`:
 
 ```js
 import createCartStore from "./Store.rs";
@@ -329,8 +329,7 @@ store.dispose();
 
 Subscribers are notified when the snapshot changes, even if the action then
 returns `Err`. An error by itself does not notify subscribers when the snapshot
-is unchanged. Successful action values remain `void` today; richer result
-values are tracked in [Issue #152](https://github.com/vooyajs/vooya/issues/152).
+is unchanged.
 
 `#[voo::events]` currently declares Component callbacks. A Store cannot yet
 attach that trait to generated Rust-to-host notifications, and `useCart()` does
@@ -339,10 +338,13 @@ listener helpers are not a public Store event API. Typed Store notifications,
 including payload schema, subscription cleanup, and generated host callbacks,
 are tracked in [Issue #153](https://github.com/vooyajs/vooya/issues/153).
 
-Actions do not yet expose a successful Rust return value to the generated host
-API. The current wrapper discards non-unit success values, so generated action
-declarations return `void`. A bounded result ABI for supported owned values,
-including `Result<T, JsValue>`, is tracked in [Issue #152](https://github.com/vooyajs/vooya/issues/152).
+In the unreleased source batch, synchronous actions expose supported owned
+return values through `ToJs` and generated TypeScript result types. For
+`Result<T, JsValue>`, `Ok(value)` returns the converted value and `Err(error)`
+throws; unit success still returns `void`/`undefined`. The standard qualified
+`Result` paths above also support non-unit `T`. Aliases of `T` are resolved by
+Rust, while aliases of the whole `Result` are outside this contract. See the
+[Store action contract](../concepts/store.md) for framework readiness behavior.
 
 The generated `.d.rs.ts` declaration mirrors both sides of the module. It
 includes the factory, default export, snapshot/store types, and the generated
@@ -353,39 +355,42 @@ framework hook. The declaration remains framework-neutral; Vue wraps it in a
 `Ref`, Solid in an `Accessor`, and Svelte in a `Readable`.
 
 `#[derive(FromJs)]` and `#[derive(ToJs)]` make named structs and ABI-v1 unit
-enums available both at runtime and in generated declarations. When a referenced
-named type has no schema record, declarations use `unknown` because a hand-written
-conversion may emit any JavaScript value. In the first alpha package graph, a derived struct
-whose fields cannot be described falls back to `Record<string, unknown>` because
-its object shape is known. Component declarations retain that fallback.
-`@vooya/provider-rust@0.2.0-alpha.1` instead rejects unsupported fields in resolved
-Store snapshot schemas; see [snapshot diagnostics](../concepts/store.md#snapshot-diagnostics).
-Supported surrounding fields and containers remain precise. Snapshot types must remain
-owned, non-generic, and non-recursive. An unqualified named type resolves first
-within its component or store source group. Use a Rust-qualified reference such
-as `models::Selection` for a type owned by another module. If either lookup has
-multiple incompatible schema candidates, declaration generation fails and lists
-each schema ID and source group rather than selecting an arbitrary shape.
+enums available both at runtime and in generated declarations. Schema v2 lets
+Rust resolve each ABI field, event parameter, action parameter, and snapshot
+through its actual conversion trait. `use` aliases, type aliases, inline modules,
+and `#[path]` layouts therefore retain their Rust type identity. Source file names
+and authored type spellings are diagnostic information, not lookup keys.
 
-When two resolved types share a short name in the same declaration, both receive
-module prefixes: `models::Selection` and `filters::Selection` become
-`ModelsSelection` and `FiltersSelection`. Nested fields, props, events, and Store
-signatures use the same resolved names. Names are assigned before rendering and
-are independent of schema traversal order. Longer source prefixes (then numeric
-suffixes) disambiguate aliases that are already occupied; unique short names stay
-unchanged. A qualified reference without a matching schema remains `unknown`, even
-if another module defines the same short name. An unqualified reference with no
-match in its source group currently falls back to global same-name candidates:
-a unique candidate is selected, while multiple candidates produce an ambiguity
-error. Use qualified paths for cross-module references rather than relying on
-that fallback as exact Rust type resolution.
+Only transitively referenced types appear in each declaration. When two resolved
+types share a short name, module prefixes distinguish them: `models::Selection`
+and `filters::Selection` become `ModelsSelection` and `FiltersSelection`. Naming
+is independent of schema record order. Longer prefixes and numeric suffixes
+resolve remaining collisions. Input and output declarations merge only for the
+same Rust identity with equivalent reachable shapes. Different conversions retain
+separate `Input` and `Output` names.
 
-Path resolution uses conventional `.rs` / `mod.rs` source groups, including
-`self::`, `super::`, and `crate::` paths (`crate::` requires a `src/` root).
-This is not full Rust name resolution: `use` aliases, inline modules, and
-`#[path]` overrides still require richer schema metadata. The generator builds a
-name index once per declaration and caches scoped lookups during that generation;
-it does not retain a process-wide schema cache.
+A hand-written conversion has opaque metadata by default and produces `unknown`
+at that leaf, preserving precise surrounding containers. An input derive never
+claims the shape of a manual output conversion. A named reference whose metadata
+is missing fails the build; it cannot fall back to an unrelated same-name type.
+Unsupported values fail declaration generation. Store snapshot errors retain the
+field's Rust location and preserve the last successful output; see
+[snapshot diagnostics](../concepts/store.md#snapshot-diagnostics). Public values
+remain owned and non-generic; recursive public schemas, payload enums, borrowed
+snapshots and zero-copy transport are outside ABI v1.
+
+**0.2 alpha migration:** update `@vooya/core` and `@vooya/provider-rust` together
+and rebuild generated artifacts. The provider still reads schema v1 with its
+legacy source-group resolution; older providers reject schema v2. Runtime ABI v1
+and conversion functions are unchanged. `ToJs` now has a default metadata
+associated constant, so it is no longer dyn-compatible. Existing concrete manual
+implementations need no extra member; replace `dyn ToJs` usage with a generic
+`T: ToJs` boundary or an application-owned object-safe conversion interface.
+
+Component role ownership still follows the same-file props/events contract above.
+These changes resolve ABI value types; they do not introduce a new component
+registration mechanism. See the [schema v2 design](../contribute/rust-schema.md)
+for identity scope, wire records and compatibility details.
 
 ```ts
 import type { Ref } from "vue";

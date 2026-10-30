@@ -113,15 +113,14 @@ Use owned ABI-v1 values, such as `String` instead of `&str`, and keep snapshot
 schemas nonrecursive. Generic public derives continue to fail at the Rust macro.
 These checks do not change snapshot identity, subscriptions, actions or disposal.
 
-A missing schema still produces `unknown` with an explanatory declaration comment.
-Schema v1 cannot distinguish an intentional hand-written `ToJs` value from
-accidentally missing metadata, so this is not a guarantee that the value has a
-supported precise shape. Full Rust module/alias resolution remains separate work;
-an unresolved name is not automatically classified as an unsupported value.
-An input-only `FromJs` schema does not trigger these output diagnostics: a manual
-`ToJs` implementation may return a different shape. The existing shared input/output
-declaration resolver can still reflect that input shape; this change does not
-establish accurate snapshot types for that combination.
+In schema v2, a manual conversion explicitly defaults to opaque metadata and
+produces `unknown` with an explanatory comment. A missing record for an explicit
+named reference is a build error. The legacy v1 reader still uses `unknown` for
+missing metadata because that format cannot distinguish the two cases.
+
+Input-only `FromJs` metadata never supplies a manual `ToJs` output shape. The
+snapshot stays `unknown` unless the output conversion supplies metadata. See the
+[Rust schema design](../contribute/rust-schema.md) for the directional graph.
 
 ## Contract
 
@@ -129,7 +128,7 @@ establish accurate snapshot types for that combination.
 | --- | --- | --- | --- |
 | Snapshot | Rust → Host | Read current serializable state | Cached output is published through the store subscription |
 | Subscription | Rust → Host | Notify the adapter after a snapshot change | Every subscription is disposable |
-| Action | Host → Rust | Run a declared synchronous state transition | Arguments use ABI v1; generated actions currently return `void` and async actions are not ABI v1 |
+| Action | Host → Rust | Run a declared synchronous state transition | Arguments and successful results use owned ABI v1; async actions are not supported |
 | Dispose | Host → Rust | Release listeners and owned resources | The owner must call it for shared instances |
 
 The Rust runtime has internal domain-listener helpers, but they are not exposed
@@ -144,11 +143,26 @@ lifetime. Generated `useName()` entries own and dispose the instance they create
 the lower-level Vue `disposeOnUnmount` option remains explicit for custom
 integrations. A store is not a global singleton by implication.
 
-Generated actions preserve `()` and `Result<(), JsValue>` failure behavior, but
-do not yet return a successful Rust value to the host. The planned action-result
-ABI must carry supported owned values through the Rust wrapper, generated bridge,
-and TypeScript declaration without changing action ordering or snapshot
-notification behavior; see [Issue #152](https://github.com/vooyajs/vooya/issues/152).
+Generated actions return their successful owned `ToJs` value. `()` returns
+`undefined`; `Result<T, JsValue>` returns `T` on success and throws the error on
+failure. The recognized fallible spellings are `Result`, `std::result::Result`,
+and `core::result::Result` (also with a leading `::` for the qualified paths).
+Aliases of the successful type are resolved by Rust. An alias of the entire
+`Result` is not a supported fallible action signature.
+
+The same output types appear on `createNameStore()` instances and generated
+hooks. React/Solid hooks may return `undefined` while their instance is not
+ready, so their non-void action declarations include `undefined`; Vue/Svelte
+throw when called before readiness. Call after the snapshot becomes available.
+Errors and serialization failures do not roll back state changes: dispatch
+updates the snapshot and notifies changed-state subscribers before returning or
+throwing. An unchanged snapshot retains its identity and sends no notification.
+
+Named result types use their output conversion metadata, including when input
+and output shapes differ. Unsupported borrowed or recursive result schemas
+produce source-mapped build errors. A handwritten conversion without metadata
+remains explicitly `unknown`. Update the core and Rust provider together and
+rebuild generated bindings to use this unreleased capability.
 
 ## Why signals?
 

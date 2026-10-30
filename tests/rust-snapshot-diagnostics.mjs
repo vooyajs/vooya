@@ -42,12 +42,39 @@ try {
     const declaration = result.declarations[0].code;
     assert.match(declaration, /stage: string/);
     assert.match(declaration, /history: Array<string>/);
-    assert.doesNotMatch(declaration, /Record<string, unknown>|Snapshot schema metadata is missing/);
+    assert.doesNotMatch(declaration, /Record<string, unknown>|Snapshot conversion metadata is opaque/);
   }
   const output = join(root, ".vooya");
   // Only successfully committed WASM/metadata are protected, not the generated
   // Cargo inputs and target cache which naturally change during a failed build.
   const before = { ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) };
+  const borrowedAction = valid.replace("    #[voo::snapshot]", `    #[voo::action]
+    pub fn borrowed(&mut self) -> &'static str { "borrowed" }
+    #[voo::snapshot]`);
+  writeFileSync(file, borrowedAction);
+  assert.throws(() => buildApplication(options), error => {
+    assert.equal(error.kind, "action-result-schema");
+    assert.equal(error.source.file, file);
+    assert.equal(error.source.line, 12);
+    assert.match(error.message, /action result borrowed.*Unsupported Rust schema type/);
+    return true;
+  });
+  assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
+  for (const signature of ["pub async fn work(&mut self) -> u32 { 1 }", "pub fn work<T>(&mut self) -> u32 { 1 }"]) {
+    writeFileSync(file, valid.replace("    #[voo::snapshot]", `    #[voo::action]\n    ${signature}\n    #[voo::snapshot]`));
+    let actionDiagnostics = "";
+    const originalStderr = process.stderr.write;
+    process.stderr.write = function(chunk, ...args) {
+      actionDiagnostics += String(chunk);
+      return originalStderr.call(this, chunk, ...args);
+    };
+    try {
+      assert.throws(() => buildApplication(options), error => error.kind === "cargo-build");
+    } finally { process.stderr.write = originalStderr; }
+    assert.match(actionDiagnostics, /Store actions must be synchronous and non-generic/);
+    assert.ok(actionDiagnostics.includes(`${file}:12:`));
+    assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
+  }
   writeFileSync(file, valid.replace("Vec<String>", "&'static str").replace("history: vec![]", 'history: "borrowed"'));
   assert.throws(() => buildApplication(options), error => {
     assert.equal(error.kind, "snapshot-schema");
@@ -72,8 +99,7 @@ try {
   }
   writeFileSync(file, valid);
   assert.match(buildApplication(options).declarations[0].code, /history: Array<string>/);
-  // A manual ToJs value has no derive schema. It cannot be distinguished from
-  // missing metadata by v1; do not invent a precise shape or reject valid Rust.
+  // A manual ToJs value explicitly has opaque metadata in schema v2.
   writeFileSync(file, valid.replace("voo::ToJs, ", "") + `
 impl voo::ToJs for ReplaySnapshot {
     fn to_js(&self) -> Result<voo::__private::wasm_bindgen::JsValue, voo::__private::wasm_bindgen::JsValue> {
@@ -83,7 +109,7 @@ impl voo::ToJs for ReplaySnapshot {
 `);
   const opaque = buildApplication(options).declarations[0].code;
   assert.match(opaque, /WorkflowReplaySnapshot = unknown/);
-  assert.match(opaque, /Snapshot schema metadata is missing/);
+  assert.match(opaque, /Snapshot conversion metadata is opaque/);
   // Input schema is not evidence of a manual output shape: this recursive
   // input can legitimately serialize to a scalar instead of walking children.
   const manualOutput = valid.replace("voo::ToJs", "voo::FromJs").replace("Vec<String>", "Vec<Self>") + `
@@ -94,9 +120,9 @@ impl voo::ToJs for ReplaySnapshot {
 }
 `;
   writeFileSync(file, manualOutput);
-  // Existing direction-neutral declarations are intentionally not redesigned by
-  // this test; only the new false rejection is prevented here.
-  assert.ok(buildApplication(options).declarations[0].code.includes("createWorkflowReplayStore"));
+  const manual = buildApplication(options).declarations[0].code;
+  assert.match(manual, /WorkflowReplaySnapshot = unknown/);
+  assert.doesNotMatch(manual, /interface ReplaySnapshot/);
   // Existing macro rejection still reports the author's generic source span.
   writeFileSync(file, valid.replace("pub struct ReplaySnapshot {", "pub struct ReplaySnapshot<T> {").replace("pub stage: String", "pub stage: T").replace("-> ReplaySnapshot", "-> ReplaySnapshot<String>"));
   let diagnostics = "";

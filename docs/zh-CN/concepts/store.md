@@ -144,17 +144,23 @@ Vue、React、Solid 和 Svelte 的生成入口保持同一组名称与字段；�
 
 - `getSnapshot()`：读取当前快照；
 - `subscribe(listener)`：监听快照变化并可取消订阅；
-- 声明的同步 action：执行 Rust 拥有的状态转换；参数使用 ABI v1，当前生成 action 返回 `void`；
+- 声明的同步 action：执行 Rust 拥有的状态转换；参数和成功返回值使用 owned ABI v1；
 - `dispose()`：释放订阅、listener 和其他由实例拥有的资源。
 
 Rust runtime 内部存在领域 listener helper，但当前不会写入 generated Store schema、
 binding、`useName()` 或 TypeScript declaration。custom factory 的 adapter `onNotify`
 也不是跨 adapter 的类型化 generated Store event channel。
 
-生成 action 保留 `()` 和 `Result<(), JsValue>` 的失败传播，但暂不会把 Rust 的成功返回值
-交给宿主。后续 action-result ABI 需要让支持的 owned value 穿过 Rust wrapper、generated
-bridge 和 TypeScript declaration，且不改变 action 顺序或 snapshot notification；见
-[Issue #152](https://github.com/vooyajs/vooya/issues/152)。
+生成 action 现在保留成功返回值：`()` 返回 `undefined`，`Result<T, JsValue>` 成功时返回
+`T`、失败时抛出错误。支持 `Result`、`std::result::Result`、`core::result::Result`
+及完整路径的前导 `::`；成功类型可以使用 Rust alias，但整个 `Result` 的 alias 不属于
+可识别的失败签名。此能力尚未发布，需要同时更新 core/provider 并重新构建。
+
+factory 与 hook 都保留输出类型。React/Solid hook 未 ready 时可能返回 `undefined`，
+非 void action 的声明包含该情况；Vue/Svelte 在未 ready 时抛错，应在 snapshot 可用后调用。
+失败不会回滚已发生的状态修改；dispatch 先更新 snapshot 并通知，再返回结果或抛错。
+snapshot 没变时保持引用且不通知。返回值使用输出方向的类型元数据；borrowed/递归类型
+会报源位置错误，没有元数据的手写转换仍明确标为 `unknown`。
 
 因此，当前设计不是“每个框架各自定义一套 Store”。beta 阶段保持框架特有的消费
 层，以保证各自的生命周期语义正确；后续如果需要统一开发者体验，可以在共享 Store
@@ -189,10 +195,7 @@ Rust 源码位置。旧 schema v1 仍可读取；没有位置元数据时只报�
 Snapshot 应使用 `String` 等 owned ABI-v1 值，避免借用字段和递归结构。泛型公开
 类型继续由 Rust 宏拒绝。快照身份、订阅、动作和释放语义不变。
 
-缺少 schema 时仍生成带说明注释的 `unknown`。Schema v1 无法区分有意手写的
-`ToJs` 值与意外缺失的元数据，因此这不是精确类型已受支持的保证。完整的 Rust
-模块与别名解析仍是独立工作；不能把未解析的名称直接判为不受支持的值。
-
-仅有 `FromJs` 输入 schema 时，不会据此触发上述输出诊断：手写 `ToJs` 可以返回不同
-形状。现有输入/输出共用的声明解析仍可能反映输入形状；本次没有修复这种组合的
-snapshot 类型精度，不能据此宣称整项诊断契约已经完成。
+Schema v2 中，手写转换默认显式标记为 opaque，生成带说明注释的 `unknown`；明确的
+命名引用缺少记录则构建失败。旧 v1 无法区分这两种情况，继续以 `unknown` 处理缺失元数据。
+仅有 `FromJs` 输入 schema 不会提供手写 `ToJs` 的输出形状；没有输出元数据时 snapshot
+保持 `unknown`。详见[英文 schema 设计](../../contribute/rust-schema.md)。

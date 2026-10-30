@@ -159,3 +159,32 @@ test("resolves sourceRoot dot schema groups with normalized paths", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("separate artifacts retain their type graphs and reject duplicate source ownership before writes", () => {
+  const root = mkdtempSync(resolve(tmpdir(), "vooya-artifact-types-"));
+  try {
+    for (const name of ["light", "heavy"]) {
+      mkdirSync(resolve(root, "src", name), {recursive:true});
+      writeFileSync(resolve(root, "src", name, "Store.rs"), "// authored source");
+    }
+    const artifact = (name, scalar) => ({ contracts: [], stores: [{
+      version:2, kind:"store", id:"Counter", name:"Counter", group:`src/${name}/Store.rs`, actions:[],
+      snapshot:"Snapshot", snapshotAbi:{kind:"named", identity:"app::store::Snapshot", direction:"to"},
+    }], types:[{ version:2, kind:"type", id:"Snapshot", name:"Snapshot", identity:"app::store::Snapshot", direction:"to",
+      shape:{kind:"struct", fields:[{name:"value", type:scalar, abi:{kind:"scalar", name:scalar}}]},
+    }] });
+    const light = artifact("light", "u32");
+    const heavy = artifact("heavy", "String");
+    const input = {applicationRoot:root, contracts:[], framework:"vue", artifacts:[light,heavy]};
+    const written = writeRustSchemaDeclarations(input);
+    assert.equal(written.files.length, 2);
+    const lightPath = resolve(root, ".vooya/types/src/light/Store.d.rs.ts");
+    const heavyPath = resolve(root, ".vooya/types/src/heavy/Store.d.rs.ts");
+    assert.match(readFileSync(lightPath,"utf8"), /value: number/);
+    assert.match(readFileSync(heavyPath,"utf8"), /value: string/);
+    const previous = readFileSync(lightPath,"utf8");
+    assert.throws(() => writeRustSchemaDeclarations({...input, artifacts:[artifact("light","bool"),light]}), /Multiple Rust exports/);
+    assert.equal(readFileSync(lightPath,"utf8"), previous);
+    assert.ok(existsSync(heavyPath));
+  } finally { rmSync(root, {recursive:true,force:true}); }
+});

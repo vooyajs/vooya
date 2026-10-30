@@ -45,6 +45,22 @@ impl Cart {
         Err(JsValue::from_str("plain action failed"))
     }
 
+    #[voo::action]
+    pub fn add_total(&mut self, amount: u32) -> u32 {
+        self.count += amount;
+        self.count
+    }
+
+    #[voo::action]
+    pub fn receipt(&mut self, amount: u32, fail: bool) -> Result<CartTotals, wasm_bindgen::JsValue> {
+        self.count += amount;
+        if fail { return Err(wasm_bindgen::JsValue::from_str("receipt failed")); }
+        Ok(CartTotals { item_count: self.count, labels: vec!["receipt".into()] })
+    }
+
+    #[voo::action]
+    pub fn precise(&mut self) -> u64 { 9007199254740993 }
+
     #[voo::snapshot]
     pub fn snapshot(&self) -> CartSnapshot {
         CartSnapshot {

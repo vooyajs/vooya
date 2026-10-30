@@ -105,8 +105,8 @@ test("rejects duplicate records and mismatched versions", () => {
     (error) => error instanceof RustSchemaError && /duplicate schema record store:cart::Store/.test(error.message),
   );
   assert.throws(
-    () => readVooyaSchema(wasm(customSection("__voo_schema", { ...record, version: 2 }))),
-    (error) => error instanceof RustSchemaError && /uses version 2; expected 1/.test(error.message),
+    () => readVooyaSchema(wasm(customSection("__voo_schema", { ...record, version: 3 }))),
+    (error) => error instanceof RustSchemaError && /uses version 3; expected 1 or 2/.test(error.message),
   );
 });
 
@@ -205,4 +205,19 @@ test("accepts additive snapshot source locations and rejects malformed optional 
     const type = { version: 1, kind: "type", id: "State", name: "State", direction: "to", shape: { kind: "struct", fields: [{ name: "value", type: "String", source: invalid }] } };
     assert.throws(() => readVooyaSchema(wasm(customSection("__voo_schema", type))), /not a supported record/);
   }
+});
+
+test("v2 component contracts identify mixed-version role records", () => {
+  const component = { version: 2, kind: "component", id: "cart::Cart", name: "Cart", group: "src/Cart.rs", params: [{ name: "props", type: "CartProps" }] };
+  const props = { version: 2, kind: "props", id: "cart::Props", name: "CartProps", fields: [] };
+  const events = { version: 2, kind: "events", id: "cart::Events", name: "CartEvents", group: component.group, methods: [] };
+  for (const kind of ["props", "events"]) {
+    const records = [component, props, events].map(record => record.kind === kind ? { ...record, version: 1 } : record);
+    assert.throws(() => buildRustComponentContracts(indexVooyaSchema({ version: 2, records })), error => {
+      assert.ok(error instanceof RustSchemaError);
+      assert.match(error.message, new RegExp(`component cart::Cart is version 2 but ${kind} cart::.* is version 1`));
+      return true;
+    });
+  }
+  assert.equal(buildRustComponentContracts(indexVooyaSchema({ version: 2, records: [component, props, events] })).length, 1);
 });

@@ -14,7 +14,7 @@ use syn::{
     parse::{Parse, ParseStream, Parser},
 };
 
-const SCHEMA_VERSION: u32 = 1;
+const SCHEMA_VERSION: u32 = 2;
 
 #[proc_macro_attribute]
 pub fn props(attribute: TokenStream, input: TokenStream) -> TokenStream {
@@ -24,6 +24,7 @@ pub fn props(attribute: TokenStream, input: TokenStream) -> TokenStream {
         Ok(id) => id,
         Err(error) => return error.into_compile_error().into(),
     };
+    let mut expressions = SchemaExpressions::default();
     let fields = item
         .fields
         .iter()
@@ -32,6 +33,7 @@ pub fn props(attribute: TokenStream, input: TokenStream) -> TokenStream {
                 json!({
                     "name": ident.to_string(),
                     "type": type_name(&field.ty),
+                    "abi": expressions.ty(&field.ty, AbiDirection::From, None),
                 })
             })
         })
@@ -44,7 +46,7 @@ pub fn props(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "group": metadata.group,
         "fields": fields,
     });
-    emit_schema(item, record, "props")
+    emit_typed_schema(item, record, "props", expressions)
 }
 
 #[proc_macro_attribute]
@@ -56,13 +58,14 @@ pub fn events(attribute: TokenStream, input: TokenStream) -> TokenStream {
         Ok(id) => id,
         Err(error) => return error.into_compile_error().into(),
     };
+    let mut expressions = SchemaExpressions::default();
     let methods = item
         .items
         .iter()
         .filter_map(|member| match member {
             TraitItem::Fn(method) => Some(json!({
                 "name": method.sig.ident.to_string(),
-                "params": parameters(&method.sig.inputs),
+                "params": expressions.parameters(&method.sig.inputs, AbiDirection::To, None),
             })),
             _ => None,
         })
@@ -75,7 +78,7 @@ pub fn events(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "group": metadata.group,
         "methods": methods,
     });
-    emit_schema(item, record, "events")
+    emit_typed_schema(item, record, "events", expressions)
 }
 
 #[proc_macro_attribute]
@@ -251,12 +254,22 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             _ => None,
         })
         .collect::<Vec<_>>();
+    for method in &action_methods {
+        if method.sig.asyncness.is_some() || !method.sig.generics.params.is_empty() {
+            return syn::Error::new_spanned(&method.sig, "Store actions must be synchronous and non-generic; return supported owned ABI values")
+                .into_compile_error().into();
+        }
+    }
+    let mut expressions = SchemaExpressions::default();
     let actions = action_methods
         .iter()
         .map(|method| {
             json!({
                 "name": method.sig.ident.to_string(),
-                "params": parameters(&method.sig.inputs),
+                "params": expressions.parameters(&method.sig.inputs, AbiDirection::From, Some(&store_type)),
+                "result": action_value_type(&method.sig.output).map(|ty| type_name(&ty)),
+                "resultAbi": action_value_type(&method.sig.output).map(|ty| expressions.ty(&ty, AbiDirection::To, Some(&store_type))),
+                "resultSource": schema_source(method.sig.output.span()),
             })
         })
         .collect::<Vec<_>>();
@@ -273,9 +286,14 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
         "group": metadata.group,
         "actions": actions,
         "snapshot": snapshot,
+        "snapshotAbi": snapshot_method.and_then(|method| match &method.sig.output {
+            syn::ReturnType::Type(_, ty) => Some(expressions.ty(ty, AbiDirection::To, Some(&store_type))),
+            syn::ReturnType::Default => None,
+        }),
         "snapshotSource": snapshot_method.map(|method| schema_source(method.sig.output.span())),
     });
-    let schema: proc_macro2::TokenStream = emit_schema(item.clone(), record, "store").into();
+    let schema: proc_macro2::TokenStream =
+        emit_typed_schema(item.clone(), record, "store", expressions).into();
     let stem = snake_case_ident(&name);
     let handle_name = format_ident!("Voo{}StoreHandle", sanitize_ident(&name));
     let handles_name = format_ident!("VOO_{}_STORE_HANDLES", stem.to_uppercase());
@@ -327,19 +345,19 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             call_parameters.push(quote! { #parameter_name });
         }
         let returns_result = action_returns_result(&method.sig.output);
-        let invoke = if returns_result {
-            quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
-        } else {
-            quote! { let _ = state.#method_name(#(#call_parameters),*); }
-        };
         let dispatch = if returns_result {
-            quote! { __voo_store.dispatch(|state| { #invoke })?; }
+            quote! { let __voo_result = __voo_store.dispatch(|state| state.#method_name(#(#call_parameters),*))?; }
         } else {
-            quote! { __voo_store.dispatch(|state| { #invoke }); }
+            quote! { let __voo_result = __voo_store.dispatch(|state| state.#method_name(#(#call_parameters),*)); }
+        };
+        let encode = if action_value_type(&method.sig.output).is_some() {
+            quote! { ::vooya::ToJs::to_js(&__voo_result) }
+        } else {
+            quote! { ::core::result::Result::Ok(::vooya::__private::wasm_bindgen::JsValue::UNDEFINED) }
         };
         quote! {
             #[::vooya::__private::wasm_bindgen::prelude::wasm_bindgen]
-            pub fn #export_name(handle: u32, #(#js_parameters),*) -> ::core::result::Result<(), ::vooya::__private::wasm_bindgen::JsValue> {
+            pub fn #export_name(handle: u32, #(#js_parameters),*) -> ::core::result::Result<::vooya::__private::wasm_bindgen::JsValue, ::vooya::__private::wasm_bindgen::JsValue> {
                 #(#decoded_parameters)*
                 let __voo_store = #handles_name.with(|handles| {
                     let handles = handles.borrow();
@@ -349,7 +367,7 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
                     ::core::result::Result::Ok(existing.store.clone())
                 })?;
                 #dispatch
-                ::core::result::Result::Ok(())
+                #encode
             }
         }
     });
@@ -882,7 +900,8 @@ fn derive_abi(input: DeriveInput, direction: AbiDirection) -> TokenStream {
         .into_compile_error()
         .into();
     }
-    let schema = abi_type_schema(&input, &direction, input.span().file());
+    let mut expressions = SchemaExpressions::default();
+    let schema = abi_type_schema(&input, &direction, input.span().file(), &mut expressions);
     let name = input.ident;
     let generated = match (input.data, direction) {
         (Data::Struct(data), AbiDirection::From) => derive_struct_from(&name, data.fields),
@@ -899,13 +918,14 @@ fn derive_abi(input: DeriveInput, direction: AbiDirection) -> TokenStream {
         )),
     };
     match generated {
-        Ok(generated) => emit_schema(
+        Ok(generated) => emit_typed_schema(
             generated,
             schema,
             match direction {
                 AbiDirection::From => "type_from",
                 AbiDirection::To => "type_to",
             },
+            expressions,
         ),
         Err(error) => error.into_compile_error().into(),
     }
@@ -922,7 +942,15 @@ fn schema_source(span: proc_macro2::Span) -> Value {
     source
 }
 
-fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String) -> Value {
+fn abi_type_schema(
+    input: &DeriveInput,
+    direction: &AbiDirection,
+    group: String,
+    expressions: &mut SchemaExpressions,
+) -> Value {
+    let ident = &input.ident;
+    let self_type: Type = syn::parse_quote!(#ident);
+    let abi_direction = *direction;
     let direction = match direction {
         AbiDirection::From => "from",
         AbiDirection::To => "to",
@@ -936,6 +964,7 @@ fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String)
                     "name": field.ident.as_ref().expect("named field").to_string(),
                     "type": type_name(&field.ty),
                     "source": schema_source(field.ty.span()),
+                    "abi": expressions.ty(&field.ty, abi_direction, Some(&self_type)),
                 })).collect::<Vec<_>>(),
                 _ => Vec::new(),
             },
@@ -949,7 +978,8 @@ fn abi_type_schema(input: &DeriveInput, direction: &AbiDirection, group: String)
     json!({
         "version": SCHEMA_VERSION,
         "kind": "type",
-        "id": format!("{}:{}:{}", group, name, direction),
+        "id": expressions.part(quote!(::vooya::schema::Part::String(concat!(module_path!(), "::", stringify!(#ident), ":", #direction)))),
+        "identity": expressions.part(quote!(::vooya::schema::Part::String(concat!(module_path!(), "::", stringify!(#ident))))),
         "name": name,
         "group": group,
         "direction": direction,
@@ -972,6 +1002,9 @@ fn derive_struct_from(name: &syn::Ident, fields: Fields) -> syn::Result<proc_mac
     });
     Ok(quote! {
         impl ::vooya::FromJs for #name {
+            const __VOO_SCHEMA: ::vooya::schema::AbiType = ::vooya::schema::AbiType::Named {
+                identity: concat!(module_path!(), "::", stringify!(#name)), direction: "from",
+            };
             fn from_js(value: &::vooya::__private::wasm_bindgen::JsValue) -> Result<Self, ::vooya::__private::wasm_bindgen::JsValue> {
                 if !value.is_object() || value.is_null() || ::vooya::__private::js_sys::Array::is_array(value) { return Err(::vooya::abi_error("expected object")); }
                 Ok(Self { #(#values,)* })
@@ -994,6 +1027,9 @@ fn derive_struct_to(name: &syn::Ident, fields: Fields) -> syn::Result<proc_macro
     });
     Ok(quote! {
         impl ::vooya::ToJs for #name {
+            const __VOO_SCHEMA: ::vooya::schema::AbiType = ::vooya::schema::AbiType::Named {
+                identity: concat!(module_path!(), "::", stringify!(#name)), direction: "to",
+            };
             fn to_js(&self) -> Result<::vooya::__private::wasm_bindgen::JsValue, ::vooya::__private::wasm_bindgen::JsValue> {
                 let object = ::vooya::__private::js_sys::Object::new();
                 #(#values)*
@@ -1023,6 +1059,9 @@ fn derive_enum_from(
         .collect::<syn::Result<Vec<_>>>()?;
     Ok(quote! {
         impl ::vooya::FromJs for #name {
+            const __VOO_SCHEMA: ::vooya::schema::AbiType = ::vooya::schema::AbiType::Named {
+                identity: concat!(module_path!(), "::", stringify!(#name)), direction: "from",
+            };
             fn from_js(value: &::vooya::__private::wasm_bindgen::JsValue) -> Result<Self, ::vooya::__private::wasm_bindgen::JsValue> {
                 let tag = ::vooya::__private::js_sys::Reflect::get(value, &::vooya::__private::wasm_bindgen::JsValue::from_str("type")).map_err(|_| ::vooya::abi_error("could not read enum tag"))?.as_string().ok_or_else(|| ::vooya::abi_error("expected enum tag"))?;
                 match tag.as_str() { #(#arms)* _ => Err(::vooya::abi_error("unknown enum tag")) }
@@ -1051,6 +1090,9 @@ fn derive_enum_to(
         .collect::<syn::Result<Vec<_>>>()?;
     Ok(quote! {
         impl ::vooya::ToJs for #name {
+            const __VOO_SCHEMA: ::vooya::schema::AbiType = ::vooya::schema::AbiType::Named {
+                identity: concat!(module_path!(), "::", stringify!(#name)), direction: "to",
+            };
             fn to_js(&self) -> Result<::vooya::__private::wasm_bindgen::JsValue, ::vooya::__private::wasm_bindgen::JsValue> {
                 let object = ::vooya::__private::js_sys::Object::new();
                 let tag = match self { #(#arms)* };
@@ -1061,29 +1103,123 @@ fn derive_enum_to(
     })
 }
 
+#[derive(Default)]
+struct SchemaExpressions(Vec<proc_macro2::TokenStream>);
+impl SchemaExpressions {
+    fn part(&mut self, expression: proc_macro2::TokenStream) -> Value {
+        let index = self.0.len();
+        self.0.push(expression);
+        json!({ "$vooyaExpression": index })
+    }
+    fn ty(&mut self, ty: &Type, direction: AbiDirection, self_type: Option<&Type>) -> Value {
+        use syn::fold::Fold;
+        struct ResolveSelf<'a>(Option<&'a Type>);
+        impl Fold for ResolveSelf<'_> {
+            fn fold_type(&mut self, ty: Type) -> Type {
+                if let Type::Path(path) = &ty {
+                    if path.path.is_ident("Self") {
+                        if let Some(concrete) = self.0 {
+                            return concrete.clone();
+                        }
+                    }
+                }
+                syn::fold::fold_type(self, ty)
+            }
+        }
+        let ty = ResolveSelf(self_type).fold_type(ty.clone());
+        let conversion = match direction {
+            AbiDirection::From => quote!(::vooya::FromJs),
+            AbiDirection::To => quote!(::vooya::ToJs),
+        };
+        self.part(quote!(::vooya::schema::Part::Type(<#ty as #conversion>::__VOO_SCHEMA)))
+    }
+    fn parameters(
+        &mut self,
+        inputs: &Punctuated<FnArg, Token![,]>,
+        direction: AbiDirection,
+        self_type: Option<&Type>,
+    ) -> Vec<Value> {
+        inputs
+            .iter()
+            .filter_map(|argument| match argument {
+                FnArg::Typed(argument) => match argument.pat.as_ref() {
+                    Pat::Ident(ident) => Some(json!({
+                        "name": ident.ident.to_string(), "type": type_name(&argument.ty),
+                        "source": schema_source(argument.ty.span()),
+                        "abi": self.ty(&argument.ty, direction, self_type),
+                    })),
+                    _ => None,
+                },
+                _ => None,
+            })
+            .collect()
+    }
+}
+
 fn emit_schema<T: quote::ToTokens>(item: T, record: Value, role: &str) -> TokenStream {
-    let encoded = format!("{}\n", serde_json::to_string(&record).expect("schema JSON"));
-    let bytes = syn::LitByteStr::new(encoded.as_bytes(), proc_macro2::Span::call_site());
-    let length = encoded.len();
-    let item_name = match &record["id"] {
-        Value::String(value) => value,
-        _ => "item",
-    };
-    let static_name = format_ident!(
-        "__VOO_SCHEMA_V{}_{}_{}",
-        SCHEMA_VERSION,
-        role.to_uppercase(),
-        sanitize_ident(item_name),
-    );
+    emit_typed_schema(item, record, role, SchemaExpressions::default())
+}
+
+fn emit_typed_schema<T: quote::ToTokens>(
+    item: T,
+    record: Value,
+    _role: &str,
+    expressions: SchemaExpressions,
+) -> TokenStream {
+    fn append(
+        value: &Value,
+        expressions: &SchemaExpressions,
+        parts: &mut Vec<proc_macro2::TokenStream>,
+    ) {
+        let mut text = |text: &str| {
+            parts.push(quote!(::vooya::schema::Part::Json(#text)));
+        };
+        match value {
+            Value::Object(map) if map.len() == 1 && map.contains_key("$vooyaExpression") => {
+                parts.push(
+                    expressions.0[map["$vooyaExpression"]
+                        .as_u64()
+                        .expect("schema expression index")
+                        as usize]
+                        .clone(),
+                );
+            }
+            Value::Object(map) => {
+                text("{");
+                for (index, (key, value)) in map.iter().enumerate() {
+                    if index > 0 {
+                        parts.push(quote!(::vooya::schema::Part::Json(",")));
+                    }
+                    let prefix = format!("{}:", serde_json::to_string(key).expect("schema key"));
+                    parts.push(quote!(::vooya::schema::Part::Json(#prefix)));
+                    append(value, expressions, parts);
+                }
+                parts.push(quote!(::vooya::schema::Part::Json("}")));
+            }
+            Value::Array(items) => {
+                text("[");
+                for (index, value) in items.iter().enumerate() {
+                    if index > 0 {
+                        parts.push(quote!(::vooya::schema::Part::Json(",")));
+                    }
+                    append(value, expressions, parts);
+                }
+                parts.push(quote!(::vooya::schema::Part::Json("]")));
+            }
+            _ => text(&serde_json::to_string(value).expect("schema JSON")),
+        }
+    }
+    let mut parts = Vec::new();
+    append(&record, &expressions, &mut parts);
     quote! {
         #item
-
-        #[doc(hidden)]
-        #[used]
-        #[cfg_attr(target_arch = "wasm32", unsafe(link_section = "__voo_schema"))]
-        static #static_name: [u8; #length] = *#bytes;
-    }
-    .into()
+        const _: () = {
+            const PARTS: &[::vooya::schema::Part] = &[#(#parts),*];
+            #[used]
+            #[cfg_attr(target_arch = "wasm32", unsafe(link_section = "__voo_schema"))]
+            static SCHEMA: [u8; ::vooya::schema::encoded_len(PARTS)] = ::vooya::schema::encode(PARTS);
+        };
+    }.into()
 }
 
 fn parameters(inputs: &syn::punctuated::Punctuated<FnArg, syn::token::Comma>) -> Vec<Value> {
@@ -1129,6 +1265,30 @@ fn action_returns_result(output: &syn::ReturnType) -> bool {
                 && segments[2].ident == "Result"
         }
         _ => false,
+    }
+}
+
+// Unit actions keep their existing undefined result. Standard Result<T, E>
+// exports T and continues to propagate E through wasm-bindgen's error boundary.
+fn action_value_type(output: &syn::ReturnType) -> Option<Type> {
+    let syn::ReturnType::Type(_, ty) = output else {
+        return None;
+    };
+    let mut value = ty.as_ref();
+    if action_returns_result(output) {
+        if let Type::Path(path) = value {
+            if let syn::PathArguments::AngleBracketed(args) = &path.path.segments.last()?.arguments
+            {
+                if let Some(syn::GenericArgument::Type(success)) = args.args.first() {
+                    value = success;
+                }
+            }
+        }
+    }
+    if matches!(value, Type::Tuple(tuple) if tuple.elems.is_empty()) {
+        None
+    } else {
+        Some(value.clone())
     }
 }
 
@@ -1333,6 +1493,32 @@ mod tests {
     use syn::parse_quote;
 
     #[test]
+    fn action_values_preserve_success_types_and_unit_compatibility() {
+        use super::{action_value_type, type_name};
+        for output in [
+            syn::ReturnType::Default,
+            parse_quote!(-> ()),
+            parse_quote!(-> Result<(), JsValue>),
+        ] {
+            assert!(action_value_type(&output).is_none());
+        }
+        for output in [
+            parse_quote!(-> OutputAlias),
+            parse_quote!(-> std::result::Result<OutputAlias, JsValue>),
+            parse_quote!(-> ::core::result::Result<OutputAlias, JsValue>),
+        ] {
+            assert_eq!(
+                type_name(&action_value_type(&output).unwrap()),
+                "OutputAlias"
+            );
+        }
+        assert_eq!(
+            type_name(&action_value_type(&parse_quote!(-> domain::Result<u32>)).unwrap()),
+            "domain::Result<u32>"
+        );
+    }
+
+    #[test]
     fn recognizes_only_standard_action_result_paths() {
         for output in [
             parse_quote!(-> Result<(), JsValue>),
@@ -1344,7 +1530,7 @@ mod tests {
             assert!(action_returns_result(&output));
         }
         // This domain value has no Try implementation; the action must keep
-        // discarding it rather than generating a question-mark operator.
+        // serializing it as an ordinary value rather than using a question mark.
         assert!(!action_returns_result(
             &parse_quote!(-> domain::Result<u32>)
         ));

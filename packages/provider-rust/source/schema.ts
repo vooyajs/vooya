@@ -7,7 +7,16 @@
  */
 
 export const VOO_SCHEMA_SECTION = "__voo_schema";
-export const VOO_SCHEMA_VERSION = 1;
+export const VOO_SCHEMA_VERSION = 2;
+
+/** Compiler-resolved conversion graph. Identities are scoped to one artifact. */
+export type RustAbiType =
+  | { kind: "scalar"; name: string }
+  | { kind: "named"; identity: string; direction: "from" | "to" }
+  | { kind: "option" | "vec" | "map"; value: RustAbiType }
+  | { kind: "tuple"; items: RustAbiType[] }
+  | { kind: "opaque" }
+  | { kind: "unsupported"; reason: string };
 
 /** Optional source metadata added to schema v1; older producers omit it. */
 export interface RustSchemaSource {
@@ -19,6 +28,7 @@ export interface RustSchemaSource {
 export interface RustSchemaParameter {
   name: string;
   type: string;
+  abi?: RustAbiType;
   source?: RustSchemaSource;
 }
 
@@ -66,9 +76,10 @@ export interface RustStoreSchema {
   id: string;
   name: string;
   group?: string | null;
-  actions: Array<{ name: string; params: RustSchemaParameter[] }>;
+  actions: Array<{ name: string; params: RustSchemaParameter[]; result?: string | null; resultAbi?: RustAbiType | null; resultSource?: RustSchemaSource }>;
   snapshot?: string | null;
   snapshotSource?: RustSchemaSource;
+  snapshotAbi?: RustAbiType;
 }
 
 export interface RustTypeSchema {
@@ -78,6 +89,7 @@ export interface RustTypeSchema {
   name: string;
   group?: string | null;
   direction: "from" | "to";
+  identity?: string;
   shape: { kind: "struct"; fields: RustSchemaField[] } | { kind: "enum"; variants: string[] };
 }
 
@@ -89,7 +101,7 @@ export type RustSchemaRecord =
   | RustTypeSchema;
 
 export interface RustSchemaDocument {
-  version: typeof VOO_SCHEMA_VERSION;
+  version: 1 | typeof VOO_SCHEMA_VERSION;
   records: RustSchemaRecord[];
 }
 
@@ -125,6 +137,7 @@ export function readVooyaSchema(bytes: Uint8Array): RustSchemaDocument {
 
   const records: RustSchemaRecord[] = [];
   const seen = new Set<string>();
+  const conversions = new Set<string>();
   let offset = 8;
   while (offset < bytes.length) {
     const sectionOffset = offset;
@@ -140,14 +153,19 @@ export function readVooyaSchema(bytes: Uint8Array): RustSchemaDocument {
       const custom = readCustomSection(bytes.subarray(offset, end), sectionOffset);
       if (custom.name === VOO_SCHEMA_SECTION) {
         for (const record of parseRecords(custom.data, sectionOffset)) {
-          if (record.version !== VOO_SCHEMA_VERSION) {
+          if (record.version !== 1 && record.version !== VOO_SCHEMA_VERSION) {
             throw new RustSchemaError(
-              `schema record ${record.kind}:${record.id} uses version ${record.version}; expected ${VOO_SCHEMA_VERSION}.`,
+              `schema record ${record.kind}:${record.id} uses version ${record.version}; expected 1 or ${VOO_SCHEMA_VERSION}.`,
             );
           }
           const key = `${record.kind}:${record.id}`;
           if (seen.has(key)) throw new RustSchemaError(`duplicate schema record ${key}.`);
           seen.add(key);
+          if (record.kind === "type" && record.version === 2) {
+            const conversion = JSON.stringify([record.identity, record.direction]);
+            if (conversions.has(conversion)) throw new RustSchemaError(`duplicate schema record for conversion ${conversion}.`);
+            conversions.add(conversion);
+          }
           records.push(record);
         }
       }
@@ -155,7 +173,7 @@ export function readVooyaSchema(bytes: Uint8Array): RustSchemaDocument {
     offset = end;
   }
 
-  return { version: VOO_SCHEMA_VERSION, records };
+  return { version: records.some(record => record.version === 2) ? 2 : 1, records };
 }
 
 /** Groups records for declaration and adapter generation without guessing
@@ -225,6 +243,11 @@ export function buildRustComponentContracts(index: RustSchemaIndex): RustCompone
     if (eventReferences.length > 1) {
       throw new RustSchemaError(`component ${component.id} references multiple events schemas.`);
     }
+    for (const role of [...propReferences, ...eventReferences]) {
+      if (component.version === 2 && role.version !== 2) {
+        throw new RustSchemaError(`component ${component.id} is version 2 but ${role.kind} ${role.id} is version ${role.version}.`);
+      }
+    }
     return {
       component,
       ...(propReferences[0] ? { props: propReferences[0] } : {}),
@@ -276,6 +299,9 @@ function parseRecord(text: string, sectionOffset: number, index: number): RustSc
       }
     }
   }
+  if (value && typeof value === "object" && "version" in value && typeof value.version === "number" && ![1, 2].includes(value.version)) {
+    throw new RustSchemaError(`schema record uses version ${value.version}; expected 1 or ${VOO_SCHEMA_VERSION}.`);
+  }
   if (!isRecord(value)) throw new RustSchemaError(`schema custom section at byte ${sectionOffset}, record ${index + 1}, is not a supported record.`);
   return value;
 }
@@ -287,12 +313,37 @@ function isRecord(value: unknown): value is RustSchemaRecord {
   if (record.group !== undefined && record.group !== null && typeof record.group !== "string") return false;
   if (record.kind === "component" && record.return !== undefined && typeof record.return !== "string") return false;
   if (record.kind === "component" && record.styles !== undefined && !isStyles(record.styles)) return false;
+  if (record.version === 2 && !hasResolvedAbi(record)) return false;
   if (record.kind === "props") return isParameters(record.fields);
   if (record.kind === "events") return isMethods(record.methods);
   if (record.kind === "component") return isParameters(record.params);
-  if (record.kind === "store") return (record.snapshotSource === undefined || isSchemaSource(record.snapshotSource)) && isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
+  if (record.kind === "store") return (record.snapshotSource === undefined || isSchemaSource(record.snapshotSource)) && isActions(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
   if (record.kind === "type") return (record.direction === "from" || record.direction === "to") && isTypeShape(record.shape);
   return false;
+}
+
+function hasResolvedAbi(record: Record<string, unknown>): boolean {
+  const parameters = (value: unknown) => isParameters(value) && value.every(item => isAbiType(item.abi));
+  const methods = (value: unknown) => isMethods(value) && value.every(method => parameters(method.params));
+  if (record.kind === "props") return parameters(record.fields);
+  if (record.kind === "events") return methods(record.methods);
+  if (record.kind === "store") return methods(record.actions) && (record.snapshot == null || isAbiType(record.snapshotAbi));
+  if (record.kind === "type") {
+    if (typeof record.identity !== "string" || !record.identity || !isTypeShape(record.shape)) return false;
+    return record.shape.kind !== "struct" || parameters(record.shape.fields);
+  }
+  return true;
+}
+
+function isAbiType(value: unknown, depth = 0): value is RustAbiType {
+  if (depth > 128 || !value || typeof value !== "object" || Array.isArray(value)) return false;
+  const type = value as Record<string, unknown>;
+  if (type.kind === "scalar") return typeof type.name === "string" && /^(?:i8|u8|i16|u16|i32|u32|isize|usize|i64|u64|i128|u128|f32|f64|bool|String)$/.test(type.name);
+  if (type.kind === "named") return typeof type.identity === "string" && type.identity.length > 0 && (type.direction === "from" || type.direction === "to");
+  if (type.kind === "option" || type.kind === "vec" || type.kind === "map") return isAbiType(type.value, depth + 1);
+  if (type.kind === "tuple") return Array.isArray(type.items) && type.items.length >= 2 && type.items.length <= 4 && type.items.every(item => isAbiType(item, depth + 1));
+  if (type.kind === "unsupported") return typeof type.reason === "string";
+  return type.kind === "opaque";
 }
 
 function isTypeShape(value: unknown): value is RustTypeSchema["shape"] {
@@ -320,6 +371,15 @@ function isSchemaSource(value: unknown): value is RustSchemaSource {
 
 function isParameters(value: unknown): value is RustSchemaParameter[] {
   return Array.isArray(value) && value.every((item) => isParameter(item));
+}
+
+function isActions(value: unknown): boolean {
+  return isMethods(value) && value.every(method => {
+    const action = method as unknown as Record<string, unknown>;
+    return (action.result == null || (typeof action.result === "string" && !!action.result && isAbiType(action.resultAbi)))
+      && (action.resultAbi == null || (typeof action.result === "string" && isAbiType(action.resultAbi)))
+      && (action.resultSource === undefined || isSchemaSource(action.resultSource));
+  });
 }
 
 function isMethods(value: unknown): value is Array<{ name: string; params: RustSchemaParameter[] }> {
