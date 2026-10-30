@@ -60,6 +60,21 @@ try {
     return true;
   });
   assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
+  for (const signature of ["pub async fn work(&mut self) -> u32 { 1 }", "pub fn work<T>(&mut self) -> u32 { 1 }"]) {
+    writeFileSync(file, valid.replace("    #[voo::snapshot]", `    #[voo::action]\n    ${signature}\n    #[voo::snapshot]`));
+    let actionDiagnostics = "";
+    const originalStderr = process.stderr.write;
+    process.stderr.write = function(chunk, ...args) {
+      actionDiagnostics += String(chunk);
+      return originalStderr.call(this, chunk, ...args);
+    };
+    try {
+      assert.throws(() => buildApplication(options), error => error.kind === "cargo-build");
+    } finally { process.stderr.write = originalStderr; }
+    assert.match(actionDiagnostics, /Store actions must be synchronous and non-generic/);
+    assert.ok(actionDiagnostics.includes(`${file}:12:`));
+    assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
+  }
   writeFileSync(file, valid.replace("Vec<String>", "&'static str").replace("history: vec![]", 'history: "borrowed"'));
   assert.throws(() => buildApplication(options), error => {
     assert.equal(error.kind, "snapshot-schema");

@@ -7,6 +7,15 @@ Component authors manage their own JS/WASM packages and npm publication. This
 source change does not alter previously published packages; see the
 [retirement record](../rfcs/0006-precompiled-vue-artifacts.md).
 
+## Unreleased source batch
+
+Current source adds [compiler-resolved conversion identities](../contribute/rust-schema.md),
+[typed synchronous Store results](../concepts/store.md#contract), and opt-in
+[independent Rust/WASM artifacts](../guide/isolated-artifacts.md) through Vite.
+These capabilities require matching source-built core/provider packages and are
+not in the registry versions below. Other bundlers retain the single-artifact
+contract. The batch does not add async actions or typed Store domain events.
+
 ## Opt-in 0.2 alpha
 
 The [2026-10-27 alpha release](https://github.com/vooyajs/vooya/actions/runs/40387724087) publishes eleven updated packages:
@@ -155,10 +164,9 @@ See [the release guide](../maintainers/releases.md).
   Turbopack, and other bundlers remain unsupported.
 - The newer Vite+ four-framework dev/build matrix runs against current-source
   tarballs. It does not expand the published beta claim or cover every Vite+ tool.
-- Rust provider extraction preserves one application-local aggregate WASM artifact.
-  Lazy isolated artifacts for independent authored roots, including per-group
-  rebuild and payload evidence, remain separate work in
-  [Issue #106](https://github.com/vooyajs/vooya/issues/106).
+- Published packages produce one application-local aggregate WASM artifact.
+  Unreleased source adds opt-in [isolated artifacts](../guide/isolated-artifacts.md)
+  through Vite, with independent builds and lazy-loading acceptance.
 - Turbopack has no compatibility claim. Its loader API evidence and unverified integration requirements are
   recorded in [Turbopack research](turbopack-research.md); Webpack and Rspack
   evidence must not be generalized to Turbopack.

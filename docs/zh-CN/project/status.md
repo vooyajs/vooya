@@ -4,6 +4,14 @@
 构建、框架适配及固定工具链 preset 保留。组件作者自行组织 JS/WASM wrapper 和 npm
 元数据。源码变更不改变历史发布版本，详见[退役记录](../../rfcs/0006-precompiled-vue-artifacts.md)。
 
+## 尚未发布的源码批次
+
+当前源码增加[编译器解析的类型身份](../../contribute/rust-schema.md)、
+[同步 Store action 返回值](../concepts/store.md)和 Vite 的
+[独立 Rust/WASM 产物](../guide/isolated-artifacts.md)。需要配套构建 core/provider，
+不包含在下列 registry 版本中。其他 bundler 仍使用单产物契约；本批不增加异步 action
+或类型化 Store domain event。
+
 ## 可选的 0.2 Alpha
 
 [2026-10-27 Alpha 发布](https://github.com/vooyajs/vooya/actions/runs/40387724087)更新了 11 个包：
