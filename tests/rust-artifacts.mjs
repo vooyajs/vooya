@@ -4,6 +4,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFi
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripVTControlCharacters } from "node:util";
 import { chromium } from "playwright";
 import { startDevServer, stopDevServer } from "./helpers/dev-server.mjs";
 
@@ -134,12 +135,15 @@ function run(command, args, cwd) {
 }
 async function start(args) {
   output = "";
-  server = startDevServer(process.execPath, args, {cwd:project, env:{...process.env, FORCE_COLOR:"0"}});
+  server = startDevServer(process.execPath, args, {cwd:project, env:{...process.env, FORCE_COLOR:"1"}});
   server.stdout.on("data", data => output += data);
   server.stderr.on("data", data => output += data);
-  await wait(() => /http:\/\/127\.0\.0\.1:\d+/.test(output));
+  await wait(() => /http:\/\/127\.0\.0\.1:\d+/.test(stripVTControlCharacters(output)));
 }
-function url() { return output.match(/http:\/\/127\.0\.0\.1:\d+/)[0]; }
+// Vite colors the port separately in CI. Strip complete output so split ANSI
+// sequences across stdout chunks cannot hide a ready server. Force color above
+// to exercise the same parsing path during local acceptance.
+function url() { return stripVTControlCharacters(output).match(/http:\/\/127\.0\.0\.1:\d+/)[0]; }
 async function state(page, expected) {
   try { await page.waitForFunction(value => document.querySelector("#state")?.textContent === value, expected, {timeout:30000}); }
   catch (cause) { throw new Error(`Expected ${expected}; page: ${await page.locator("body").innerText()}\n${output}`, {cause}); }
