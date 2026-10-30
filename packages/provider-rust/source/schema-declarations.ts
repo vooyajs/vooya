@@ -24,6 +24,12 @@ export type SchemaDeclarationFramework = "vue" | "react" | "solid" | "svelte" | 
  * every framework declaration exposes the same union. */
 const ERROR_STAGE_UNION = '"load" | "mount" | "update" | "dispose"';
 
+// Generated imports and container helpers must not be shadowed by authored types.
+const DECLARATION_HELPERS = [
+  "Array", "Record", "Promise", "Ref", "Accessor", "Readable", "VooyaStoreOptions",
+  "Component", "ComponentType", "DefineComponent", "ComponentOptionsMixin",
+];
+
 export interface RustSchemaDeclarationInput {
   contract: RustComponentContract;
   framework: SchemaDeclarationFramework;
@@ -37,7 +43,7 @@ export function generateRustSchemaDeclaration({ contract, framework, types = [] 
   const ownerGroup = props?.group ?? events?.group ?? component.group;
   const graph = component.version === 2 ? generateResolvedTypes(types, [
     ...(props?.fields ?? []), ...(events?.methods.flatMap(method => method.params) ?? []),
-  ].map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })), undefined, [`${component.name}Props`, `${component.name}Events`]) : undefined;
+  ].map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })), undefined, [...DECLARATION_HELPERS, `${component.name}Props`, `${component.name}Events`]) : undefined;
   const { code: typeCode, names } = graph ? { code: graph.code, names: graphNames(graph) } : generateTypes(types, referencedTypeNames(contract), component.id, ownerGroup);
   const propsCode = props ? generateProps(props, component.name, names.forGroup(props.group ?? component.group)) : `interface ${component.name}Props {}`;
   const eventsCode = events ? generateEvents(events, component.name, names.forGroup(events.group ?? component.group)) : `type ${component.name}Events = ["error"];`;
@@ -306,7 +312,7 @@ export function generateRustStoreDeclaration(
     ...store.actions.flatMap(action => action.params).map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })),
   ], { abi: snapshotAbi, path: store.snapshot ?? store.name, source: store.snapshotSource,
     error: (path, reason, source) => new RustSnapshotSchemaError(store.id, path, reason, source),
-  }, [], store.actions.filter(action => action.result).map(action => ({
+  }, [...DECLARATION_HELPERS, `${name}Store`], store.actions.filter(action => action.result).map(action => ({
     abi: requiredAbi(action.resultAbi ?? undefined), path: action.name, source: action.resultSource,
     error: (path, reason, source) => new RustActionResultSchemaError(store.id, path, reason, source),
   }))) : undefined;

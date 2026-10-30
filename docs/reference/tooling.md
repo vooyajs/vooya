@@ -77,7 +77,7 @@ manifest's `web-sys` dependency. Supplying the option explicitly takes priority.
 | Parameter | Type / values | Default | Purpose | Limit / evidence |
 | --- | --- | --- | --- | --- |
 | `framework` | `"vue" \| "react" \| "solid" \| "svelte"` | `"vue"` | Selects the host adapter | Vue 3 and React 19 are supported; Solid 1.9 and Svelte 5 have experimental Vite 7 evidence; it does not change the Rust ABI |
-| `rust.artifacts` | `Record<string, RustBuildOptions>` | Unset | Opt-in independent Cargo/WASM units, consumed by Vite | Unreleased; each unit requires a non-overlapping sourceRoot; see [isolated artifacts](../guide/isolated-artifacts.md) |
+| `rust.artifacts` | `Record<string, Omit<RustBuildOptions, "artifacts">>` | Unset | Opt-in independent Cargo/WASM units, consumed by Vite | Unreleased; each unit requires a non-overlapping sourceRoot; see [isolated artifacts](../guide/isolated-artifacts.md) |
 | `rust.sourceRoot` | `string` | `"src"` | Selects the Rust source directory relative to the application root | Dot-segment roots such as `"."` and `"rust/."` have a known beta defect; alpha.0 includes the fix; the beta fix remains a [backport candidate](../maintainers/release-lines.md#maintenance-backport-candidates) |
 | `rust.entry` | `string` | Unset; generate a module root | Selects an authored crate entry relative to the application root | An authored entry must be configured explicitly |
 | `rust.files` | `string[]` | `[]` | Adds Rust input files relative to the application root | These join the files discovered under `sourceRoot` |

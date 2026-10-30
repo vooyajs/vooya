@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { startDevServer, stopDevServer } from "./helpers/dev-server.mjs";
 
+const viteMajor = process.argv[2] ?? "7";
+assert.ok(["7", "8"].includes(viteMajor), "expected Vite major 7 or 8");
 const repository = fileURLToPath(new URL("..", import.meta.url));
 const root = mkdtempSync(resolve(tmpdir(), "vooya-isolated-artifacts-"));
 const project = resolve(root, "app");
@@ -23,7 +26,7 @@ try {
     return resolve(packages, JSON.parse(packed.stdout)[0].filename);
   });
   cpSync(resolve(repository, "tests/fixtures/rust-artifacts"), project, {recursive: true, filter: path => !/(?:^|[/\\])(?:node_modules|dist|\.vooya)(?:[/\\]|$)/.test(path)});
-  run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...tarballs], project);
+  run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...tarballs, `vite@^${viteMajor}.0.0`], project);
   run("npm", ["run", "build"], project);
   run("npm", ["run", "typecheck"], project);
   const manifest = JSON.parse(readFileSync(resolve(project, "dist/vooya-artifacts.json"), "utf8"));
@@ -118,7 +121,7 @@ try {
   await state(dev, "heavy:0:0:1");
   await dev.getByRole("button", {name:"Add", exact:true}).click();
   await state(dev, "heavy:1:1:1");
-  console.log("Verified packed isolated Rust artifacts: lazy fetch/initialization, independent types/Cargo, lifecycle, targeted rebuilds, diagnostics and recovery.");
+  console.log(`Verified packed isolated Rust artifacts on Vite ${viteMajor}: lazy fetch/initialization, independent types/Cargo, lifecycle, targeted rebuilds, diagnostics and recovery.`);
 } finally {
   await browser?.close();
   await stop();
@@ -131,7 +134,7 @@ function run(command, args, cwd) {
 }
 async function start(args) {
   output = "";
-  server = spawn(process.execPath, args, {cwd:project, env:{...process.env, FORCE_COLOR:"0"}});
+  server = startDevServer(process.execPath, args, {cwd:project, env:{...process.env, FORCE_COLOR:"0"}});
   server.stdout.on("data", data => output += data);
   server.stderr.on("data", data => output += data);
   await wait(() => /http:\/\/127\.0\.0\.1:\d+/.test(output));
@@ -151,12 +154,7 @@ async function wait(check) {
   throw new Error(`Timed out:\n${output}`);
 }
 async function stop() {
-  if (!server || server.exitCode !== null) return;
   const current = server;
-  await new Promise(resolve => {
-    const timeout = setTimeout(() => current.kill("SIGKILL"), 5000);
-    current.once("exit", () => { clearTimeout(timeout); resolve(); });
-    current.kill("SIGTERM");
-  });
   server = undefined;
+  await stopDevServer(current);
 }

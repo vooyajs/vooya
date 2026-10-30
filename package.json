@@ -93,7 +93,7 @@
     "typecheck:test-helpers": "tsc -p tests/tsconfig.helpers.json",
     "build:experimental": "npm run build --workspace @vooya/octane",
     "test:vite": "npm test --workspace @vooya/vite",
-    "test:rust-artifacts": "node tests/rust-artifacts.mjs"
+    "test:rust-artifacts": "node tests/rust-artifacts.mjs 7 && node tests/rust-artifacts.mjs 8"
   },
   "devDependencies": {
     "@changesets/apply-release-plan": "8.1.1",

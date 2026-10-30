@@ -80,7 +80,7 @@ Use this together with browser request records to detect payload regressions;
 raw WASM size alone is not a startup-time benchmark.
 
 `npm run test:rust-artifacts` installs fresh package tarballs and checks a light
-Store and a Bevy ECS Store: strict generated types, independent Cargo inputs,
+Store and a Bevy ECS Store on Vite 7 and 8: strict generated types, independent Cargo inputs,
 production lazy requests and initialization, route disposal/remount, development
 rebuild isolation, authored diagnostics and recovery. This does not establish a
 published precompiled component format or multi-artifact support in other

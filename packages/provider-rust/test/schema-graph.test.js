@@ -171,3 +171,26 @@ test("reader rejects malformed action result metadata while reading legacy void 
   }
   assert.throws(() => readVooyaSchema(wasm([{ ...store(scalar("u32")), actions: [{ name: "bad", params: [], resultAbi: scalar("u32") }] }])), /not a supported record/);
 });
+
+test("resolved payload names cannot merge with Store interfaces or shadow declaration helpers", () => {
+  const names = ["ReplayStore", "Ref", "Accessor", "Readable", "VooyaStoreOptions", "Array", "Record", "Promise"];
+  const types = names.map(name => type(`app::${name}`, [field("values", { kind: "vec", value: scalar("u32") })], "to"));
+  const input = store(scalar("u32"));
+  input.actions = names.map((name, index) => ({ name: `result${index}`, params: [], result: name, resultAbi: named(`app::${name}`, "to") }));
+  for (const framework of frameworks) {
+    const code = generateRustStoreDeclaration(input, framework, types);
+    assert.equal((code.match(/export interface ReplayStore /g) ?? []).length, 1);
+    for (const [index, name] of names.entries()) {
+      assert.match(code, new RegExp(`result${index}\\(\\.\\.\\.args: \\[\\]\\): App${name}`));
+      assert.match(code, new RegExp(`export interface App${name}`));
+    }
+  }
+  for (const name of ["Component", "ComponentType", "DefineComponent", "ComponentOptionsMixin", "Array", "Record"]) {
+    for (const framework of frameworks) {
+      const code = generateRustSchemaDeclaration({ contract: contract([field("value", named(`app::${name}`))]), framework,
+        types: [type(`app::${name}`, [field("count", scalar("u32"))])] });
+      assert.match(code, /value: App/);
+      assert.doesNotMatch(code, new RegExp(`export interface ${name} `));
+    }
+  }
+});

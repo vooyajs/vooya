@@ -56,5 +56,5 @@ async function openSimulation() {
 
 生产输出 `vooya-artifacts.json`，记录每个 WASM 的原始字节数、输出文件、所属 chunk，
 以及静态/动态导入关系。结合浏览器网络记录检查体积退化，不将字节数当成性能结论。
-`npm run test:rust-artifacts` 从干净 tarball 安装验证轻 Store 和 Bevy ECS Store 的类型、
+`npm run test:rust-artifacts` 在 Vite 7/8 上从干净 tarball 安装，验证轻 Store 和 Bevy ECS Store 的类型、
 加载/初始化、销毁重建、独立开发重建与失败恢复。这不定义新的预编译组件包格式。
