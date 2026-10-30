@@ -48,6 +48,18 @@ try {
   // Only successfully committed WASM/metadata are protected, not the generated
   // Cargo inputs and target cache which naturally change during a failed build.
   const before = { ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) };
+  const borrowedAction = valid.replace("    #[voo::snapshot]", `    #[voo::action]
+    pub fn borrowed(&mut self) -> &'static str { "borrowed" }
+    #[voo::snapshot]`);
+  writeFileSync(file, borrowedAction);
+  assert.throws(() => buildApplication(options), error => {
+    assert.equal(error.kind, "action-result-schema");
+    assert.equal(error.source.file, file);
+    assert.equal(error.source.line, 12);
+    assert.match(error.message, /action result borrowed.*Unsupported Rust schema type/);
+    return true;
+  });
+  assert.deepEqual({ ...filesIn(join(output, "wasm")), metadata: hash(readFileSync(join(output, "metadata.json"))) }, before);
   writeFileSync(file, valid.replace("Vec<String>", "&'static str").replace("history: vec![]", 'history: "borrowed"'));
   assert.throws(() => buildApplication(options), error => {
     assert.equal(error.kind, "snapshot-schema");

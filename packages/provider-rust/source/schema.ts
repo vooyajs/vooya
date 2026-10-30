@@ -76,7 +76,7 @@ export interface RustStoreSchema {
   id: string;
   name: string;
   group?: string | null;
-  actions: Array<{ name: string; params: RustSchemaParameter[] }>;
+  actions: Array<{ name: string; params: RustSchemaParameter[]; result?: string | null; resultAbi?: RustAbiType | null; resultSource?: RustSchemaSource }>;
   snapshot?: string | null;
   snapshotSource?: RustSchemaSource;
   snapshotAbi?: RustAbiType;
@@ -312,7 +312,7 @@ function isRecord(value: unknown): value is RustSchemaRecord {
   if (record.kind === "props") return isParameters(record.fields);
   if (record.kind === "events") return isMethods(record.methods);
   if (record.kind === "component") return isParameters(record.params);
-  if (record.kind === "store") return (record.snapshotSource === undefined || isSchemaSource(record.snapshotSource)) && isMethods(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
+  if (record.kind === "store") return (record.snapshotSource === undefined || isSchemaSource(record.snapshotSource)) && isActions(record.actions) && (record.snapshot === undefined || record.snapshot === null || typeof record.snapshot === "string");
   if (record.kind === "type") return (record.direction === "from" || record.direction === "to") && isTypeShape(record.shape);
   return false;
 }
@@ -366,6 +366,15 @@ function isSchemaSource(value: unknown): value is RustSchemaSource {
 
 function isParameters(value: unknown): value is RustSchemaParameter[] {
   return Array.isArray(value) && value.every((item) => isParameter(item));
+}
+
+function isActions(value: unknown): boolean {
+  return isMethods(value) && value.every(method => {
+    const action = method as unknown as Record<string, unknown>;
+    return (action.result == null || (typeof action.result === "string" && !!action.result && isAbiType(action.resultAbi)))
+      && (action.resultAbi == null || (typeof action.result === "string" && isAbiType(action.resultAbi)))
+      && (action.resultSource === undefined || isSchemaSource(action.resultSource));
+  });
 }
 
 function isMethods(value: unknown): value is Array<{ name: string; params: RustSchemaParameter[] }> {

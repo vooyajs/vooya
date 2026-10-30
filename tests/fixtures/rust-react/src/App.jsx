@@ -1,9 +1,10 @@
+import { checkActionResults } from "./action-results";
 import Counter from "./Counter.rs";
 import { createCartStore, useCart } from "./Store.rs";
 import { useMemo, useState } from "react";
 
 export function App() {
-  const { state, add } = useCart();
+  const { state, add, receipt } = useCart();
   const [selected, setSelected] = useState(null);
   const [actionResult, setActionResult] = useState(null);
   async function checkDisposalFromListener() {
@@ -47,6 +48,8 @@ export function App() {
       <button className="store-add" onClick={() => add(1)}>Store {count} / {itemCount}</button>
       <button onClick={checkActionErrors}>Check action errors</button>
       <button onClick={checkDisposalFromListener}>Check listener disposal</button>
+      <button onClick={async () => setActionResult(await checkActionResults())}>Check action results</button>
+      <button onClick={() => setActionResult(JSON.stringify(receipt(0, false)))}>Check hook result</button>
       <output data-testid="action-result">{actionResult}</output>
     </main>
   );

@@ -10,6 +10,14 @@ export class RustSnapshotSchemaError extends VooyaUserError {
   }
 }
 
+/** An invalid action output must identify the authored Rust return type. */
+export class RustActionResultSchemaError extends VooyaUserError {
+  constructor(readonly storeId: string, readonly fieldPath: string, readonly reason: string, readonly source?: RustSchemaSource) {
+    const location = source ? `${source.file}${source.line ? `:${source.line}` : ""}: ` : "";
+    super(`${location}Cannot generate Store action result ${fieldPath} for ${storeId}: ${reason} Use supported owned ABI-v1 return values.`, { kind: "action-result-schema" });
+  }
+}
+
 export type SchemaDeclarationFramework = "vue" | "react" | "solid" | "svelte" | "octane";
 
 /** The four lifecycle error stages the runtime can emit; kept in one place so
@@ -288,16 +296,20 @@ export function generateRustStoreDeclaration(
 ): string {
   const name = store.name.split("::").at(-1) ?? store.name;
   const required = new Set<string>();
-  for (const type of [store.snapshot, ...store.actions.flatMap((action) => action.params.map((parameter) => parameter.type))]) {
+  for (const type of [store.snapshot, ...store.actions.flatMap((action) => [action.result, ...action.params.map((parameter) => parameter.type)])]) {
     if (type) for (const referenced of referencedTypeNamesFromType(type)) required.add(referenced);
   }
   const snapshotAbi = store.version === 2 ? store.snapshot ? requiredAbi(store.snapshotAbi) : { kind: "opaque" } as const : undefined;
   const graph = snapshotAbi ? generateResolvedTypes(types, [
     { abi: snapshotAbi, path: store.snapshot ?? store.name, source: store.snapshotSource },
+    ...store.actions.filter(action => action.result).map(action => ({ abi: requiredAbi(action.resultAbi ?? undefined), path: action.name, source: action.resultSource })),
     ...store.actions.flatMap(action => action.params).map(parameter => ({ abi: requiredAbi(parameter.abi), path: parameter.name, source: parameter.source })),
   ], { abi: snapshotAbi, path: store.snapshot ?? store.name, source: store.snapshotSource,
     error: (path, reason, source) => new RustSnapshotSchemaError(store.id, path, reason, source),
-  }) : undefined;
+  }, [], store.actions.filter(action => action.result).map(action => ({
+    abi: requiredAbi(action.resultAbi ?? undefined), path: action.name, source: action.resultSource,
+    error: (path, reason, source) => new RustActionResultSchemaError(store.id, path, reason, source),
+  }))) : undefined;
   const { code: typeCode, names, opaqueSnapshot } = graph
     ? { code: graph.code, names: graphNames(graph), opaqueSnapshot: graph.opaqueSnapshot }
     : generateTypes(types, [...required].map((reference) => ({ reference, group: store.group })), store.id, store.group, store);
@@ -308,10 +320,10 @@ export function generateRustStoreDeclaration(
     throw new Error(`Rust type "${name}Snapshot" conflicts with the generated snapshot alias for ${store.id}.`);
   }
   const actions = store.actions
-    .map((action) => `  ${action.name}(...args: [${action.params.map((parameter) => parameterType(parameter, names)).join(", ")}]): void;`)
+    .map((action) => `  ${action.name}(...args: [${action.params.map((parameter) => parameterType(parameter, names)).join(", ")}]): ${action.result ? graph ? graph.render(requiredAbi(action.resultAbi ?? undefined)) : declarationType(action.result, names) : "void"};`)
     .join("\n");
   const hookActions = store.actions
-    .map((action) => `  ${action.name}(...args: [${action.params.map((parameter) => parameterType(parameter, names)).join(", ")}]): void;`)
+    .map((action) => `  ${action.name}(...args: [${action.params.map((parameter) => parameterType(parameter, names)).join(", ")}]): ${action.result ? graph ? graph.render(requiredAbi(action.resultAbi ?? undefined)) : declarationType(action.result, names) : "void"}${action.result && (framework === "react" || framework === "solid" || framework === "octane") ? " | undefined" : ""};`)
     .join("\n");
   const adapterImport = framework === "vue"
     ? `import type { Ref } from "vue";\nimport type { VooyaStoreOptions } from "@vooya/vue";\n\n`

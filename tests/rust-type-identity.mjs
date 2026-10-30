@@ -81,6 +81,10 @@ pub struct Workflow;
 impl Workflow {
     #[voo::action]
     pub fn replace(&mut self, value: ActionAlias) { let _ = value; }
+    #[voo::action]
+    pub fn result(&mut self) -> Result<SnapshotAlias, wasm_bindgen::JsValue> { Ok(ImportedState { count: 2 }) }
+    #[voo::action]
+    pub fn count(&mut self) -> u64 { 42 }
     #[voo::snapshot]
     pub fn snapshot(&self) -> SnapshotAlias { ImportedState { count: 1 } }
 }
@@ -103,6 +107,8 @@ impl Workflow {
     const storeCode = result.declarations.find(declaration => declaration.code.includes("createWorkflowStore")).code;
     assert.match(storeCode, /WorkflowSnapshot = State/);
     assert.match(storeCode, /replace\(\.\.\.args: \[State \| null\]\): void/);
+    assert.match(storeCode, /result\(\.\.\.args: \[\]\): State/);
+    assert.match(storeCode, /count\(\.\.\.args: \[\]\): bigint/);
     assert.equal((storeCode.match(/export interface State /g) ?? []).length, 1);
     assert.doesNotMatch(storeCode, /Selection|SnapshotAlias|ActionAlias/);
     assert.match(code, /imported: LeftSelection/);

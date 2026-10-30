@@ -2,17 +2,16 @@
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::{
-    braced,
-    parse::{Parse, ParseStream, Parser},
-    Token,
+    Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn, ItemImpl, ItemStruct,
+    ItemTrait, Lit, LitStr, MetaNameValue, Pat, TraitItem, Type, parse_macro_input,
 };
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Expr, Fields, FnArg, ImplItem, ItemFn,
-    ItemImpl, ItemStruct, ItemTrait, Lit, LitStr, MetaNameValue, Pat, TraitItem, Type,
+    Token, braced,
+    parse::{Parse, ParseStream, Parser},
 };
 
 const SCHEMA_VERSION: u32 = 2;
@@ -255,6 +254,12 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             _ => None,
         })
         .collect::<Vec<_>>();
+    for method in &action_methods {
+        if method.sig.asyncness.is_some() || !method.sig.generics.params.is_empty() {
+            return syn::Error::new_spanned(&method.sig, "Store actions must be synchronous and non-generic; return supported owned ABI values")
+                .into_compile_error().into();
+        }
+    }
     let mut expressions = SchemaExpressions::default();
     let actions = action_methods
         .iter()
@@ -262,6 +267,9 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             json!({
                 "name": method.sig.ident.to_string(),
                 "params": expressions.parameters(&method.sig.inputs, AbiDirection::From, Some(&store_type)),
+                "result": action_value_type(&method.sig.output).map(|ty| type_name(&ty)),
+                "resultAbi": action_value_type(&method.sig.output).map(|ty| expressions.ty(&ty, AbiDirection::To, Some(&store_type))),
+                "resultSource": schema_source(method.sig.output.span()),
             })
         })
         .collect::<Vec<_>>();
@@ -337,19 +345,19 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
             call_parameters.push(quote! { #parameter_name });
         }
         let returns_result = action_returns_result(&method.sig.output);
-        let invoke = if returns_result {
-            quote! { state.#method_name(#(#call_parameters),*)?; ::core::result::Result::<(), ::vooya::__private::wasm_bindgen::JsValue>::Ok(()) }
-        } else {
-            quote! { let _ = state.#method_name(#(#call_parameters),*); }
-        };
         let dispatch = if returns_result {
-            quote! { __voo_store.dispatch(|state| { #invoke })?; }
+            quote! { let __voo_result = __voo_store.dispatch(|state| state.#method_name(#(#call_parameters),*))?; }
         } else {
-            quote! { __voo_store.dispatch(|state| { #invoke }); }
+            quote! { let __voo_result = __voo_store.dispatch(|state| state.#method_name(#(#call_parameters),*)); }
+        };
+        let encode = if action_value_type(&method.sig.output).is_some() {
+            quote! { ::vooya::ToJs::to_js(&__voo_result) }
+        } else {
+            quote! { ::core::result::Result::Ok(::vooya::__private::wasm_bindgen::JsValue::UNDEFINED) }
         };
         quote! {
             #[::vooya::__private::wasm_bindgen::prelude::wasm_bindgen]
-            pub fn #export_name(handle: u32, #(#js_parameters),*) -> ::core::result::Result<(), ::vooya::__private::wasm_bindgen::JsValue> {
+            pub fn #export_name(handle: u32, #(#js_parameters),*) -> ::core::result::Result<::vooya::__private::wasm_bindgen::JsValue, ::vooya::__private::wasm_bindgen::JsValue> {
                 #(#decoded_parameters)*
                 let __voo_store = #handles_name.with(|handles| {
                     let handles = handles.borrow();
@@ -359,7 +367,7 @@ pub fn store(attribute: TokenStream, input: TokenStream) -> TokenStream {
                     ::core::result::Result::Ok(existing.store.clone())
                 })?;
                 #dispatch
-                ::core::result::Result::Ok(())
+                #encode
             }
         }
     });
@@ -1260,6 +1268,30 @@ fn action_returns_result(output: &syn::ReturnType) -> bool {
     }
 }
 
+// Unit actions keep their existing undefined result. Standard Result<T, E>
+// exports T and continues to propagate E through wasm-bindgen's error boundary.
+fn action_value_type(output: &syn::ReturnType) -> Option<Type> {
+    let syn::ReturnType::Type(_, ty) = output else {
+        return None;
+    };
+    let mut value = ty.as_ref();
+    if action_returns_result(output) {
+        if let Type::Path(path) = value {
+            if let syn::PathArguments::AngleBracketed(args) = &path.path.segments.last()?.arguments
+            {
+                if let Some(syn::GenericArgument::Type(success)) = args.args.first() {
+                    value = success;
+                }
+            }
+        }
+    }
+    if matches!(value, Type::Tuple(tuple) if tuple.elems.is_empty()) {
+        None
+    } else {
+        Some(value.clone())
+    }
+}
+
 fn return_type(output: &syn::ReturnType) -> String {
     match output {
         syn::ReturnType::Default => "()".to_owned(),
@@ -1461,6 +1493,32 @@ mod tests {
     use syn::parse_quote;
 
     #[test]
+    fn action_values_preserve_success_types_and_unit_compatibility() {
+        use super::{action_value_type, type_name};
+        for output in [
+            syn::ReturnType::Default,
+            parse_quote!(-> ()),
+            parse_quote!(-> Result<(), JsValue>),
+        ] {
+            assert!(action_value_type(&output).is_none());
+        }
+        for output in [
+            parse_quote!(-> OutputAlias),
+            parse_quote!(-> std::result::Result<OutputAlias, JsValue>),
+            parse_quote!(-> ::core::result::Result<OutputAlias, JsValue>),
+        ] {
+            assert_eq!(
+                type_name(&action_value_type(&output).unwrap()),
+                "OutputAlias"
+            );
+        }
+        assert_eq!(
+            type_name(&action_value_type(&parse_quote!(-> domain::Result<u32>)).unwrap()),
+            "domain::Result<u32>"
+        );
+    }
+
+    #[test]
     fn recognizes_only_standard_action_result_paths() {
         for output in [
             parse_quote!(-> Result<(), JsValue>),
@@ -1472,7 +1530,7 @@ mod tests {
             assert!(action_returns_result(&output));
         }
         // This domain value has no Try implementation; the action must keep
-        // discarding it rather than generating a question-mark operator.
+        // serializing it as an ordinary value rather than using a question mark.
         assert!(!action_returns_result(
             &parse_quote!(-> domain::Result<u32>)
         ));

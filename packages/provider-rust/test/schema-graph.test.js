@@ -128,3 +128,46 @@ test("named payloads cannot collide with generated component props or events", (
     assert.doesNotMatch(code, /export interface PanelProps/);
   }
 });
+
+test("action results use output conversion identity and retain legacy void actions", () => {
+  const input = store(scalar("u32"));
+  input.actions = [
+    { name: "reset", params: [] },
+    { name: "count", params: [], result: "CountAlias", resultAbi: scalar("u64") },
+    { name: "convert", params: [field("value", named("app::Value"))], result: "OutputAlias", resultAbi: named("app::Value", "to") },
+  ];
+  const types = [type("app::Value", [field("id", scalar("u32"))]), type("app::Value", [field("label", scalar("String"))], "to")];
+  for (const framework of frameworks) {
+    const code = generateRustStoreDeclaration(input, framework, types);
+    assert.match(code, /reset\(\.\.\.args: \[\]\): void/);
+    assert.match(code, /count\(\.\.\.args: \[\]\): bigint/);
+    assert.match(code, /convert\(\.\.\.args: \[ValueInput\]\): ValueOutput/);
+    assert.match(code, /label: string/);
+    assert.doesNotMatch(code, /OutputAlias/);
+  }
+});
+
+test("action result graph errors retain authored locations", () => {
+  const source = { file: "src/Store.rs", line: 12 };
+  for (const abi of [{ kind: "unsupported", reason: "&str" }, named("app::Missing", "to"), named("app::Recursive", "to")]) {
+    const input = store(scalar("u32"));
+    input.actions = [{ name: "read", params: [], result: "Alias", resultAbi: abi, resultSource: source }];
+    const recursive = type("app::Recursive", [field("children", { kind: "vec", value: named("app::Recursive", "to") })], "to");
+    assert.throws(() => generateRustStoreDeclaration(input, "react", [recursive]), error => {
+      assert.equal(error.kind, "action-result-schema");
+      assert.deepEqual(error.source, source);
+      assert.match(error.message, /action result read/);
+      return true;
+    });
+  }
+});
+
+test("reader rejects malformed action result metadata while reading legacy void actions", () => {
+  for (const action of [{ name: "reset", params: [] }, { name: "reset", params: [], result: null, resultAbi: null }]) {
+    assert.equal(readVooyaSchema(wasm([{ ...store(scalar("u32")), actions: [action] }])).version, 2);
+  }
+  for (const result of [7, "", "Alias"]) {
+    assert.throws(() => readVooyaSchema(wasm([{ ...store(scalar("u32")), actions: [{ name: "bad", params: [], result }] }])), /not a supported record/);
+  }
+  assert.throws(() => readVooyaSchema(wasm([{ ...store(scalar("u32")), actions: [{ name: "bad", params: [], resultAbi: scalar("u32") }] }])), /not a supported record/);
+});

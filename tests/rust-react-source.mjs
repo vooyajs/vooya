@@ -78,6 +78,17 @@ async function verifyBrowser() {
       firstDisposed: true,
       siblingCount: 2,
     });
+    await page.getByRole("button", { name: "Check action results", exact: true }).click();
+    const resultOutput = page.getByTestId("action-result");
+    await resultOutput.filter({ hasText: "precise" }).waitFor();
+    assert.deepEqual(JSON.parse(await resultOutput.textContent()), {
+      unit: true, scalar: 3, named: { item_count: 7, labels: ["receipt"] },
+      precise: "9007199254740993", failure: "receipt failed", count: 8,
+      notifications: 4, stable: true, disposed: true,
+    });
+    await page.getByRole("button", { name: "Check hook result", exact: true }).click();
+    await resultOutput.filter({ hasText: "item_count" }).waitFor();
+    assert.deepEqual(JSON.parse(await resultOutput.textContent()), { item_count: 2, labels: ["receipt"] });
     if (errors.length > 0) throw new Error(`Rust-file React fixture had browser errors:\n${errors.join("\n")}`);
   } finally {
     try {

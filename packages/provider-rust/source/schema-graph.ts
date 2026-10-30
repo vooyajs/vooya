@@ -11,7 +11,7 @@ interface SnapshotValidation extends GraphRoot {
 }
 
 /** Version 2 never resolves a conversion by its display name or source file. */
-export function generateResolvedTypes(types: RustTypeSchema[], roots: GraphRoot[], snapshot?: SnapshotValidation, reserved: string[] = []) {
+export function generateResolvedTypes(types: RustTypeSchema[], roots: GraphRoot[], snapshot?: SnapshotValidation, reserved: string[] = [], outputValidations: SnapshotValidation[] = []) {
   const key = (identity: string, direction: string) => JSON.stringify([identity, direction]);
   const records = new Map<string, RustTypeSchema>();
   for (const type of types) {
@@ -36,17 +36,17 @@ export function generateResolvedTypes(types: RustTypeSchema[], roots: GraphRoot[
     else if (abi.kind === "option" || abi.kind === "vec" || abi.kind === "map") collect(abi.value);
   };
   let opaqueSnapshot = false;
-  if (snapshot) {
+  for (const validation of [...(snapshot ? [snapshot] : []), ...outputValidations]) {
     const validated = new Set<RustTypeSchema>();
     const validate = (abi: RustAbiType, path: string, source: RustSchemaSource | undefined, ancestors: Set<RustTypeSchema>): void => {
-      if (abi.kind === "opaque") { opaqueSnapshot = true; return; }
-      if (abi.kind === "unsupported") throw snapshot.error(path, `Unsupported Rust schema type "${abi.reason}".`, source);
+      if (abi.kind === "opaque") { if (validation === snapshot) opaqueSnapshot = true; return; }
+      if (abi.kind === "unsupported") throw validation.error(path, `Unsupported Rust schema type "${abi.reason}".`, source);
       if (abi.kind === "named") {
         let type: RustTypeSchema;
         try { type = resolve(abi); } catch (error) {
-          throw snapshot.error(path, error instanceof Error ? error.message : String(error), source);
+          throw validation.error(path, error instanceof Error ? error.message : String(error), source);
         }
-        if (ancestors.has(type)) throw snapshot.error(path, `Recursive Rust schema reference "${abi.identity}" is not supported.`, source);
+        if (ancestors.has(type)) throw validation.error(path, `Recursive Rust schema reference "${abi.identity}" is not supported.`, source);
         if (validated.has(type)) return;
         if (type.shape.kind === "struct") {
           const next = new Set(ancestors).add(type);
@@ -56,7 +56,7 @@ export function generateResolvedTypes(types: RustTypeSchema[], roots: GraphRoot[
       } else if (abi.kind === "tuple") abi.items.forEach((item, index) => validate(item, `${path}[${index}]`, source, ancestors));
       else if (abi.kind === "option" || abi.kind === "vec" || abi.kind === "map") validate(abi.value, path, source, ancestors);
     };
-    validate(snapshot.abi, snapshot.path, snapshot.source, new Set());
+    validate(validation.abi, validation.path, validation.source, new Set());
   }
   roots.forEach(root => collect(root.abi));
 

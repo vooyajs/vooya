@@ -19,7 +19,7 @@ import {
   writeWorkspaceMetadata,
 } from "./workspace.js";
 import { buildRustComponentContracts, indexVooyaSchema, readVooyaSchema, validateVooyaSchemaGroups } from "./schema.js";
-import { generateRustSchemaDeclaration, generateRustStoreDeclaration, RustSnapshotSchemaError } from "./schema-declarations.js";
+import { generateRustSchemaDeclaration, generateRustStoreDeclaration, RustSnapshotSchemaError, RustActionResultSchemaError } from "./schema-declarations.js";
 import type { RustSchemaDocument } from "./schema.js";
 
 import type { BuildProvider, BuildArtifact, MappedDiagnostic, GeneratedCss, GeneratedDeclaration } from "./provider.js";
@@ -479,11 +479,12 @@ function buildApplicationUnlocked({
   } catch (cause) {
     discardStaging(stagingOutputDir);
     discardStaging(stagingMetadata);
-    if (cause instanceof RustSnapshotSchemaError && cause.source) {
+    if ((cause instanceof RustSnapshotSchemaError || cause instanceof RustActionResultSchemaError) && cause.source) {
       const source = cause.source;
       const mapping = diagnosticMappings.get(resolve(workspacePath, source.file)) ?? diagnosticMappings.get(resolve(source.file));
       if (mapping) {
-        throw new RustSnapshotSchemaError(cause.storeId, cause.fieldPath, cause.reason, { ...source, file: mapping.id });
+        const SchemaError = cause instanceof RustActionResultSchemaError ? RustActionResultSchemaError : RustSnapshotSchemaError;
+        throw new SchemaError(cause.storeId, cause.fieldPath, cause.reason, { ...source, file: mapping.id });
       }
     }
     throw cause;
