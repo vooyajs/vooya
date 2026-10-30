@@ -1,6 +1,6 @@
 import { generatedScopeId } from "@vooya/compiler";
 import { rustTypeToRuntimeType } from "./schema-declarations.js";
-import type { RustComponentContract, RustStoreSchema } from "./schema.js";
+import type { RustAbiType, RustComponentContract, RustStoreSchema } from "./schema.js";
 
 export type RustModuleFramework = "vue" | "react" | "solid" | "svelte" | "octane";
 
@@ -30,8 +30,8 @@ export function renderRustComponentModule(contract: RustComponentContract, frame
     ...(scopeId ? { scopeId } : {}),
     props: props.map((prop) => ({
       name: prop.name,
-      type: rustTypeToRuntimeType(prop.type),
-      required: !/^Option\s*</.test(prop.type.replace(/\s+/g, "")),
+      type: prop.abi ? abiRuntimeType(prop.abi) : rustTypeToRuntimeType(prop.type),
+      required: prop.abi ? prop.abi.kind !== "option" : !/^Option\s*</.test(prop.type.replace(/\s+/g, "")),
     })),
     events: events.map((event) => ({ name: event.name, parameters: event.params.map((parameter) => parameter.name) })),
   };
@@ -152,4 +152,12 @@ function rustStem(name: string): string {
 
 function rustProperty(name: string): string {
   return name.replace(/[^A-Za-z0-9_$]/g, "_");
+}
+
+function abiRuntimeType(abi: RustAbiType): ReturnType<typeof rustTypeToRuntimeType> {
+  if (abi.kind === "option") return abiRuntimeType(abi.value);
+  if (abi.kind === "scalar") return rustTypeToRuntimeType(abi.name);
+  if (abi.kind === "vec" || abi.kind === "tuple") return "array";
+  if (abi.kind === "unsupported") throw new Error(`Unsupported Rust runtime type "${abi.reason}".`);
+  return "object";
 }

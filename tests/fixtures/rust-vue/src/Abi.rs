@@ -4,19 +4,25 @@ use wasm_bindgen::JsValue;
 use vooya as voo;
 use voo::ToJs;
 
+type Count = u32;
+type Precise = u128;
+type MaybeLabel = Option<String>;
+type Pair = (u32, Option<String>);
+type Labels = BTreeMap<String, u64>;
+
 #[voo::props]
 #[derive(voo::FromJs)]
 pub struct AbiProps {
-    pub small: u32,
-    pub precise: u128,
-    pub optional: Option<String>,
-    pub pair: (u32, Option<String>),
-    pub labels: BTreeMap<String, u64>,
+    pub small: Count,
+    pub precise: Precise,
+    pub optional: MaybeLabel,
+    pub pair: Pair,
+    pub labels: Labels,
 }
 
 #[voo::events]
 pub trait AbiEvents {
-    fn payload(value: u128);
+    fn payload(value: Precise);
 }
 
 #[voo::component]

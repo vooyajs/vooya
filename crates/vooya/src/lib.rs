@@ -4,6 +4,8 @@
 //! related markers). Data conversion capabilities are provided by derives in a
 //! later ABI layer; this crate deliberately keeps those concerns separate.
 
+#[doc(hidden)]
+pub mod schema;
 mod abi;
 mod store;
 

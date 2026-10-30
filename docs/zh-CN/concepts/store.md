@@ -189,10 +189,7 @@ Rust 源码位置。旧 schema v1 仍可读取；没有位置元数据时只报�
 Snapshot 应使用 `String` 等 owned ABI-v1 值，避免借用字段和递归结构。泛型公开
 类型继续由 Rust 宏拒绝。快照身份、订阅、动作和释放语义不变。
 
-缺少 schema 时仍生成带说明注释的 `unknown`。Schema v1 无法区分有意手写的
-`ToJs` 值与意外缺失的元数据，因此这不是精确类型已受支持的保证。完整的 Rust
-模块与别名解析仍是独立工作；不能把未解析的名称直接判为不受支持的值。
-
-仅有 `FromJs` 输入 schema 时，不会据此触发上述输出诊断：手写 `ToJs` 可以返回不同
-形状。现有输入/输出共用的声明解析仍可能反映输入形状；本次没有修复这种组合的
-snapshot 类型精度，不能据此宣称整项诊断契约已经完成。
+Schema v2 中，手写转换默认显式标记为 opaque，生成带说明注释的 `unknown`；明确的
+命名引用缺少记录则构建失败。旧 v1 无法区分这两种情况，继续以 `unknown` 处理缺失元数据。
+仅有 `FromJs` 输入 schema 不会提供手写 `ToJs` 的输出形状；没有输出元数据时 snapshot
+保持 `unknown`。详见[英文 schema 设计](../../contribute/rust-schema.md)。

@@ -228,6 +228,7 @@ jobs:
       - run: npm run test:rust-vue
       - run: npm run test:rust-react
       - run: npm run test:rust-snapshot-diagnostics
+      - run: npm run test:rust-type-identity
 
   nuxt-ssr:
     name: Nuxt SSR packed consumer

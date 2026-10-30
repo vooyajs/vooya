@@ -268,7 +268,7 @@ for (const failure of ["schema extraction", "declaration generation", "runtime J
       }
       syncBuiltinESMExports();
       const expectedError = {
-        "schema extraction": /schema version|version 2|not a supported record/i,
+        "schema extraction": /schema version|version 3|not a supported record/i,
         "declaration generation": /Unknown schema declaration framework/,
         "runtime JavaScript read": /ENOENT.*vooya_app\.js/,
         "metadata write": /injected metadata write failure/,
@@ -283,7 +283,7 @@ for (const failure of ["schema extraction", "declaration generation", "runtime J
           if (failure !== "runtime JavaScript read") {
             writeFileSync(resolve(stagingOutput, "vooya_app.js"), "new loader");
           }
-          const records = [{ version: failure === "schema extraction" ? 2 : 1, kind: "component",
+          const records = [{ version: failure === "schema extraction" ? 3 : 1, kind: "component",
             id: "counter::Counter", name: "Counter", group: "src/Counter.rs", params: [] }];
           writeFileSync(resolve(stagingOutput, "vooya_app_bg.wasm"), schemaWasm(records));
         },
