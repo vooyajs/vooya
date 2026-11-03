@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,10 +13,19 @@ const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 try {
   cpSync(fixture, project, { recursive: true });
   run(npm, ["install", "--ignore-scripts", "--no-audit", "--no-fund"], project);
+  const versions = {
+    node: process.version,
+    next: runCapture(npm, ["exec", "--", "next", "--version"], project).stdout.trim(),
+    react: JSON.parse(readFileSync(resolve(project, "node_modules/react/package.json"), "utf8")).version,
+  };
+  console.log(`Installed versions: ${JSON.stringify(versions)}`);
   const result = runCapture(npm, ["run", "build"], project);
+  const output = `${result.stdout}\n${result.stderr}`;
   assert.notEqual(result.status, 0, "Turbopack unexpectedly accepted loader asset emission.");
-  assert.match(`${result.stdout}\n${result.stderr}`, /emitFile.*unsupported|emitFile is not a function/i);
-  console.log("Turbopack rejected loader-side asset emission for a .rs client import as expected.");
+  assert.match(output, /vooyaRustEmitFileSentinelLoader/);
+  assert.match(output, /emitFile.*unsupported|emitFile is not a function/i);
+  assert.equal(existsSync(resolve(project, ".next", "static", "media", "vooya-rust-blocker-sentinel.wasm")), false);
+  console.log(`Turbopack rejected loader-side asset emission for a .rs client import as expected (${JSON.stringify(versions)}).`);
 } finally {
   if (!process.env.VOOYA_KEEP_TURBOPACK_FIXTURE) rmSync(project, { force: true, recursive: true });
 }
