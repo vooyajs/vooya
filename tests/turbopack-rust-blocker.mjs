@@ -18,6 +18,7 @@ try {
     next: runCapture(npm, ["exec", "--", "next", "--version"], project).stdout.trim(),
     react: JSON.parse(readFileSync(resolve(project, "node_modules/react/package.json"), "utf8")).version,
   };
+  console.log(`Installed versions: ${JSON.stringify(versions)}`);
   const result = runCapture(npm, ["run", "build"], project);
   const output = `${result.stdout}\n${result.stderr}`;
   assert.notEqual(result.status, 0, "Turbopack unexpectedly accepted loader asset emission.");
