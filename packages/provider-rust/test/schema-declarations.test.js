@@ -484,6 +484,7 @@ test("checks snapshot reachability, rejects cycles and keeps unresolved metadata
   const opaque = generateRustStoreDeclaration({ ...store, snapshot: "Option<Opaque>" }, "vue");
   assert.match(opaque, /ReplaySnapshot = unknown \| null/);
   assert.match(opaque, /Snapshot schema metadata is missing/);
+  assert.doesNotMatch(opaque, /handwritten ToJs implementation/);
   assert.doesNotMatch(generateRustStoreDeclaration(store, "vue", [state]), /Snapshot schema metadata is missing/);
 });
 

@@ -70,6 +70,7 @@ test("missing explicit metadata never falls back to a matching short name or inp
   assert.throws(() => generateRustStoreDeclaration(store(named("app::wrong::Value", "to")), "vue", types), /missing conversion metadata.*\(to\)/);
   const code = generateRustStoreDeclaration(store({ kind: "opaque" }), "vue", types);
   assert.match(code, /ReplaySnapshot = unknown/);
+  assert.match(code, /conversion metadata is opaque \(for example, a handwritten ToJs implementation\)/);
   assert.doesNotMatch(code, /interface Value/);
 });
 
