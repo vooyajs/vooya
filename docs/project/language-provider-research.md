@@ -64,6 +64,28 @@ compatibility policy. Its loading boundary should accept provider-built bundles
 without invoking Cargo or another source compiler. This is independent of
 component npm publication.
 
+## Research Work Map
+
+The following issues split this research into ordered, internal experiments.
+They are not a provider registry, a language-support roadmap, or a release
+commitment. A task can produce a useful negative result; completing one row does
+not make any language supported.
+
+| Boundary | Tracking work | Required before it can advance |
+| --- | --- | --- |
+| Shared JS-facing and portable interface model | [#175](https://github.com/vooyajs/vooya/issues/175) | Maintainer design decision on values, resources, diagnostics and source-of-truth generation |
+| Provider-owned preparation, loader and multiple assets | [#176](https://github.com/vooyajs/vooya/issues/176) | Internal prototype preserves current Rust entry points and coordinates with the artifact proposal in [#110](https://github.com/vooyajs/vooya/pull/110) |
+| Shared Store conformance cases | [#212](https://github.com/vooyajs/vooya/issues/212) | #175 and #176 define an internal fixture boundary; Rust runs or documents each initial gap |
+| Standard-Go Store | [#177](https://github.com/vooyajs/vooya/issues/177) | #175 and #176; Go runtime/callback ownership evidence |
+| Zig Store | [#211](https://github.com/vooyajs/vooya/issues/211) | #175 and #176; explicit Zig target, memory and host-glue evidence |
+| Go/Zig comparison, value, cache, diagnostics and assets | [#209](https://github.com/vooyajs/vooya/issues/209), [#213](https://github.com/vooyajs/vooya/issues/213), [#214](https://github.com/vooyajs/vooya/issues/214), [#215](https://github.com/vooyajs/vooya/issues/215), [#220](https://github.com/vooyajs/vooya/issues/220) | Both canaries run the same conformance contract; no implicit pointer/object transport or source-compiler dependency in a clean consumer |
+
+The Go/Zig rows are deliberately downstream of the shared contract and loader
+work. They must not choose a public authoring syntax, download tools through the
+Rust preset, or silently make one provider's runtime model the universal
+contract. AssemblyScript and Emscripten remain alternative canaries, not a
+requirement to implement every language before evaluating the seam.
+
 ## Rust Reference Provider
 
 Rust is the first extraction target. The refactor must preserve existing public
