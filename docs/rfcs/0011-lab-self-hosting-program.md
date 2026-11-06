@@ -75,6 +75,41 @@ Lab-only workarounds are temporary evidence. They must be removed after an
 owning-layer fix, or documented with a linked issue and limitation. A utility
 is not extracted solely because one case needs it.
 
+## Core Finding Handoff
+
+When a Lab case reveals a possible Core defect or missing contract, open the
+focused issue in the owning repository with enough information to reproduce the
+boundary without private Lab context. The handoff is not a second case schema;
+the authoritative case metadata remains in `vooyajs/vooya-lab`.
+
+Include, where applicable:
+
+- the case and route/revision that exposed the finding;
+- the exact Vooya package versions or source commit, framework, bundler, browser
+  and operating-system environment;
+- the smallest user-visible behavior and the expected behavior;
+- the command or browser steps needed to reproduce it;
+- relevant source/configuration inputs and whether the result is deterministic;
+- the current workaround, its owner, and why it must not become a permanent
+  Lab-only patch;
+- logs or sanitized diagnostics with secrets, tokens, absolute home paths and
+  unrelated application data removed;
+- the proposed owning boundary: compiler, ABI, runtime, adapter, toolchain,
+  diagnostics, docs or Lab-only product surface;
+- the evidence that would close the issue, including the named fixture or
+  consumer test required before a public support claim changes.
+
+If the finding depends on an external Lab commit or asset, pin that identity in
+the issue rather than linking only to a moving branch. If it cannot be reduced
+to a reproducible Core boundary, keep it as a Lab finding and record the
+limitation instead of filing speculative implementation work.
+
+After the owning fix lands, the Lab case should link the fix, remove the
+workaround where possible, rerun the original scenario and record whether the
+result changes. A passing Core unit test alone does not close a browser or
+deployment finding; the named case must be rerun when its behavior is part of
+the acceptance claim.
+
 ## Beta Boundary
 
 The program informs the beta gate but does not expand it. Rust remains the only
@@ -95,6 +130,9 @@ framework.
   there; this record defines the ownership and evidence boundary.
 - Every Core finding has a focused issue or documented reason to remain an
   experiment.
+- Core findings include a reproducible handoff with environment, source
+  revision, workaround and closure evidence; private Lab context is not a
+  prerequisite for triage.
 - Compatibility claims continue to require named automated evidence in this
   repository.
 - Reusable packages require repeated use or an independent public boundary.
