@@ -51,6 +51,12 @@ Reuse successful checks on an unchanged commit; rerun after relevant changes
 or when a failed check needs investigation. See the
 [release procedure](../maintainers/releases.md) for the complete release gate.
 
+When changing a public support, experimental, retirement, or research claim,
+update [`claim-evidence.json`](../project/claim-evidence.json) when its scope is
+covered there. Keep the canonical prose in the status or compatibility pages;
+the index records the claim status and named local evidence so `verify:docs` can
+detect stale boundaries without network access.
+
 ## Repository language statistics
 
 The repository's `.gitattributes` excludes standalone test directories,
