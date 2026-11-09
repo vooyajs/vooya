@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "claims": [
+    {
+      "id": "rust-source-authoring",
+      "statement": "Rust .rs source authoring is the supported first-party path.",
+      "status": "published",
+      "scope": "Rust source authoring with the documented Cargo, wasm32 target, and wasm-bindgen prerequisites.",
+      "documents": ["docs/project/status.md", "docs/project/beta-boundary.md"],
+      "evidence": [{ "kind": "command", "value": "test:rust-vue" }],
+      "owner": "project/status",
+      "reviewed": "0.2.0-alpha.1"
+    },
+    {
+      "id": "solid-svelte-experimental",
+      "statement": "Solid and Svelte adapters remain experimental.",
+      "status": "experimental",
+      "scope": "Named Vite and Chromium fixtures only; no clean registry-consumer claim.",
+      "documents": ["docs/project/compatibility.md"],
+      "evidence": [{ "kind": "command", "value": "test:rust-solid" }, { "kind": "command", "value": "test:rust-svelte" }],
+      "owner": "project/compatibility",
+      "reviewed": "0.2.0-alpha.1"
+    },
+    {
+      "id": "webpack-rspack-rust-source",
+      "statement": "Webpack and Rspack Rust-file integrations are bounded alpha evidence.",
+      "status": "experimental",
+      "scope": "Named Vue/React source-tarball fixtures; not a blanket bundler or browser claim.",
+      "documents": ["docs/project/compatibility.md"],
+      "evidence": [{ "kind": "command", "value": "test:rust-bundlers" }],
+      "owner": "project/compatibility",
+      "reviewed": "0.2.0-alpha.1"
+    },
+    {
+      "id": "precompiled-package-builder",
+      "statement": "The dedicated precompiled component-package builder is retired.",
+      "status": "retired",
+      "scope": "Authors own component packaging; this is not a supported zero-Rust consumer path.",
+      "documents": ["docs/project/status.md", "docs/project/compatibility.md"],
+      "evidence": [{ "kind": "document", "value": "docs/rfcs/0006-precompiled-vue-artifacts.md" }],
+      "owner": "project/status",
+      "reviewed": "main"
+    },
+    {
+      "id": "ssr-hydration-slots",
+      "statement": "SSR-rendered Rust DOM, hydration and slots are not supported.",
+      "status": "not-supported",
+      "scope": "Client-mounted islands and named SSR-safe host-container evidence are separate.",
+      "documents": ["docs/project/compatibility.md", "docs/project/beta-boundary.md"],
+      "evidence": [{ "kind": "document", "value": "docs/project/ssr-roadmap.md" }],
+      "owner": "project/compatibility",
+      "reviewed": "main"
+    },
+    {
+      "id": "provider-and-browser-ide-research",
+      "statement": "Additional language providers and browser IDE environments are research only.",
+      "status": "research",
+      "scope": "No Go, Zig or browser Rust compilation support claim exists.",
+      "documents": ["docs/project/language-provider-research.md", "docs/project/beta-boundary.md"],
+      "evidence": [{ "kind": "document", "value": "docs/project/language-provider-research.md" }, { "kind": "issue", "value": "https://github.com/vooyajs/vooya/issues/181" }],
+      "owner": "project/research",
+      "reviewed": "main"
+    }
+  ]
+}
