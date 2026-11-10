@@ -90,6 +90,7 @@
     "test:build-core": "npm run test:provider-rust && npm test --workspace @vooya/build-core",
     "test:nuxt-ssr": "node tests/nuxt-ssr-consumer.mjs",
     "test:provider-rust": "npm test --workspace @vooya/provider-rust",
+    "test:provider-conformance": "node --test tests/provider-store-conformance.mjs",
     "typecheck:test-helpers": "tsc -p tests/tsconfig.helpers.json",
     "build:experimental": "npm run build --workspace @vooya/octane",
     "test:vite": "npm test --workspace @vooya/vite",
