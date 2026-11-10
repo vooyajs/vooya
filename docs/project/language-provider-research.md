@@ -64,6 +64,22 @@ compatibility policy. Its loading boundary should accept provider-built bundles
 without invoking Cargo or another source compiler. This is independent of
 component npm publication.
 
+## Diagnostic Baseline
+
+Issue [#214](https://github.com/vooyajs/vooya/issues/214) starts with an
+internal diagnostic fixture contract. Run it with
+`npm run test:provider-diagnostics`. It normalizes provider stage, severity,
+stable message, provider/version, project-relative authored source location,
+generated asset location and recovery hint without parsing Cargo, Go or Zig
+output. Source spans are optional: an asset/runtime failure must remain
+generated when a compiler cannot supply an authored location, rather than
+guessing one.
+
+The fixture rejects host paths and compiler-specific stage names so diagnostics
+do not leak checkout/cache locations or encode one provider's output format.
+Go/Zig compiler, linker and browser recovery fixtures remain downstream of the
+provider-owned loading boundary in [#176](https://github.com/vooyajs/vooya/issues/176).
+
 ## Rust Reference Provider
 
 Rust is the first extraction target. The refactor must preserve existing public
