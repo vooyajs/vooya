@@ -64,6 +64,22 @@ compatibility policy. Its loading boundary should accept provider-built bundles
 without invoking Cargo or another source compiler. This is independent of
 component npm publication.
 
+## Conformance Baseline
+
+Issue [#212](https://github.com/vooyajs/vooya/issues/212) starts with an
+internal Store-fixture harness before a second provider is introduced. Run it
+with `npm run test:provider-conformance`. The initial Rust-shaped fake fixture
+tests the host-visible Store boundary without importing Cargo, a compiler, a
+language runtime or provider-private handle tables.
+
+It covers the common canary snapshot `{ count: u32, label: string }`,
+`add(delta)`/`reset()` actions, one notification per accepted change,
+independent instances, cancelled loading, failed-load retry and idempotent
+disposal from a notification listener. It is not browser/framework evidence and
+does not close the provider-loader, clean-consumer or Vue/React acceptance
+requirements. Go and Zig canaries can join only when they run the same cases
+through the agreed internal artifact boundary.
+
 ## Rust Reference Provider
 
 Rust is the first extraction target. The refactor must preserve existing public
