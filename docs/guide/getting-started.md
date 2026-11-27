@@ -2,6 +2,8 @@
 
 Beta remains the default in this guide. For the optional managed toolchain and
 the bounded newer integrations, use the separate [0.2 alpha installation guide](../project/next-release.md).
+Before selecting an experimental path, review the [known limitations](../project/known-limitations.md)
+and its named evidence boundaries.
 
 Add one Rust component to an existing Vite application. Choose your framework:
 
