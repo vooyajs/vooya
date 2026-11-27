@@ -139,6 +139,17 @@ toolchain; a production smoke does not imply development-server or HMR support.
 | Rspack / Rsbuild | Rspack `>=2.1.10`; Rsbuild `>=2.1.13` | `npm run test:rspack` | Packed Rust Vue/React/Rslib/native-Rspack fixtures with WASM, scoped CSS, lifecycle checks, mapped diagnostics, and rebuild recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue/React Rust-file watch covers failure recovery, style edits, new modules and convergence; both frameworks also have development-server recovery checks. Solid/Svelte remain outside this support contract. |
 | Webpack | `>=5` | `npm run test:webpack` | Packed Rust Vue/React production and watch fixtures with emitted WASM, scoped CSS, lifecycle checks, mapped diagnostics, and recovery. `test:rust-bundlers` adds packed Vue/React `.rs` production builds, Stores, props/events, scoped CSS, and unmount/remount; Vue/React Rust-file watch covers failure recovery, style edits, new modules and convergence; both frameworks also have development-server recovery checks. Solid/Svelte remain outside this support contract. |
 
+## Unreleased Current-Source Evidence
+
+These rows require matching packages built from the checkout. They are not part
+of the published alpha registry graph in [project status](status.md), and no
+consumer should infer a registry, SSR or non-Vite support claim from them.
+
+| Capability | Tested boundary | Evidence | Exclusions |
+| --- | --- | --- | --- |
+| Typed synchronous Store action results | Vue/React Vite 7 Rust-file consumers return supported owned values and generate precise result declarations; a mutation may publish before an action reports an error | `npm run test:rust-vue`; `npm run test:rust-react`; `node tests/adapter-store-types.mjs` | Async actions, typed domain notifications, automatic rollback, Solid/Svelte browser result evidence and published registry packages |
+| Opt-in isolated Rust/WASM artifacts | Vite 7 and 8 packed source consumers lazily load independent light/heavy groups, retain isolated type graphs, preserve a successful sibling after another group fails, and dispose/remount instances | `npm run test:rust-artifacts` | Webpack/Rspack, SSR/server-rendered Rust DOM, precompiled component products, arbitrary artifact graphs, state-preserving HMR and published registry packages |
+
 ## 0.2 alpha SSR additions
 
 Current source keeps Vue Store creation in the browser and preserves React

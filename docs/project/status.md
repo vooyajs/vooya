@@ -16,6 +16,20 @@ These capabilities require matching source-built core/provider packages and are
 not in the registry versions below. Other bundlers retain the single-artifact
 contract. The batch does not add async actions or typed Store domain events.
 
+- **Typed synchronous Store results:** current-source Vue/React fixtures verify
+  generated result declarations, supported owned return values, successful
+  values and mutation-then-error behavior through `npm run test:rust-vue` and
+  `npm run test:rust-react`. An action may publish a changed snapshot before it
+  reports an error; Vooya does not roll that mutation back automatically. Solid
+  and Svelte typed-result browser evidence is not yet established.
+- **Independent Rust/WASM artifacts:** `npm run test:rust-artifacts` runs Vite
+  7 and 8 packed source consumers with a light initial group and a lazily loaded
+  second group. It verifies separate type graphs, lazy asset loading, a failed
+  group preserving a live sibling, and disposal/remount. This is Vite-only
+  current-source evidence, not a registry release, SSR/server-Rust rendering,
+  precompiled component product, state-preserving HMR or arbitrary artifact
+  graph contract.
+
 ## Opt-in 0.2 alpha
 
 The [2026-10-27 alpha release](https://github.com/vooyajs/vooya/actions/runs/40387724087) publishes eleven updated packages:
