@@ -63,6 +63,8 @@ semantics instead of browser WebAssembly.
   and the next milestones.
 - [Compatibility matrix](project/compatibility.md): automated framework and
   browser evidence, plus explicit unsupported boundaries.
+- [Known limitations](project/known-limitations.md): concise support and
+  non-support boundaries with links to their canonical evidence.
 - [Benchmarks](benchmarks/data-grid.md): workload-specific measurements and
   the limits of their conclusions.
 - [Beta boundary](project/beta-boundary.md): the current product scope,
