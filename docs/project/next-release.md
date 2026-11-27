@@ -89,6 +89,16 @@ CI with a fresh managed cache; a local reused cache does not verify downloads.
 | Webpack/Rspack `.rs` authoring | Vue/React components, Stores, CSS and declarations; Vue watch recovery and new-module checks. Other watch/framework combinations remain unverified. |
 | SSR-safe islands | Vue lazy Store creation and React client boundaries; named Nuxt production/browser fixture. Rust content still mounts in the browser; Next.js is unverified. |
 
+## Unreleased Source Capabilities
+
+The current checkout additionally contains typed synchronous Store action
+results and opt-in isolated Rust/WASM artifacts. They require matching
+source-built core/provider packages and are **not** included in the alpha.0/
+alpha.1 registry graph above. Use the source evidence commands in the
+[compatibility matrix](./compatibility.md#unreleased-current-source-evidence)
+when evaluating them; do not add their APIs to an installed alpha application
+until a later release publishes a matching package graph.
+
 See [source compatibility evidence](./compatibility.md#current-source-browser-fixtures),
 [experimental setup](../guide/other-integrations.md#vite), and the
 [SSR boundary](./ssr-roadmap.md). Use the exact installation graph above. The named source tests describe coverage;
